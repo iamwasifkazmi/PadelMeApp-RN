@@ -79,8 +79,8 @@ export function ProfileScreen() {
             <Ionicons name="flash-outline" size={14} color={COLORS.card} />
             <Text style={styles.heroCtaText}>Play Now</Text>
           </Pressable>
-          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("InvitePlayers", { eventId: "profile-invite" })}>
-            <Text style={styles.heroGhostText}>Invite to Match</Text>
+          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("AcceptInvite")}>
+            <Text style={styles.heroGhostText}>Accept Invite</Text>
           </Pressable>
         </View>
       </View>
@@ -141,6 +141,18 @@ export function ProfileScreen() {
               <Ionicons name="time-outline" size={18} color={COLORS.primary} />
               <Text style={styles.quickTitle}>History</Text>
               <Text style={styles.quickMeta}>Past matches</Text>
+            </Pressable>
+          </View>
+          <View style={styles.quickRow}>
+            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("Onboarding")}>
+              <Ionicons name="person-add-outline" size={18} color={COLORS.primaryDark} />
+              <Text style={styles.quickTitle}>Complete Setup</Text>
+              <Text style={styles.quickMeta}>Open onboarding flow</Text>
+            </Pressable>
+            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("AcceptInvite")}>
+              <Ionicons name="mail-open-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.quickTitle}>Accept Invite</Text>
+              <Text style={styles.quickMeta}>Join via invite token</Text>
             </Pressable>
           </View>
 

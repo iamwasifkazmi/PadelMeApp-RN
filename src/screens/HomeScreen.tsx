@@ -118,13 +118,13 @@ function MatchCard({
 
 function PlayerMini({ player }: { player: Player }) {
   return (
-    <Pressable style={styles.playerMini}>
+    <View style={styles.playerMini}>
       <View style={styles.playerAvatar}>
         <Text style={styles.playerAvatarText}>{player.name.slice(0, 1)}</Text>
       </View>
       <Text style={styles.playerName}>{player.name}</Text>
       <Text style={styles.playerLevel}>{player.level}</Text>
-    </Pressable>
+    </View>
   );
 }
 
@@ -220,16 +220,27 @@ export function HomeScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <View style={styles.userAvatar}>
+          <Pressable
+            style={styles.userAvatar}
+            onPress={() => {
+              navigation.navigate("MainTabs", { screen: "ProfileTab" });
+            }}
+          >
             <Text style={styles.userAvatarText}>A</Text>
-          </View>
+          </Pressable>
           <View>
             <Text style={styles.greeting}>Hi Ahmed 👋</Text>
             <Text style={styles.greetingSub}>Dubai</Text>
           </View>
         </View>
         <View style={styles.headerActions}>
-          <Pressable style={styles.headerIconBtn}>
+          <Pressable
+            style={styles.headerIconBtn}
+            onPress={() => {
+              const parent = navigation.getParent?.();
+              if (parent?.navigate) parent.navigate("MessagesTab");
+            }}
+          >
             <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.text} />
           </Pressable>
           <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate("Notifications")}>
@@ -318,7 +329,9 @@ export function HomeScreen() {
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersRow}>
         {players.map((p) => (
-          <PlayerMini key={p.id} player={p} />
+          <Pressable key={p.id} onPress={() => navigation.navigate("PlayerProfile", { id: p.id })}>
+            <PlayerMini player={p} />
+          </Pressable>
         ))}
       </ScrollView>
 

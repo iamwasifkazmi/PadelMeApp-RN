@@ -52,7 +52,7 @@ export function FindMatchScreen() {
           <Text style={styles.title}>Discover</Text>
           <Text style={styles.subtitle}>Find players, games and friends near you</Text>
         </View>
-        <Pressable style={styles.locBtn}>
+        <Pressable style={styles.locBtn} onPress={() => navigation.navigate("Players")}>
           <Ionicons name="location-outline" size={14} color={COLORS.primary} />
           <Text style={styles.locBtnText}>Dubai</Text>
         </Pressable>
@@ -70,9 +70,9 @@ export function FindMatchScreen() {
       </View>
 
       <View style={styles.topTabs}>
-        <Pressable style={[styles.topTab, styles.topTabActive]}>
+        <View style={[styles.topTab, styles.topTabActive]}>
           <Text style={[styles.topTabText, styles.topTabTextActive]}>Games</Text>
-        </Pressable>
+        </View>
         <Pressable style={styles.topTab} onPress={() => navigation.navigate("Players")}>
           <Text style={styles.topTabText}>Players</Text>
         </Pressable>

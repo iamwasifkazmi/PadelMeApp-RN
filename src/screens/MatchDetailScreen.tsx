@@ -7,7 +7,13 @@ import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
-export function MatchDetailScreen({ route }: { route: { params: { id: string } } }) {
+export function MatchDetailScreen({
+  route,
+  navigation,
+}: {
+  route: { params: { id: string } };
+  navigation: any;
+}) {
   const id = route.params.id;
   const [match, setMatch] = React.useState<MatchDto | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -100,6 +106,12 @@ export function MatchDetailScreen({ route }: { route: { params: { id: string } }
           <Text style={styles.actionSecondaryText}>Submit Demo Score</Text>
         </Pressable>
       </View>
+      <Pressable
+        style={styles.chatBtn}
+        onPress={() => navigation.navigate("MatchChat", { matchId: match.id })}
+      >
+        <Text style={styles.chatBtnText}>Open Match Chat</Text>
+      </Pressable>
 
       {(match.scoreTeamA || match.scoreTeamB) && (
         <View style={styles.scoreCard}>
@@ -146,6 +158,17 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   actionSecondaryText: { color: COLORS.text, fontWeight: "700" },
+  chatBtn: {
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  chatBtnText: { color: COLORS.primaryDark, fontWeight: "700" },
   scoreCard: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
