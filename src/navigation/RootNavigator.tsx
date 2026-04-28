@@ -20,6 +20,7 @@ import {
   PlayersScreen,
   VerificationScreen,
 } from "../screens";
+import { COLORS } from "../theme/colors";
 import { MainTabs } from "./MainTabs";
 import { RootStackParamList } from "./types";
 
@@ -30,8 +31,8 @@ export function RootNavigator() {
     <Stack.Navigator
       initialRouteName="MainTabs"
       screenOptions={{
-        headerStyle: { backgroundColor: "#ffffff" },
-        headerTintColor: "#0f172a",
+        headerStyle: { backgroundColor: COLORS.card },
+        headerTintColor: COLORS.text,
         headerTitleStyle: { fontWeight: "700" },
       }}
     >

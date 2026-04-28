@@ -123,7 +123,7 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
         value={search}
         onChangeText={setSearch}
         placeholder="Search players by name or email"
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor="#7b95a6"
         style={styles.searchInput}
       />
 
@@ -158,21 +158,21 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
   searchInput: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#0f172a",
+    color: "#041521",
   },
   sendBtn: {
     marginTop: 10,
-    backgroundColor: "#2563eb",
+    backgroundColor: "#06b6d4",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -183,13 +183,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     padding: 12,
     marginBottom: 8,
   },
-  rowCardSelected: { borderColor: "#2563eb", backgroundColor: "#eff6ff" },
-  userName: { color: "#0f172a", fontWeight: "700", fontSize: 14 },
-  userMeta: { color: "#64748b", marginTop: 2, fontSize: 12 },
-  emptyText: { textAlign: "center", color: "#64748b", marginTop: 20 },
+  rowCardSelected: { borderColor: "#06b6d4", backgroundColor: "#ecfbff" },
+  userName: { color: "#041521", fontWeight: "700", fontSize: 14 },
+  userMeta: { color: "#4f6b7b", marginTop: 2, fontSize: 12 },
+  emptyText: { textAlign: "center", color: "#4f6b7b", marginTop: 20 },
 });
 

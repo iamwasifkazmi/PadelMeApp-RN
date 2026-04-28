@@ -102,25 +102,25 @@ export function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
-  section: { fontSize: 14, fontWeight: "700", color: "#0f172a", marginBottom: 8, marginTop: 6 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  section: { fontSize: 14, fontWeight: "700", color: "#041521", marginBottom: 8, marginTop: 6 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     padding: 12,
     marginBottom: 8,
   },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
-  cardMeta: { marginTop: 3, fontSize: 12, color: "#64748b" },
+  cardTitle: { fontSize: 14, fontWeight: "700", color: "#041521" },
+  cardMeta: { marginTop: 3, fontSize: 12, color: "#4f6b7b" },
   actions: { flexDirection: "row", gap: 8, marginTop: 8 },
   acceptBtn: { backgroundColor: "#16a34a", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   acceptText: { color: "#fff", fontWeight: "700", fontSize: 12 },
-  declineBtn: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#cbd5e1", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  declineText: { color: "#0f172a", fontWeight: "700", fontSize: 12 },
-  empty: { textAlign: "center", marginTop: 24, color: "#64748b" },
+  declineBtn: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#b7d8e2", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  declineText: { color: "#041521", fontWeight: "700", fontSize: 12 },
+  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
 });
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import { COLORS } from "../theme/colors";
 
 export function SkeletonBlock({
   height = 16,
@@ -42,16 +43,16 @@ export function ScreenSkeleton({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.bg,
     paddingHorizontal: 16,
   },
   block: {
-    backgroundColor: "#e2e8f0",
+    backgroundColor: COLORS.border,
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     borderRadius: 14,
     padding: 12,
     marginBottom: 8,

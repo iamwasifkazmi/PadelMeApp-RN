@@ -43,6 +43,10 @@ export function ConversationViewScreen({
     load();
   }, [load]);
 
+  React.useEffect(() => {
+    api.post(`/conversations/${id}/read`, { email: USER_EMAIL }).catch(() => undefined);
+  }, [id]);
+
   const send = async () => {
     const payload = text.trim();
     if (!payload || sending) return;
@@ -90,7 +94,7 @@ export function ConversationViewScreen({
           value={text}
           onChangeText={setText}
           placeholder="Type a message..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#7b95a6"
         />
         <Pressable
           style={[styles.sendBtn, sending && { opacity: 0.65 }]}
@@ -105,21 +109,21 @@ export function ConversationViewScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "#edf9fd" },
   bubbleWrap: { marginBottom: 8, flexDirection: "row" },
   bubbleWrapMine: { justifyContent: "flex-end" },
   bubbleWrapOther: { justifyContent: "flex-start" },
   bubble: { maxWidth: "78%", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
-  bubbleMine: { backgroundColor: "#2563eb" },
-  bubbleOther: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0" },
-  bubbleText: { color: "#0f172a", fontSize: 14 },
+  bubbleMine: { backgroundColor: "#06b6d4" },
+  bubbleOther: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#c8e6ef" },
+  bubbleText: { color: "#041521", fontSize: 14 },
   inputRow: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    borderTopColor: "#c8e6ef",
     backgroundColor: "#fff",
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -129,20 +133,20 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#b7d8e2",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    color: "#0f172a",
+    color: "#041521",
   },
   sendBtn: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#06b6d4",
     borderRadius: 12,
     paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   sendBtnText: { color: "#fff", fontWeight: "700" },
-  empty: { textAlign: "center", color: "#64748b", marginTop: 24 },
+  empty: { textAlign: "center", color: "#4f6b7b", marginTop: 24 },
 });
 

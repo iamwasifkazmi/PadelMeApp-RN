@@ -5,10 +5,14 @@ import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../screens";
 import { MainTabParamList } from "./types";
+import { api } from "../lib/api";
+import { ConversationDto } from "../lib/types";
+import { COLORS } from "../theme/colors";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const ICON_SIZE = 22;
+const USER_EMAIL = "demo@padelme.app";
 
 function CenterCreateButton({ onPress }: { onPress: () => void }) {
   return (
@@ -23,6 +27,7 @@ function CenterCreateButton({ onPress }: { onPress: () => void }) {
 export function MainTabs() {
   const navigation = useNavigation<any>();
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [unread, setUnread] = React.useState(0);
   const navigateRoot = React.useCallback(
     (route: string) => {
       const parent = navigation.getParent?.();
@@ -31,12 +36,36 @@ export function MainTabs() {
     },
     [navigation],
   );
+
+  React.useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const conversations = await api.get<ConversationDto[]>(
+          `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
+        );
+        const total = conversations.reduce((sum, c) => {
+          const count = c.unreadCounts?.[USER_EMAIL] || 0;
+          return sum + count;
+        }, 0);
+        if (mounted) setUnread(total);
+      } catch {
+        if (mounted) setUnread(0);
+      }
+    };
+    load();
+    const t = setInterval(load, 12000);
+    return () => {
+      mounted = false;
+      clearInterval(t);
+    };
+  }, []);
   return (
     <>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: "#2563eb",
+          tabBarActiveTintColor: COLORS.primary,
           tabBarInactiveTintColor: "#8b98ac",
           tabBarStyle: styles.tabBar,
           tabBarLabelStyle: styles.tabLabel,
@@ -74,6 +103,8 @@ export function MainTabs() {
           options={{
             title: "Messages",
             tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={ICON_SIZE} color={color} />,
+            tabBarBadge: unread > 0 ? (unread > 9 ? "9+" : unread) : undefined,
+            tabBarBadgeStyle: styles.badge,
           }}
         />
         <Tab.Screen
@@ -93,7 +124,7 @@ export function MainTabs() {
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>Create</Text>
               <Pressable onPress={() => setCreateOpen(false)}>
-                <Ionicons name="close" size={20} color="#64748b" />
+                <Ionicons name="close" size={20} color={COLORS.textMuted} />
               </Pressable>
             </View>
 
@@ -133,13 +164,13 @@ export function MainTabs() {
         }}
       >
         <View style={styles.actionIcon}>
-          <Ionicons name={icon as any} size={18} color="#2563eb" />
+          <Ionicons name={icon as any} size={18} color={COLORS.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.actionTitle}>{title}</Text>
           <Text style={styles.actionSubtitle}>{subtitle}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+        <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
       </Pressable>
     );
   }
@@ -147,11 +178,11 @@ export function MainTabs() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 72,
-    paddingTop: 8,
-    paddingBottom: 10,
-    backgroundColor: "#ffffff",
-    borderTopColor: "#e5e7eb",
+    height: 68,
+    paddingTop: 6,
+    paddingBottom: 8,
+    backgroundColor: COLORS.card,
+    borderTopColor: COLORS.border,
     borderTopWidth: 1,
   },
   tabLabel: {
@@ -159,18 +190,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   centerBtnWrap: {
-    top: -22,
+    top: -20,
     justifyContent: "center",
     alignItems: "center",
   },
   centerBtn: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: "#2563eb",
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#2563eb",
+    shadowColor: COLORS.primary,
     shadowOpacity: 0.38,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
@@ -185,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
@@ -196,7 +227,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 999,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: COLORS.border,
     alignSelf: "center",
     marginBottom: 8,
   },
@@ -206,11 +237,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  sheetTitle: { fontSize: 18, fontWeight: "800", color: "#0f172a" },
-  sectionDivider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 4 },
+  sheetTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text },
+  sectionDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
   sectionLabel: {
     fontSize: 11,
-    color: "#64748b",
+    color: COLORS.textMuted,
     fontWeight: "700",
     textTransform: "uppercase",
     marginBottom: 8,
@@ -221,11 +252,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: COLORS.border,
     borderRadius: 14,
     padding: 12,
     marginBottom: 8,
-    backgroundColor: "#f8fafc",
+    backgroundColor: COLORS.bg,
   },
   actionRowHighlight: {
     backgroundColor: "#fff7ed",
@@ -237,8 +268,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#dbeafe",
+    backgroundColor: COLORS.primarySoftAlt,
   },
-  actionTitle: { fontWeight: "700", fontSize: 14, color: "#0f172a" },
-  actionSubtitle: { marginTop: 2, color: "#64748b", fontSize: 12 },
+  actionTitle: { fontWeight: "700", fontSize: 14, color: COLORS.text },
+  actionSubtitle: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },
+  badge: {
+    backgroundColor: COLORS.badge,
+    color: COLORS.card,
+    fontSize: 10,
+    fontWeight: "700",
+  },
 });

@@ -87,11 +87,11 @@ export function CompetitionDetailScreen({
         onPress={joinCompetition}
         disabled={joining}
       >
-        <Ionicons name="person-add-outline" size={16} color="#0f172a" />
+        <Ionicons name="person-add-outline" size={16} color="#041521" />
         <Text style={styles.joinBtnText}>{joining ? "Joining..." : "Join Competition"}</Text>
       </Pressable>
       <Pressable style={styles.inviteBtn} onPress={() => navigation.navigate("InvitePlayers", { eventId: item.id })}>
-        <Ionicons name="mail-outline" size={16} color="#1d4ed8" />
+        <Ionicons name="mail-outline" size={16} color="#0891b2" />
         <Text style={styles.inviteBtnText}>Invite Players</Text>
       </Pressable>
 
@@ -115,23 +115,23 @@ export function CompetitionDetailScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
   hero: {
     backgroundColor: "#fff",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     padding: 14,
     marginBottom: 10,
   },
-  title: { fontSize: 23, fontWeight: "800", color: "#0f172a" },
-  meta: { marginTop: 4, fontSize: 12, color: "#64748b", textTransform: "capitalize" },
+  title: { fontSize: 23, fontWeight: "800", color: "#041521" },
+  meta: { marginTop: 4, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
   advanceBtn: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563eb",
+    backgroundColor: "#06b6d4",
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 12,
@@ -142,36 +142,36 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#dbeafe",
+    backgroundColor: "#d8f5fb",
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 8,
   },
-  joinBtnText: { color: "#0f172a", fontWeight: "700" },
+  joinBtnText: { color: "#041521", fontWeight: "700" },
   inviteBtn: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#bfdbfe",
+    borderColor: "#9fe4f2",
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 12,
-    backgroundColor: "#eff6ff",
+    backgroundColor: "#ecfbff",
   },
-  inviteBtnText: { color: "#1d4ed8", fontWeight: "700" },
-  matchesTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 8 },
+  inviteBtnText: { color: "#0891b2", fontWeight: "700" },
+  matchesTitle: { fontSize: 16, fontWeight: "700", color: "#041521", marginBottom: 8 },
   matchCard: {
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     padding: 12,
     marginBottom: 8,
   },
-  matchTitle: { fontSize: 14, color: "#0f172a", fontWeight: "700" },
-  matchMeta: { marginTop: 3, fontSize: 12, color: "#64748b", textTransform: "capitalize" },
-  emptyText: { textAlign: "center", color: "#64748b", marginTop: 20 },
+  matchTitle: { fontSize: 14, color: "#041521", fontWeight: "700" },
+  matchMeta: { marginTop: 3, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
+  emptyText: { textAlign: "center", color: "#4f6b7b", marginTop: 20 },
 });
 

@@ -113,26 +113,26 @@ function Stat({ title, value }: { title: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
   hero: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     borderRadius: 16,
     alignItems: "center",
     paddingVertical: 20,
     marginBottom: 12,
   },
-  avatar: { width: 82, height: 82, borderRadius: 41, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
+  avatar: { width: 82, height: 82, borderRadius: 41, backgroundColor: "#041521", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#fff", fontSize: 30, fontWeight: "800" },
-  name: { marginTop: 12, fontSize: 22, fontWeight: "800", color: "#0f172a" },
-  location: { marginTop: 4, color: "#64748b", fontSize: 13 },
+  name: { marginTop: 12, fontSize: 22, fontWeight: "800", color: "#041521" },
+  location: { marginTop: 4, color: "#4f6b7b", fontSize: 13 },
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
-  statCard: { flex: 1, backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 14, paddingVertical: 12, alignItems: "center" },
-  statTitle: { fontSize: 11, color: "#64748b", fontWeight: "600" },
-  statValue: { marginTop: 5, fontSize: 16, color: "#0f172a", fontWeight: "800", textTransform: "capitalize" },
-  friendBtn: { backgroundColor: "#2563eb", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
+  statCard: { flex: 1, backgroundColor: "#fff", borderWidth: 1, borderColor: "#c8e6ef", borderRadius: 14, paddingVertical: 12, alignItems: "center" },
+  statTitle: { fontSize: 11, color: "#4f6b7b", fontWeight: "600" },
+  statValue: { marginTop: 5, fontSize: 16, color: "#041521", fontWeight: "800", textTransform: "capitalize" },
+  friendBtn: { backgroundColor: "#06b6d4", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   friendBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  empty: { marginTop: 24, textAlign: "center", color: "#64748b" },
+  empty: { marginTop: 24, textAlign: "center", color: "#4f6b7b" },
 });
 

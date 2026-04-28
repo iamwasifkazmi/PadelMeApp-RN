@@ -4,6 +4,8 @@ export type MatchDto = {
   date: string;
   timeLabel: string;
   locationName: string;
+  skillLevel?: string | null;
+  isInstant?: boolean;
   players: string[];
   maxPlayers: number;
   status: string;
@@ -29,6 +31,7 @@ export type ConversationDto = {
   participantEmails: string[];
   lastMessageText?: string | null;
   lastMessageAt?: string | null;
+  unreadCounts?: Record<string, number> | null;
 };
 
 export type MessageDto = {

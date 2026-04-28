@@ -58,7 +58,7 @@ export function AcceptInviteScreen({ route }: { route?: { params?: { token?: str
           value={token}
           onChangeText={setToken}
           placeholder="Paste invite token"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#7b95a6"
           style={styles.input}
         />
 
@@ -75,14 +75,14 @@ export function AcceptInviteScreen({ route }: { route?: { params?: { token?: str
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
-  card: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0", padding: 14 },
-  fieldLabel: { marginBottom: 6, color: "#334155", fontSize: 12, fontWeight: "600" },
-  input: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: "#0f172a" },
-  btn: { marginTop: 12, backgroundColor: "#2563eb", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  card: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#c8e6ef", padding: 14 },
+  fieldLabel: { marginBottom: 6, color: "#1a3a4a", fontSize: 12, fontWeight: "600" },
+  input: { borderWidth: 1, borderColor: "#b7d8e2", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: "#041521" },
+  btn: { marginTop: 12, backgroundColor: "#06b6d4", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   btnText: { color: "#fff", fontWeight: "700" },
-  status: { marginTop: 10, color: "#0f172a", fontWeight: "600", textTransform: "capitalize" },
+  status: { marginTop: 10, color: "#041521", fontWeight: "600", textTransform: "capitalize" },
 });
 

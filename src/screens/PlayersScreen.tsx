@@ -55,7 +55,7 @@ export function PlayersScreen() {
         value={query}
         onChangeText={setQuery}
         placeholder="Search players"
-        placeholderTextColor="#94a3b8"
+        placeholderTextColor="#7b95a6"
       />
 
       <FlatList
@@ -87,17 +87,17 @@ export function PlayersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a", marginBottom: 10 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521", marginBottom: 10 },
   search: {
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#b7d8e2",
     backgroundColor: "#fff",
     paddingHorizontal: 12,
     marginBottom: 10,
-    color: "#0f172a",
+    color: "#041521",
   },
   row: {
     flexDirection: "row",
@@ -105,15 +105,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     borderRadius: 14,
     padding: 10,
     marginBottom: 8,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#041521", alignItems: "center", justifyContent: "center" },
   avatarText: { color: "#fff", fontWeight: "800" },
-  name: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
-  meta: { marginTop: 3, fontSize: 12, color: "#64748b", textTransform: "capitalize" },
-  empty: { textAlign: "center", marginTop: 24, color: "#64748b" },
+  name: { fontSize: 14, fontWeight: "700", color: "#041521" },
+  meta: { marginTop: 3, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
+  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
 });
 

@@ -72,7 +72,7 @@ export function NotificationsScreen() {
               <Ionicons
                 name={item.isRead ? "notifications-outline" : "notifications"}
                 size={18}
-                color={item.isRead ? "#64748b" : "#2563eb"}
+                color={item.isRead ? "#4f6b7b" : "#06b6d4"}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -92,14 +92,14 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
   card: {
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     padding: 12,
     marginBottom: 8,
     flexDirection: "row",
@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: { fontSize: 14, color: "#0f172a", fontWeight: "700" },
-  cardBody: { marginTop: 3, fontSize: 12, color: "#64748b" },
-  empty: { textAlign: "center", marginTop: 24, color: "#64748b" },
+  cardTitle: { fontSize: 14, color: "#041521", fontWeight: "700" },
+  cardBody: { marginTop: 3, fontSize: 12, color: "#4f6b7b" },
+  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
 });
 

@@ -111,23 +111,23 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "#edf9fd" },
   content: { padding: 16, paddingBottom: 120 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
-  fieldLabel: { marginBottom: 6, color: "#334155", fontSize: 12, fontWeight: "600" },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  fieldLabel: { marginBottom: 6, color: "#1a3a4a", fontSize: 12, fontWeight: "600" },
   input: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#0f172a",
+    color: "#041521",
   },
   saveBtn: {
     marginTop: 8,
-    backgroundColor: "#2563eb",
+    backgroundColor: "#06b6d4",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",

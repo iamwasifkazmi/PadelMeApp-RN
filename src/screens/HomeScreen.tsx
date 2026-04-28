@@ -132,7 +132,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
   return (
     <Pressable style={styles.competitionCard}>
       <View style={styles.competitionIconWrap}>
-        <Ionicons name="trophy-outline" size={18} color="#2563eb" />
+        <Ionicons name="trophy-outline" size={18} color="#06b6d4" />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.competitionName}>{competition.name}</Text>
@@ -229,10 +229,10 @@ export function HomeScreen() {
         </View>
         <View style={styles.headerActions}>
           <Pressable style={styles.headerIconBtn}>
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#0f172a" />
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#041521" />
           </Pressable>
           <Pressable style={styles.headerIconBtn}>
-            <Ionicons name="notifications-outline" size={18} color="#0f172a" />
+            <Ionicons name="notifications-outline" size={18} color="#041521" />
           </Pressable>
         </View>
       </View>
@@ -262,7 +262,7 @@ export function HomeScreen() {
             <Ionicons
               name={item.icon}
               size={20}
-              color={item.accent ? "#ffffff" : "#0f172a"}
+              color={item.accent ? "#ffffff" : "#041521"}
             />
             <Text style={[styles.quickActionText, item.accent && { color: "#fff" }]}>
               {item.label}
@@ -352,50 +352,50 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "#edf9fd" },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 110 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14, alignItems: "center" },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
+  userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#041521", alignItems: "center", justifyContent: "center" },
   userAvatarText: { color: "#fff", fontWeight: "700" },
-  greeting: { fontSize: 20, fontWeight: "800", color: "#0f172a" },
-  greetingSub: { fontSize: 12, color: "#64748b", marginTop: 2 },
+  greeting: { fontSize: 20, fontWeight: "800", color: "#041521" },
+  greetingSub: { fontSize: 12, color: "#4f6b7b", marginTop: 2 },
   headerActions: { flexDirection: "row", gap: 8 },
-  headerIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#e2e8f0", alignItems: "center", justifyContent: "center" },
-  instantCard: { backgroundColor: "#0f172a", borderRadius: 16, padding: 16, marginBottom: 12 },
+  headerIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#c8e6ef", alignItems: "center", justifyContent: "center" },
+  instantCard: { backgroundColor: "#041521", borderRadius: 16, padding: 16, marginBottom: 12 },
   instantTitle: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  instantSubtitle: { color: "#cbd5e1", marginTop: 4, fontSize: 12 },
+  instantSubtitle: { color: "#b7d8e2", marginTop: 4, fontSize: 12 },
   quickActionsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  quickAction: { flex: 1, borderRadius: 14, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#e2e8f0", alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
-  quickActionAccent: { backgroundColor: "#2563eb", borderColor: "#2563eb" },
-  quickActionText: { fontSize: 11, fontWeight: "700", color: "#0f172a" },
+  quickAction: { flex: 1, borderRadius: 14, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#c8e6ef", alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
+  quickActionAccent: { backgroundColor: "#06b6d4", borderColor: "#06b6d4" },
+  quickActionText: { fontSize: 11, fontWeight: "700", color: "#041521" },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8, marginTop: 6 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a" },
-  sectionSubtitle: { fontSize: 11, color: "#64748b", marginTop: 2 },
-  sectionAction: { fontSize: 12, color: "#2563eb", fontWeight: "600" },
-  matchCard: { backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: "#e2e8f0", padding: 12, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#041521" },
+  sectionSubtitle: { fontSize: 11, color: "#4f6b7b", marginTop: 2 },
+  sectionAction: { fontSize: 12, color: "#06b6d4", fontWeight: "600" },
+  matchCard: { backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: "#c8e6ef", padding: 12, marginBottom: 8 },
   matchHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  matchTitle: { fontSize: 14, fontWeight: "700", color: "#0f172a", flex: 1, marginRight: 8 },
+  matchTitle: { fontSize: 14, fontWeight: "700", color: "#041521", flex: 1, marginRight: 8 },
   statusPill: { backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   statusText: { fontSize: 10, color: "#92400e", fontWeight: "700", textTransform: "capitalize" },
-  matchMeta: { fontSize: 11, color: "#64748b", marginTop: 4 },
-  playersSwitch: { flexDirection: "row", backgroundColor: "#e2e8f0", borderRadius: 12, padding: 3, alignSelf: "flex-start", marginBottom: 10 },
+  matchMeta: { fontSize: 11, color: "#4f6b7b", marginTop: 4 },
+  playersSwitch: { flexDirection: "row", backgroundColor: "#c8e6ef", borderRadius: 12, padding: 3, alignSelf: "flex-start", marginBottom: 10 },
   switchBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9 },
   switchBtnActive: { backgroundColor: "#fff" },
   switchBtnText: { fontSize: 11, color: "#475569", fontWeight: "600" },
-  switchBtnTextActive: { color: "#0f172a" },
+  switchBtnTextActive: { color: "#041521" },
   playersRow: { marginBottom: 14 },
   playerMini: { width: 90, alignItems: "center", marginRight: 10 },
-  playerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#dbeafe", alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  playerAvatarText: { color: "#1d4ed8", fontWeight: "800" },
-  playerName: { fontSize: 12, fontWeight: "700", color: "#0f172a" },
-  playerLevel: { fontSize: 10, color: "#64748b", marginTop: 2 },
-  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: "#e2e8f0", backgroundColor: "#fff", padding: 12, marginBottom: 8 },
-  competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#dbeafe", alignItems: "center", justifyContent: "center" },
-  competitionName: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
-  competitionMeta: { fontSize: 11, color: "#64748b", marginTop: 2 },
-  progressTrack: { height: 6, borderRadius: 99, backgroundColor: "#e2e8f0", marginTop: 8, overflow: "hidden" },
-  progressFill: { height: 6, borderRadius: 99, backgroundColor: "#2563eb" },
+  playerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#d8f5fb", alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  playerAvatarText: { color: "#0891b2", fontWeight: "800" },
+  playerName: { fontSize: 12, fontWeight: "700", color: "#041521" },
+  playerLevel: { fontSize: 10, color: "#4f6b7b", marginTop: 2 },
+  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: "#c8e6ef", backgroundColor: "#fff", padding: 12, marginBottom: 8 },
+  competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#d8f5fb", alignItems: "center", justifyContent: "center" },
+  competitionName: { fontSize: 14, fontWeight: "700", color: "#041521" },
+  competitionMeta: { fontSize: 11, color: "#4f6b7b", marginTop: 2 },
+  progressTrack: { height: 6, borderRadius: 99, backgroundColor: "#c8e6ef", marginTop: 8, overflow: "hidden" },
+  progressFill: { height: 6, borderRadius: 99, backgroundColor: "#06b6d4" },
   resultsRow: { marginBottom: 10 },
   resultDotWrap: { width: 56, alignItems: "center", marginRight: 8 },
   resultDot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   resultDotText: { fontWeight: "800", fontSize: 12 },
   resultDotTextWin: { color: "#15803d" },
   resultDotTextLoss: { color: "#dc2626" },
-  resultElo: { fontSize: 10, marginTop: 4, color: "#334155", fontWeight: "700" },
-  resultDate: { fontSize: 9, marginTop: 2, color: "#64748b" },
+  resultElo: { fontSize: 10, marginTop: 4, color: "#1a3a4a", fontWeight: "700" },
+  resultDate: { fontSize: 9, marginTop: 2, color: "#4f6b7b" },
 });
 

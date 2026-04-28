@@ -111,18 +111,18 @@ export function InstantPlayScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
-  card: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#e2e8f0", padding: 14 },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a" },
-  cardText: { marginTop: 6, color: "#64748b", fontSize: 13, lineHeight: 18 },
-  primaryBtn: { marginTop: 14, backgroundColor: "#2563eb", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  card: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#c8e6ef", padding: 14 },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: "#041521" },
+  cardText: { marginTop: 6, color: "#4f6b7b", fontSize: 13, lineHeight: 18 },
+  primaryBtn: { marginTop: 14, backgroundColor: "#06b6d4", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   primaryBtnText: { color: "#fff", fontWeight: "700" },
   statusRow: { marginTop: 12, flexDirection: "row", alignItems: "center" },
-  statusLabel: { color: "#64748b", fontSize: 13 },
-  statusValue: { color: "#0f172a", fontSize: 13, fontWeight: "700", textTransform: "capitalize" },
-  secondaryBtn: { marginTop: 10, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 10 },
-  secondaryBtnText: { color: "#0f172a", fontWeight: "700", fontSize: 13 },
+  statusLabel: { color: "#4f6b7b", fontSize: 13 },
+  statusValue: { color: "#041521", fontSize: 13, fontWeight: "700", textTransform: "capitalize" },
+  secondaryBtn: { marginTop: 10, borderWidth: 1, borderColor: "#b7d8e2", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 10 },
+  secondaryBtnText: { color: "#041521", fontWeight: "700", fontSize: 13 },
 });
 

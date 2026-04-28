@@ -79,12 +79,12 @@ export function PastEventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#0f172a" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#64748b" },
-  card: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 14, padding: 12, marginBottom: 8 },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
-  meta: { marginTop: 3, fontSize: 12, color: "#64748b", textTransform: "capitalize" },
-  empty: { textAlign: "center", marginTop: 24, color: "#64748b" },
+  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
+  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  card: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#c8e6ef", borderRadius: 14, padding: 12, marginBottom: 8 },
+  cardTitle: { fontSize: 14, fontWeight: "700", color: "#041521" },
+  meta: { marginTop: 3, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
+  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
 });
 

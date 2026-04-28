@@ -30,7 +30,7 @@ export function PlaceholderScreen({ title, subtitle }: PlaceholderScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#edf9fd",
   },
   content: {
     paddingHorizontal: 16,
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   headerCard: {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#041521",
     borderRadius: 16,
     padding: 18,
     marginBottom: 14,
@@ -49,16 +49,16 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#c8e6ef",
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#041521",
     marginBottom: 6,
   },
   sectionText: {
-    color: "#64748b",
+    color: "#4f6b7b",
     fontSize: 14,
     lineHeight: 20,
   },
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#b7d8e2",
     lineHeight: 20,
   },
   // keep a base container shape to simplify future porting

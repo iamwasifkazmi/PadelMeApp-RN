@@ -1,0 +1,20 @@
+export const COLORS = {
+  bg: "#edf9fd",
+  card: "#ffffff",
+  text: "#041521",
+  textMuted: "#4f6b7b",
+  border: "#c8e6ef",
+  borderStrong: "#9fe4f2",
+  primary: "#06b6d4",
+  primaryDark: "#0891b2",
+  primarySoft: "#ecfbff",
+  primarySoftAlt: "#d8f5fb",
+  successSoft: "#dcfce7",
+  successText: "#15803d",
+  dangerSoft: "#fee2e2",
+  dangerText: "#dc2626",
+  warningSoft: "#fef3c7",
+  warningText: "#92400e",
+  badge: "#f43f5e",
+} as const;
+
