@@ -18,7 +18,7 @@ function CenterCreateButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.centerBtnWrap}>
       <View style={styles.centerBtn}>
-        <Ionicons name="add" size={30} color="#ffffff" />
+        <Ionicons name="add" size={30} color={COLORS.card} />
       </View>
     </Pressable>
   );
@@ -66,7 +66,7 @@ export function MainTabs() {
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: "#8b98ac",
+          tabBarInactiveTintColor: COLORS.tabInactive,
           tabBarStyle: styles.tabBar,
           tabBarLabelStyle: styles.tabLabel,
         }}
@@ -170,7 +170,7 @@ export function MainTabs() {
           <Text style={styles.actionTitle}>{title}</Text>
           <Text style={styles.actionSubtitle}>{subtitle}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
+        <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
       </Pressable>
     );
   }
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   actionRowHighlight: {
-    backgroundColor: "#fff7ed",
-    borderColor: "#fed7aa",
+    backgroundColor: COLORS.highlightSoft,
+    borderColor: COLORS.highlightBorder,
   },
   actionIcon: {
     width: 36,

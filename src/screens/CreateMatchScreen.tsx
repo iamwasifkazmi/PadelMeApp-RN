@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
@@ -70,28 +71,28 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd" },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: 16, paddingBottom: 40 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
-  subtitle: { marginTop: 2, marginBottom: 14, color: "#4f6b7b" },
-  fieldLabel: { marginBottom: 6, color: "#1a3a4a", fontSize: 12, fontWeight: "600" },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { marginTop: 2, marginBottom: 14, color: COLORS.textMuted },
+  fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "600" },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#041521",
+    color: COLORS.text,
   },
   button: {
     marginTop: 8,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
   },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  buttonText: { color: COLORS.card, fontWeight: "700", fontSize: 14 },
 });
 

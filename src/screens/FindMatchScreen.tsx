@@ -53,18 +53,18 @@ export function FindMatchScreen() {
           <Text style={styles.subtitle}>Find players, games and friends near you</Text>
         </View>
         <Pressable style={styles.locBtn}>
-          <Ionicons name="location-outline" size={14} color="#06b6d4" />
+          <Ionicons name="location-outline" size={14} color={COLORS.primary} />
           <Text style={styles.locBtnText}>Dubai</Text>
         </Pressable>
       </View>
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={16} color="#7b95a6" />
+        <Ionicons name="search" size={16} color={COLORS.iconMuted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search venue or match..."
-          placeholderTextColor="#7b95a6"
+          placeholderTextColor={COLORS.iconMuted}
           style={styles.searchInput}
         />
       </View>
@@ -113,7 +113,7 @@ export function FindMatchScreen() {
             </View>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{item.title}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#4f6b7b" />
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
             </View>
             <Text style={styles.cardMeta}>
               {new Date(item.date).toLocaleDateString()} · {item.timeLabel}
@@ -138,11 +138,11 @@ export function FindMatchScreen() {
             <Text style={styles.emptyText}>No open matches right now.</Text>
             <View style={styles.emptyActions}>
               <Pressable style={styles.emptyPrimary} onPress={() => navigation.navigate("InstantPlay")}>
-                <Ionicons name="flash-outline" size={15} color="#fff" />
+                <Ionicons name="flash-outline" size={15} color={COLORS.card} />
                 <Text style={styles.emptyPrimaryText}>Play Now</Text>
               </Pressable>
               <Pressable style={styles.emptySecondary} onPress={() => navigation.navigate("CreateMatch")}>
-                <Ionicons name="add" size={15} color="#0891b2" />
+                <Ionicons name="add" size={15} color={COLORS.primaryDark} />
                 <Text style={styles.emptySecondaryText}>Create Match</Text>
               </Pressable>
             </View>
@@ -151,14 +151,14 @@ export function FindMatchScreen() {
         ListFooterComponent={
           <View style={styles.footerCtas}>
             <Pressable style={styles.ctaCard} onPress={() => navigation.navigate("InstantPlay")}>
-              <Ionicons name="flash-outline" size={18} color="#f59e0b" />
+              <Ionicons name="flash-outline" size={18} color={COLORS.warning} />
               <View style={{ marginLeft: 8 }}>
                 <Text style={styles.ctaTitle}>Play Now</Text>
                 <Text style={styles.ctaMeta}>Find match instantly</Text>
               </View>
             </Pressable>
             <Pressable style={styles.ctaCard} onPress={() => navigation.navigate("CreateMatch")}>
-              <Ionicons name="tennisball-outline" size={18} color="#06b6d4" />
+              <Ionicons name="tennisball-outline" size={18} color={COLORS.primary} />
               <View style={{ marginLeft: 8 }}>
                 <Text style={styles.ctaTitle}>Create Match</Text>
                 <Text style={styles.ctaMeta}>Organize your game</Text>
@@ -218,74 +218,74 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   topTabActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  topTabText: { fontSize: 12, color: "#1a3a4a", fontWeight: "700" },
+  topTabText: { fontSize: 12, color: COLORS.textSubtle, fontWeight: "700" },
   topTabTextActive: { color: COLORS.card },
   filtersRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  chip: { backgroundColor: "#c8e6ef", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: COLORS.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   chipActive: { backgroundColor: COLORS.primaryDark },
-  chipText: { textTransform: "capitalize", color: "#1a3a4a", fontWeight: "600", fontSize: 12 },
+  chipText: { textTransform: "capitalize", color: COLORS.textSubtle, fontWeight: "600", fontSize: 12 },
   chipTextActive: { color: COLORS.card },
   card: { backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
   nowRow: { marginBottom: 6 },
   nowPill: {
     alignSelf: "flex-start",
-    backgroundColor: "#fef3c7",
-    color: "#92400e",
+    backgroundColor: COLORS.warningSoft,
+    color: COLORS.warningText,
     fontSize: 10,
     fontWeight: "800",
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 999,
   },
-  dayPill: { alignSelf: "flex-start", color: "#4f6b7b", fontSize: 11, fontWeight: "600" },
+  dayPill: { alignSelf: "flex-start", color: COLORS.textMuted, fontSize: 11, fontWeight: "600" },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cardTitle: { fontWeight: "700", fontSize: 14, color: COLORS.text, flex: 1, marginRight: 8 },
   cardMeta: { marginTop: 4, color: COLORS.textMuted, fontSize: 12 },
   emptyState: { marginTop: 24, alignItems: "center" },
-  emptyText: { color: "#4f6b7b" },
+  emptyText: { color: COLORS.textMuted },
   emptyActions: { marginTop: 12, flexDirection: "row", gap: 8 },
   emptyPrimary: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  emptyPrimaryText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  emptyPrimaryText: { color: COLORS.card, fontWeight: "700", fontSize: 12 },
   emptySecondary: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#ecfbff",
+    backgroundColor: COLORS.primarySoft,
     borderWidth: 1,
-    borderColor: "#9fe4f2",
+    borderColor: COLORS.borderStrong,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  emptySecondaryText: { color: "#0891b2", fontWeight: "700", fontSize: 12 },
+  emptySecondaryText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 12 },
   footerCtas: { marginTop: 6, gap: 8 },
   ctaCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 14,
     padding: 12,
   },
-  ctaTitle: { fontSize: 13, fontWeight: "700", color: "#041521" },
-  ctaMeta: { marginTop: 2, fontSize: 11, color: "#4f6b7b" },
+  ctaTitle: { fontSize: 13, fontWeight: "700", color: COLORS.text },
+  ctaMeta: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
   recoRow: { marginTop: 7, flexDirection: "row", gap: 6, flexWrap: "wrap" },
   recoChip: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#0891b2",
-    backgroundColor: "#ecfbff",
+    color: COLORS.primaryDark,
+    backgroundColor: COLORS.primarySoft,
     borderWidth: 1,
-    borderColor: "#9fe4f2",
+    borderColor: COLORS.borderStrong,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 3,

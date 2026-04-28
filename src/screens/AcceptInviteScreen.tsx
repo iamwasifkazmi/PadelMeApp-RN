@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
@@ -58,7 +59,7 @@ export function AcceptInviteScreen({ route }: { route?: { params?: { token?: str
           value={token}
           onChangeText={setToken}
           placeholder="Paste invite token"
-          placeholderTextColor="#7b95a6"
+          placeholderTextColor={COLORS.iconMuted}
           style={styles.input}
         />
 
@@ -75,14 +76,14 @@ export function AcceptInviteScreen({ route }: { route?: { params?: { token?: str
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
-  card: { backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: "#c8e6ef", padding: 14 },
-  fieldLabel: { marginBottom: 6, color: "#1a3a4a", fontSize: 12, fontWeight: "600" },
-  input: { borderWidth: 1, borderColor: "#b7d8e2", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: "#041521" },
-  btn: { marginTop: 12, backgroundColor: "#06b6d4", borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
-  btnText: { color: "#fff", fontWeight: "700" },
-  status: { marginTop: 10, color: "#041521", fontWeight: "600", textTransform: "capitalize" },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
+  card: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 14 },
+  fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "600" },
+  input: { borderWidth: 1, borderColor: COLORS.borderMuted, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text },
+  btn: { marginTop: 12, backgroundColor: COLORS.primary, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
+  btnText: { color: COLORS.card, fontWeight: "700" },
+  status: { marginTop: 10, color: COLORS.text, fontWeight: "600", textTransform: "capitalize" },
 });
 

@@ -4,6 +4,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { CompetitionDetailDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 export function CompetitionDetailScreen({
   route,
@@ -79,7 +80,7 @@ export function CompetitionDetailScreen({
         onPress={advanceBracket}
         disabled={busy}
       >
-        <Ionicons name="git-branch-outline" size={16} color="#fff" />
+        <Ionicons name="git-branch-outline" size={16} color={COLORS.card} />
         <Text style={styles.advanceBtnText}>Advance Bracket</Text>
       </Pressable>
       <Pressable
@@ -87,11 +88,11 @@ export function CompetitionDetailScreen({
         onPress={joinCompetition}
         disabled={joining}
       >
-        <Ionicons name="person-add-outline" size={16} color="#041521" />
+        <Ionicons name="person-add-outline" size={16} color={COLORS.text} />
         <Text style={styles.joinBtnText}>{joining ? "Joining..." : "Join Competition"}</Text>
       </Pressable>
       <Pressable style={styles.inviteBtn} onPress={() => navigation.navigate("InvitePlayers", { eventId: item.id })}>
-        <Ionicons name="mail-outline" size={16} color="#0891b2" />
+        <Ionicons name="mail-outline" size={16} color={COLORS.primaryDark} />
         <Text style={styles.inviteBtnText}>Invite Players</Text>
       </Pressable>
 
@@ -115,63 +116,63 @@ export function CompetitionDetailScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
   hero: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 14,
     marginBottom: 10,
   },
-  title: { fontSize: 23, fontWeight: "800", color: "#041521" },
-  meta: { marginTop: 4, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
+  title: { fontSize: 23, fontWeight: "800", color: COLORS.text },
+  meta: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, textTransform: "capitalize" },
   advanceBtn: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 12,
   },
-  advanceBtnText: { color: "#fff", fontWeight: "700" },
+  advanceBtnText: { color: COLORS.card, fontWeight: "700" },
   joinBtn: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#d8f5fb",
+    backgroundColor: COLORS.primarySoftAlt,
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 8,
   },
-  joinBtnText: { color: "#041521", fontWeight: "700" },
+  joinBtnText: { color: COLORS.text, fontWeight: "700" },
   inviteBtn: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#9fe4f2",
+    borderColor: COLORS.borderStrong,
     borderRadius: 12,
     paddingVertical: 11,
     marginBottom: 12,
-    backgroundColor: "#ecfbff",
+    backgroundColor: COLORS.primarySoft,
   },
-  inviteBtnText: { color: "#0891b2", fontWeight: "700" },
-  matchesTitle: { fontSize: 16, fontWeight: "700", color: "#041521", marginBottom: 8 },
+  inviteBtnText: { color: COLORS.primaryDark, fontWeight: "700" },
+  matchesTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 8 },
   matchCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 12,
     marginBottom: 8,
   },
-  matchTitle: { fontSize: 14, color: "#041521", fontWeight: "700" },
-  matchMeta: { marginTop: 3, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
-  emptyText: { textAlign: "center", color: "#4f6b7b", marginTop: 20 },
+  matchTitle: { fontSize: 14, color: COLORS.text, fontWeight: "700" },
+  matchMeta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted, textTransform: "capitalize" },
+  emptyText: { textAlign: "center", color: COLORS.textMuted, marginTop: 20 },
 });
 

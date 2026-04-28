@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { api } from "../lib/api";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 function CreateCompetitionSkeleton() {
   return (
@@ -125,28 +126,28 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd" },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: 16, paddingBottom: 120 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
-  fieldLabel: { marginBottom: 6, color: "#1a3a4a", fontSize: 12, fontWeight: "600" },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
+  fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "600" },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#041521",
+    color: COLORS.text,
   },
   saveBtn: {
     marginTop: 8,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
   },
-  saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  saveBtnText: { color: COLORS.card, fontWeight: "700", fontSize: 14 },
 });
 

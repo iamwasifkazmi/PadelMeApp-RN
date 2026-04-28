@@ -1,5 +1,6 @@
 import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { COLORS } from "../theme/colors";
 
 type PlaceholderScreenProps = {
   title: string;
@@ -30,7 +31,7 @@ export function PlaceholderScreen({ title, subtitle }: PlaceholderScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#edf9fd",
+    backgroundColor: COLORS.bg,
   },
   content: {
     paddingHorizontal: 16,
@@ -38,39 +39,39 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   headerCard: {
-    backgroundColor: "#041521",
+    backgroundColor: COLORS.text,
     borderRadius: 16,
     padding: 18,
     marginBottom: 14,
   },
   sectionCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#041521",
+    color: COLORS.text,
     marginBottom: 6,
   },
   sectionText: {
-    color: "#4f6b7b",
+    color: COLORS.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#ffffff",
+    color: COLORS.card,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#b7d8e2",
+    color: COLORS.borderMuted,
     lineHeight: 20,
   },
   // keep a base container shape to simplify future porting
@@ -79,6 +80,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#0b1220",
+    backgroundColor: COLORS.darkSurface,
   },
 });

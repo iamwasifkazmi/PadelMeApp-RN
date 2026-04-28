@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 function PlayersSkeleton() {
   return (
@@ -55,7 +56,7 @@ export function PlayersScreen() {
         value={query}
         onChangeText={setQuery}
         placeholder="Search players"
-        placeholderTextColor="#7b95a6"
+        placeholderTextColor={COLORS.iconMuted}
       />
 
       <FlatList
@@ -87,33 +88,33 @@ export function PlayersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521", marginBottom: 10 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text, marginBottom: 10 },
   search: {
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#b7d8e2",
-    backgroundColor: "#fff",
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.card,
     paddingHorizontal: 12,
     marginBottom: 10,
-    color: "#041521",
+    color: COLORS.text,
   },
   row: {
     flexDirection: "row",
     gap: 10,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 14,
     padding: 10,
     marginBottom: 8,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#041521", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "800" },
-  name: { fontSize: 14, fontWeight: "700", color: "#041521" },
-  meta: { marginTop: 3, fontSize: 12, color: "#4f6b7b", textTransform: "capitalize" },
-  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: COLORS.card, fontWeight: "800" },
+  name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  meta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted, textTransform: "capitalize" },
+  empty: { textAlign: "center", marginTop: 24, color: COLORS.textMuted },
 });
 

@@ -53,17 +53,17 @@ export function MessagesScreen() {
           <Text style={styles.subtitle}>{unreadCount} active conversations</Text>
         </View>
         <View style={styles.iconBubble}>
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#06b6d4" />
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.primary} />
         </View>
       </View>
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={15} color="#7b95a6" />
+        <Ionicons name="search" size={15} color={COLORS.iconMuted} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search conversations..."
-          placeholderTextColor="#7b95a6"
+          placeholderTextColor={COLORS.iconMuted}
           style={styles.searchInput}
         />
       </View>
@@ -87,7 +87,7 @@ export function MessagesScreen() {
               <Ionicons
                 name={item.type === "direct" ? "person-outline" : item.type === "match" ? "tennisball-outline" : "trophy-outline"}
                 size={18}
-                color="#0891b2"
+                color={COLORS.primaryDark}
               />
               {(item.unreadCounts?.[USER_EMAIL] || 0) > 0 && (
                 <View style={styles.unreadDot}>
@@ -116,7 +116,7 @@ export function MessagesScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
+            <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
           </Pressable>
         )}
         ListEmptyComponent={
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   tabBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabBtnText: { fontSize: 12, fontWeight: "700", color: "#1a3a4a" },
+  tabBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.textSubtle },
   tabBtnTextActive: { color: COLORS.card },
   row: {
     flexDirection: "row",
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#d8f5fb",
+    backgroundColor: COLORS.primarySoftAlt,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -213,28 +213,28 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: "#f43f5e",
+    backgroundColor: COLORS.badge,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 3,
   },
-  unreadDotText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+  unreadDotText: { color: COLORS.card, fontSize: 9, fontWeight: "800" },
   nameRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
-  timeText: { fontSize: 10, color: "#4f6b7b" },
+  timeText: { fontSize: 10, color: COLORS.textMuted },
   previewRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 5 },
   typeChip: {
     fontSize: 10,
-    backgroundColor: "#c8e6ef",
-    color: "#1a3a4a",
+    backgroundColor: COLORS.border,
+    color: COLORS.textSubtle,
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 999,
     textTransform: "capitalize",
     overflow: "hidden",
   },
-  preview: { flex: 1, fontSize: 12, color: "#4f6b7b" },
+  preview: { flex: 1, fontSize: 12, color: COLORS.textMuted },
   empty: { marginTop: 24, alignItems: "center" },
-  emptyText: { color: "#4f6b7b" },
+  emptyText: { color: COLORS.textMuted },
 });
 

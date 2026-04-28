@@ -4,6 +4,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { NotificationDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
@@ -72,7 +73,7 @@ export function NotificationsScreen() {
               <Ionicons
                 name={item.isRead ? "notifications-outline" : "notifications"}
                 size={18}
-                color={item.isRead ? "#4f6b7b" : "#06b6d4"}
+                color={item.isRead ? COLORS.textMuted : COLORS.primary}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -92,14 +93,14 @@ export function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 12,
     marginBottom: 8,
     flexDirection: "row",
@@ -110,12 +111,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#eef2ff",
+    backgroundColor: COLORS.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: { fontSize: 14, color: "#041521", fontWeight: "700" },
-  cardBody: { marginTop: 3, fontSize: 12, color: "#4f6b7b" },
-  empty: { textAlign: "center", marginTop: 24, color: "#4f6b7b" },
+  cardTitle: { fontSize: 14, color: COLORS.text, fontWeight: "700" },
+  cardBody: { marginTop: 3, fontSize: 12, color: COLORS.textMuted },
+  empty: { textAlign: "center", marginTop: 24, color: COLORS.textMuted },
 });
 

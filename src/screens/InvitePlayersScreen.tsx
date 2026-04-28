@@ -11,6 +11,7 @@ import {
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { UserDto } from "../lib/types";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
@@ -123,7 +124,7 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
         value={search}
         onChangeText={setSearch}
         placeholder="Search players by name or email"
-        placeholderTextColor="#7b95a6"
+        placeholderTextColor={COLORS.iconMuted}
         style={styles.searchInput}
       />
 
@@ -158,38 +159,38 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 26, fontWeight: "800", color: "#041521" },
-  subtitle: { marginTop: 2, marginBottom: 12, color: "#4f6b7b" },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
   searchInput: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#041521",
+    color: COLORS.text,
   },
   sendBtn: {
     marginTop: 10,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
   },
-  sendBtnText: { color: "#fff", fontWeight: "700" },
+  sendBtnText: { color: COLORS.card, fontWeight: "700" },
   rowCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 12,
     marginBottom: 8,
   },
-  rowCardSelected: { borderColor: "#06b6d4", backgroundColor: "#ecfbff" },
-  userName: { color: "#041521", fontWeight: "700", fontSize: 14 },
-  userMeta: { color: "#4f6b7b", marginTop: 2, fontSize: 12 },
-  emptyText: { textAlign: "center", color: "#4f6b7b", marginTop: 20 },
+  rowCardSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
+  userName: { color: COLORS.text, fontWeight: "700", fontSize: 14 },
+  userMeta: { color: COLORS.textMuted, marginTop: 2, fontSize: 12 },
+  emptyText: { textAlign: "center", color: COLORS.textMuted, marginTop: 20 },
 });
 

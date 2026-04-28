@@ -12,6 +12,7 @@ import {
 import { api } from "../lib/api";
 import { MatchChatMessageDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 const USER_NAME = "Demo Player";
@@ -104,7 +105,7 @@ export function MatchChatScreen({
           return (
             <View style={[styles.row, mine ? styles.rowMine : styles.rowOther]}>
               <View style={[styles.bubble, mine ? styles.mine : styles.other]}>
-                <Text style={[styles.bubbleText, mine && { color: "#fff" }]}>
+                <Text style={[styles.bubbleText, mine && { color: COLORS.card }]}>
                   {item.text}
                 </Text>
               </View>
@@ -121,7 +122,7 @@ export function MatchChatScreen({
           value={text}
           onChangeText={setText}
           placeholder="Message players..."
-          placeholderTextColor="#7b95a6"
+          placeholderTextColor={COLORS.iconMuted}
           style={styles.input}
         />
         <Pressable
@@ -137,22 +138,22 @@ export function MatchChatScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd" },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   row: { marginBottom: 8, flexDirection: "row" },
   rowMine: { justifyContent: "flex-end" },
   rowOther: { justifyContent: "flex-start" },
   bubble: { maxWidth: "78%", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
-  mine: { backgroundColor: "#06b6d4" },
-  other: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#c8e6ef" },
-  bubbleText: { color: "#041521", fontSize: 14 },
+  mine: { backgroundColor: COLORS.primary },
+  other: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
+  bubbleText: { color: COLORS.text, fontSize: 14 },
   inputRow: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     borderTopWidth: 1,
-    borderTopColor: "#c8e6ef",
-    backgroundColor: "#fff",
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.card,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: "row",
@@ -161,20 +162,20 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#b7d8e2",
+    borderColor: COLORS.borderMuted,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    color: "#041521",
+    color: COLORS.text,
   },
   sendBtn: {
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingHorizontal: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendBtnText: { color: "#fff", fontWeight: "700" },
-  empty: { textAlign: "center", color: "#4f6b7b", marginTop: 24 },
+  sendBtnText: { color: COLORS.card, fontWeight: "700" },
+  empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
 });
 

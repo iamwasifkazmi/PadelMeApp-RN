@@ -76,7 +76,7 @@ export function ProfileScreen() {
         </View>
         <View style={styles.heroButtons}>
           <Pressable style={styles.heroCta} onPress={() => navigation.navigate("InstantPlay")}>
-            <Ionicons name="flash-outline" size={14} color="#fff" />
+            <Ionicons name="flash-outline" size={14} color={COLORS.card} />
             <Text style={styles.heroCtaText}>Play Now</Text>
           </Pressable>
           <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("InvitePlayers", { eventId: "profile-invite" })}>
@@ -114,7 +114,7 @@ export function ProfileScreen() {
                 <Text style={styles.rowTitle}>Complete verification</Text>
                 <Text style={styles.rowMeta}>Improve trust and profile visibility</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
+              <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
           </View>
 
@@ -122,7 +122,7 @@ export function ProfileScreen() {
             <Text style={styles.sectionTitle}>Achievements</Text>
             {achievements.map((a) => (
               <View key={a.label} style={[styles.achievementRow, !a.earned && { opacity: 0.55 }]}>
-                <Ionicons name={a.icon as any} size={16} color={a.earned ? "#06b6d4" : "#7b95a6"} />
+                <Ionicons name={a.icon as any} size={16} color={a.earned ? COLORS.primary : COLORS.iconMuted} />
                 <Text style={styles.achievementText}>{a.label}</Text>
                 <Text style={[styles.achievementTag, a.earned ? styles.achievementTagOn : styles.achievementTagOff]}>
                   {a.earned ? "EARNED" : "LOCKED"}
@@ -133,12 +133,12 @@ export function ProfileScreen() {
 
           <View style={styles.quickRow}>
             <Pressable style={styles.quickCard} onPress={() => navigation.navigate("InstantPlay")}>
-              <Ionicons name="flash-outline" size={18} color="#f59e0b" />
+              <Ionicons name="flash-outline" size={18} color={COLORS.warning} />
               <Text style={styles.quickTitle}>Play Now</Text>
               <Text style={styles.quickMeta}>Instant matching</Text>
             </Pressable>
             <Pressable style={styles.quickCard} onPress={() => navigation.navigate("PastEvents")}>
-              <Ionicons name="time-outline" size={18} color="#06b6d4" />
+              <Ionicons name="time-outline" size={18} color={COLORS.primary} />
               <Text style={styles.quickTitle}>History</Text>
               <Text style={styles.quickMeta}>Past matches</Text>
             </Pressable>
@@ -151,14 +151,14 @@ export function ProfileScreen() {
                 <Text style={styles.rowTitle}>Evening Padel Doubles</Text>
                 <Text style={styles.rowMeta}>Fri 2 May · 19:30 · Padel Club Downtown</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
+              <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
             <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("PastEvents")}>
               <View>
                 <Text style={styles.rowTitle}>Recent History</Text>
                 <Text style={styles.rowMeta}>See all your past events and results</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#7b95a6" />
+              <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
           </View>
         </>
@@ -223,17 +223,17 @@ function TrustChip({ label, active }: { label: string; active: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", paddingHorizontal: 16, paddingTop: 12 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  topTitle: { fontSize: 22, fontWeight: "800", color: "#041521" },
+  topTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text },
   topActions: { flexDirection: "row", gap: 8 },
   iconBtn: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     height: 210,
-    backgroundColor: "#e0ecff",
+    backgroundColor: COLORS.primaryPale,
     borderRadius: 20,
   },
   heroGlow: {
@@ -253,13 +253,13 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "#9fe4f2",
+    backgroundColor: COLORS.borderStrong,
   },
   hero: {
-    backgroundColor: "#ffffffee",
+    backgroundColor: COLORS.cardOverlay,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     alignItems: "center",
     paddingVertical: 20,
     marginBottom: 12,
@@ -268,53 +268,53 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#041521",
+    backgroundColor: COLORS.text,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontSize: 28, fontWeight: "800" },
-  name: { marginTop: 12, fontSize: 22, fontWeight: "800", color: "#041521" },
-  location: { marginTop: 4, color: "#4f6b7b", fontSize: 13 },
-  statusLine: { marginTop: 6, fontSize: 12, color: "#1a3a4a", fontWeight: "600" },
+  avatarText: { color: COLORS.card, fontSize: 28, fontWeight: "800" },
+  name: { marginTop: 12, fontSize: 22, fontWeight: "800", color: COLORS.text },
+  location: { marginTop: 4, color: COLORS.textMuted, fontSize: 13 },
+  statusLine: { marginTop: 6, fontSize: 12, color: COLORS.textSubtle, fontWeight: "600" },
   heroBadges: { flexDirection: "row", gap: 6, marginTop: 10 },
-  badge: { backgroundColor: "#c8e6ef", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeText: { fontSize: 11, fontWeight: "700", color: "#1a3a4a", textTransform: "capitalize" },
+  badge: { backgroundColor: COLORS.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.textSubtle, textTransform: "capitalize" },
   heroButtons: { flexDirection: "row", gap: 8, marginTop: 12 },
   heroCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  heroCtaText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  heroCtaText: { color: COLORS.card, fontWeight: "700", fontSize: 12 },
   heroGhost: {
     borderWidth: 1,
-    borderColor: "#b7d8e2",
+    borderColor: COLORS.borderMuted,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
   },
-  heroGhostText: { color: "#041521", fontWeight: "700", fontSize: 12 },
+  heroGhostText: { color: COLORS.text, fontWeight: "700", fontSize: 12 },
   statsRow: { flexDirection: "row", gap: 8 },
   statCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     paddingVertical: 12,
     alignItems: "center",
   },
-  statTitle: { color: "#4f6b7b", fontSize: 11, fontWeight: "600" },
-  statValue: { marginTop: 5, color: "#041521", fontSize: 16, fontWeight: "800", textTransform: "capitalize" },
+  statTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: "600" },
+  statValue: { marginTop: 5, color: COLORS.text, fontSize: 16, fontWeight: "800", textTransform: "capitalize" },
   switchTabs: {
     flexDirection: "row",
     marginTop: 10,
-    backgroundColor: "#c8e6ef",
+    backgroundColor: COLORS.border,
     borderRadius: 12,
     padding: 3,
   },
@@ -325,80 +325,80 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     paddingVertical: 8,
   },
-  switchBtnActive: { backgroundColor: "#fff" },
-  switchText: { fontSize: 12, color: "#475569", fontWeight: "700" },
-  switchTextActive: { color: "#041521" },
+  switchBtnActive: { backgroundColor: COLORS.card },
+  switchText: { fontSize: 12, color: COLORS.textSoft, fontWeight: "700" },
+  switchTextActive: { color: COLORS.text },
   quickRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   quickCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 12,
   },
-  quickTitle: { marginTop: 6, fontSize: 13, fontWeight: "700", color: "#041521" },
-  quickMeta: { marginTop: 2, fontSize: 11, color: "#4f6b7b" },
+  quickTitle: { marginTop: 6, fontSize: 13, fontWeight: "700", color: COLORS.text },
+  quickMeta: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
   sectionCard: {
     marginTop: 10,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     padding: 12,
   },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#041521", marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 8 },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   trustChip: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1 },
-  trustChipOn: { backgroundColor: "#ecfeff", borderColor: "#67e8f9" },
-  trustChipOff: { backgroundColor: "#edf9fd", borderColor: "#c8e6ef" },
+  trustChipOn: { backgroundColor: COLORS.infoSoft, borderColor: COLORS.infoBorder },
+  trustChipOff: { backgroundColor: COLORS.bg, borderColor: COLORS.border },
   trustChipText: { fontSize: 11, fontWeight: "700" },
-  trustChipTextOn: { color: "#0e7490" },
-  trustChipTextOff: { color: "#4f6b7b" },
+  trustChipTextOn: { color: COLORS.infoText },
+  trustChipTextOff: { color: COLORS.textMuted },
   rowBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     padding: 10,
     marginBottom: 8,
   },
-  rowTitle: { fontSize: 13, fontWeight: "700", color: "#041521" },
-  rowMeta: { marginTop: 2, fontSize: 11, color: "#4f6b7b" },
+  rowTitle: { fontSize: 13, fontWeight: "700", color: COLORS.text },
+  rowMeta: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
   achievementRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#edf9fd",
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 9,
     marginBottom: 6,
   },
-  achievementText: { flex: 1, fontSize: 12, color: "#041521", fontWeight: "600" },
+  achievementText: { flex: 1, fontSize: 12, color: COLORS.text, fontWeight: "600" },
   achievementTag: { fontSize: 10, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, overflow: "hidden" },
-  achievementTagOn: { backgroundColor: "#d8f5fb", color: "#0891b2" },
-  achievementTagOff: { backgroundColor: "#c8e6ef", color: "#4f6b7b" },
-  eloBig: { fontSize: 32, fontWeight: "800", color: "#06b6d4", marginBottom: 8 },
-  progressTrack: { height: 8, borderRadius: 999, backgroundColor: "#c8e6ef", overflow: "hidden" },
-  progressFill: { height: 8, borderRadius: 999, backgroundColor: "#06b6d4" },
+  achievementTagOn: { backgroundColor: COLORS.primarySoftAlt, color: COLORS.primaryDark },
+  achievementTagOff: { backgroundColor: COLORS.border, color: COLORS.textMuted },
+  eloBig: { fontSize: 32, fontWeight: "800", color: COLORS.primary, marginBottom: 8 },
+  progressTrack: { height: 8, borderRadius: 999, backgroundColor: COLORS.border, overflow: "hidden" },
+  progressFill: { height: 8, borderRadius: 999, backgroundColor: COLORS.primary },
   scaleRow: { marginTop: 6, flexDirection: "row", justifyContent: "space-between" },
-  scaleText: { fontSize: 10, color: "#4f6b7b" },
+  scaleText: { fontSize: 10, color: COLORS.textMuted },
   performanceGrid: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 8 },
   perfCard: {
     width: "48%",
-    backgroundColor: "#edf9fd",
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: "center",
   },
-  perfValue: { fontSize: 16, color: "#041521", fontWeight: "800" },
-  perfLabel: { marginTop: 2, fontSize: 11, color: "#4f6b7b" },
+  perfValue: { fontSize: 16, color: COLORS.text, fontWeight: "800" },
+  perfLabel: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
 });
 

@@ -11,6 +11,7 @@ import { api } from "../lib/api";
 import { MatchDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { useNavigation } from "@react-navigation/native";
+import { COLORS } from "../theme/colors";
 
 type Match = {
   id: string;
@@ -132,7 +133,7 @@ function CompetitionCard({ competition }: { competition: Competition }) {
   return (
     <Pressable style={styles.competitionCard}>
       <View style={styles.competitionIconWrap}>
-        <Ionicons name="trophy-outline" size={18} color="#06b6d4" />
+        <Ionicons name="trophy-outline" size={18} color={COLORS.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.competitionName}>{competition.name}</Text>
@@ -229,10 +230,10 @@ export function HomeScreen() {
         </View>
         <View style={styles.headerActions}>
           <Pressable style={styles.headerIconBtn}>
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#041521" />
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.text} />
           </Pressable>
           <Pressable style={styles.headerIconBtn}>
-            <Ionicons name="notifications-outline" size={18} color="#041521" />
+            <Ionicons name="notifications-outline" size={18} color={COLORS.text} />
           </Pressable>
         </View>
       </View>
@@ -262,9 +263,9 @@ export function HomeScreen() {
             <Ionicons
               name={item.icon}
               size={20}
-              color={item.accent ? "#ffffff" : "#041521"}
+              color={item.accent ? COLORS.card : COLORS.text}
             />
-            <Text style={[styles.quickActionText, item.accent && { color: "#fff" }]}>
+            <Text style={[styles.quickActionText, item.accent && { color: COLORS.card }]}>
               {item.label}
             </Text>
           </Pressable>
@@ -352,59 +353,59 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd" },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 110 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14, alignItems: "center" },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#041521", alignItems: "center", justifyContent: "center" },
-  userAvatarText: { color: "#fff", fontWeight: "700" },
-  greeting: { fontSize: 20, fontWeight: "800", color: "#041521" },
-  greetingSub: { fontSize: 12, color: "#4f6b7b", marginTop: 2 },
+  userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
+  userAvatarText: { color: COLORS.card, fontWeight: "700" },
+  greeting: { fontSize: 20, fontWeight: "800", color: COLORS.text },
+  greetingSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   headerActions: { flexDirection: "row", gap: 8 },
-  headerIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#c8e6ef", alignItems: "center", justifyContent: "center" },
-  instantCard: { backgroundColor: "#041521", borderRadius: 16, padding: 16, marginBottom: 12 },
-  instantTitle: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  instantSubtitle: { color: "#b7d8e2", marginTop: 4, fontSize: 12 },
+  headerIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
+  instantCard: { backgroundColor: COLORS.text, borderRadius: 16, padding: 16, marginBottom: 12 },
+  instantTitle: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
+  instantSubtitle: { color: COLORS.borderMuted, marginTop: 4, fontSize: 12 },
   quickActionsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  quickAction: { flex: 1, borderRadius: 14, backgroundColor: "#ffffff", borderWidth: 1, borderColor: "#c8e6ef", alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
-  quickActionAccent: { backgroundColor: "#06b6d4", borderColor: "#06b6d4" },
-  quickActionText: { fontSize: 11, fontWeight: "700", color: "#041521" },
+  quickAction: { flex: 1, borderRadius: 14, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
+  quickActionAccent: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  quickActionText: { fontSize: 11, fontWeight: "700", color: COLORS.text },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8, marginTop: 6 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#041521" },
-  sectionSubtitle: { fontSize: 11, color: "#4f6b7b", marginTop: 2 },
-  sectionAction: { fontSize: 12, color: "#06b6d4", fontWeight: "600" },
-  matchCard: { backgroundColor: "#fff", borderRadius: 14, borderWidth: 1, borderColor: "#c8e6ef", padding: 12, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
+  sectionSubtitle: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  sectionAction: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  matchCard: { backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
   matchHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  matchTitle: { fontSize: 14, fontWeight: "700", color: "#041521", flex: 1, marginRight: 8 },
-  statusPill: { backgroundColor: "#fef3c7", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  statusText: { fontSize: 10, color: "#92400e", fontWeight: "700", textTransform: "capitalize" },
-  matchMeta: { fontSize: 11, color: "#4f6b7b", marginTop: 4 },
-  playersSwitch: { flexDirection: "row", backgroundColor: "#c8e6ef", borderRadius: 12, padding: 3, alignSelf: "flex-start", marginBottom: 10 },
+  matchTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, flex: 1, marginRight: 8 },
+  statusPill: { backgroundColor: COLORS.warningSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  statusText: { fontSize: 10, color: COLORS.warningText, fontWeight: "700", textTransform: "capitalize" },
+  matchMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
+  playersSwitch: { flexDirection: "row", backgroundColor: COLORS.border, borderRadius: 12, padding: 3, alignSelf: "flex-start", marginBottom: 10 },
   switchBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9 },
-  switchBtnActive: { backgroundColor: "#fff" },
-  switchBtnText: { fontSize: 11, color: "#475569", fontWeight: "600" },
-  switchBtnTextActive: { color: "#041521" },
+  switchBtnActive: { backgroundColor: COLORS.card },
+  switchBtnText: { fontSize: 11, color: COLORS.textSoft, fontWeight: "600" },
+  switchBtnTextActive: { color: COLORS.text },
   playersRow: { marginBottom: 14 },
   playerMini: { width: 90, alignItems: "center", marginRight: 10 },
-  playerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#d8f5fb", alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  playerAvatarText: { color: "#0891b2", fontWeight: "800" },
-  playerName: { fontSize: 12, fontWeight: "700", color: "#041521" },
-  playerLevel: { fontSize: 10, color: "#4f6b7b", marginTop: 2 },
-  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: "#c8e6ef", backgroundColor: "#fff", padding: 12, marginBottom: 8 },
-  competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#d8f5fb", alignItems: "center", justifyContent: "center" },
-  competitionName: { fontSize: 14, fontWeight: "700", color: "#041521" },
-  competitionMeta: { fontSize: 11, color: "#4f6b7b", marginTop: 2 },
-  progressTrack: { height: 6, borderRadius: 99, backgroundColor: "#c8e6ef", marginTop: 8, overflow: "hidden" },
-  progressFill: { height: 6, borderRadius: 99, backgroundColor: "#06b6d4" },
+  playerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  playerAvatarText: { color: COLORS.primaryDark, fontWeight: "800" },
+  playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text },
+  playerLevel: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.card, padding: 12, marginBottom: 8 },
+  competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
+  competitionName: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  competitionMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  progressTrack: { height: 6, borderRadius: 99, backgroundColor: COLORS.border, marginTop: 8, overflow: "hidden" },
+  progressFill: { height: 6, borderRadius: 99, backgroundColor: COLORS.primary },
   resultsRow: { marginBottom: 10 },
   resultDotWrap: { width: 56, alignItems: "center", marginRight: 8 },
   resultDot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  resultDotWin: { backgroundColor: "#dcfce7" },
-  resultDotLoss: { backgroundColor: "#fee2e2" },
+  resultDotWin: { backgroundColor: COLORS.successSoft },
+  resultDotLoss: { backgroundColor: COLORS.dangerSoft },
   resultDotText: { fontWeight: "800", fontSize: 12 },
-  resultDotTextWin: { color: "#15803d" },
-  resultDotTextLoss: { color: "#dc2626" },
-  resultElo: { fontSize: 10, marginTop: 4, color: "#1a3a4a", fontWeight: "700" },
-  resultDate: { fontSize: 9, marginTop: 2, color: "#4f6b7b" },
+  resultDotTextWin: { color: COLORS.successText },
+  resultDotTextLoss: { color: COLORS.dangerText },
+  resultElo: { fontSize: 10, marginTop: 4, color: COLORS.textSubtle, fontWeight: "700" },
+  resultDate: { fontSize: 9, marginTop: 2, color: COLORS.textMuted },
 });
 

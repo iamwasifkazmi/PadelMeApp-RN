@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
@@ -113,47 +114,47 @@ export function MatchDetailScreen({ route }: { route: { params: { id: string } }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#edf9fd", padding: 16 },
+  container: { flex: 1, backgroundColor: COLORS.bg, padding: 16 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
   },
-  title: { fontSize: 22, fontWeight: "800", color: "#041521" },
-  meta: { marginTop: 4, color: "#4f6b7b", fontSize: 13 },
+  title: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  meta: { marginTop: 4, color: COLORS.textMuted, fontSize: 13 },
   row: { flexDirection: "row", gap: 8, marginBottom: 12 },
   action: {
     flex: 1,
-    backgroundColor: "#06b6d4",
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 11,
   },
-  actionText: { color: "#fff", fontWeight: "700" },
+  actionText: { color: COLORS.card, fontWeight: "700" },
   actionSecondary: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#b7d8e2",
+    borderColor: COLORS.borderMuted,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 11,
   },
-  actionSecondaryText: { color: "#041521", fontWeight: "700" },
+  actionSecondaryText: { color: COLORS.text, fontWeight: "700" },
   scoreCard: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#c8e6ef",
+    borderColor: COLORS.border,
     borderRadius: 14,
     padding: 12,
   },
-  scoreTitle: { fontSize: 14, fontWeight: "700", color: "#041521", marginBottom: 6 },
-  scoreText: { fontSize: 13, color: "#475569", marginBottom: 2 },
-  empty: { marginTop: 24, color: "#4f6b7b", textAlign: "center" },
+  scoreTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 6 },
+  scoreText: { fontSize: 13, color: COLORS.textSoft, marginBottom: 2 },
+  empty: { marginTop: 24, color: COLORS.textMuted, textAlign: "center" },
 });
 
