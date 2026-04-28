@@ -1,7 +1,7 @@
 import React from "react";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { StatusBar } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation";
 
 const theme = {
@@ -16,9 +16,11 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" />
-      <NavigationContainer theme={theme}>
-        <RootNavigator />
-      </NavigationContainer>
+      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+        <NavigationContainer theme={theme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

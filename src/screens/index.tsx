@@ -1,13 +1,19 @@
 import React from "react";
 import { PlaceholderScreen } from "./PlaceholderScreen";
+import { HomeScreen as ActualHomeScreen } from "./HomeScreen";
+import { FindMatchScreen } from "./FindMatchScreen";
+import { MessagesScreen as ActualMessagesScreen } from "./MessagesScreen";
+import { ProfileScreen as ActualProfileScreen } from "./ProfileScreen";
+import { CreateMatchScreen as ActualCreateMatchScreen } from "./CreateMatchScreen";
+import { MatchDetailScreen as ActualMatchDetailScreen } from "./MatchDetailScreen";
 
-export const HomeScreen = () => <PlaceholderScreen title="Home" subtitle="Feed, upcoming matches, competition cards" />;
-export const DiscoverScreen = () => <PlaceholderScreen title="Find Match" subtitle="Filters, recommendations, open matches" />;
-export const MessagesScreen = () => <PlaceholderScreen title="Messages" subtitle="Conversation list and unread status" />;
-export const ProfileScreen = () => <PlaceholderScreen title="Profile" subtitle="Player profile, ratings, history, stats" />;
+export const HomeScreen = ActualHomeScreen;
+export const DiscoverScreen = FindMatchScreen;
+export const MessagesScreen = ActualMessagesScreen;
+export const ProfileScreen = ActualProfileScreen;
 
-export const CreateMatchScreen = () => <PlaceholderScreen title="Create Match" />;
-export const MatchDetailScreen = () => <PlaceholderScreen title="Match Detail" />;
+export const CreateMatchScreen = ActualCreateMatchScreen;
+export const MatchDetailScreen = ActualMatchDetailScreen;
 export const EditProfileScreen = () => <PlaceholderScreen title="Edit Profile" />;
 export const NotificationsScreen = () => <PlaceholderScreen title="Notifications" />;
 export const CompetitionsScreen = () => <PlaceholderScreen title="Competitions" />;
