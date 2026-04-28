@@ -31,3 +31,51 @@ export type ConversationDto = {
   lastMessageAt?: string | null;
 };
 
+export type MessageDto = {
+  id: string;
+  conversationId: string;
+  senderEmail: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+};
+
+export type CompetitionDto = {
+  id: string;
+  name: string;
+  type: string;
+  format: string;
+  status: string;
+  skillLevel?: string | null;
+  maxPlayers?: number | null;
+  participants: string[];
+  createdAt: string;
+};
+
+export type CompetitionDetailDto = CompetitionDto & {
+  matches: Array<{
+    id: string;
+    round: number;
+    status: string;
+    player1Name?: string | null;
+    player2Name?: string | null;
+  }>;
+};
+
+export type NotificationDto = {
+  id: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export type FriendRequestDto = {
+  id: string;
+  requesterEmail: string;
+  recipientEmail: string;
+  status: string;
+  createdAt: string;
+};
+
