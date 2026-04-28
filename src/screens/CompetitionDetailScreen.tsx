@@ -7,13 +7,16 @@ import { ScreenSkeleton } from "../components/Skeleton";
 
 export function CompetitionDetailScreen({
   route,
+  navigation,
 }: {
   route: { params: { id: string } };
+  navigation: any;
 }) {
   const id = route.params.id;
   const [loading, setLoading] = React.useState(true);
   const [item, setItem] = React.useState<CompetitionDetailDto | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [joining, setJoining] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -38,6 +41,16 @@ export function CompetitionDetailScreen({
       await load();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const joinCompetition = async () => {
+    try {
+      setJoining(true);
+      await api.post(`/competitions/${id}/join`, { email: "demo@padelme.app" });
+      await load();
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -68,6 +81,18 @@ export function CompetitionDetailScreen({
       >
         <Ionicons name="git-branch-outline" size={16} color="#fff" />
         <Text style={styles.advanceBtnText}>Advance Bracket</Text>
+      </Pressable>
+      <Pressable
+        style={[styles.joinBtn, joining && { opacity: 0.65 }]}
+        onPress={joinCompetition}
+        disabled={joining}
+      >
+        <Ionicons name="person-add-outline" size={16} color="#0f172a" />
+        <Text style={styles.joinBtnText}>{joining ? "Joining..." : "Join Competition"}</Text>
+      </Pressable>
+      <Pressable style={styles.inviteBtn} onPress={() => navigation.navigate("InvitePlayers", { eventId: item.id })}>
+        <Ionicons name="mail-outline" size={16} color="#1d4ed8" />
+        <Text style={styles.inviteBtnText}>Invite Players</Text>
       </Pressable>
 
       <Text style={styles.matchesTitle}>Matches</Text>
@@ -112,6 +137,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   advanceBtnText: { color: "#fff", fontWeight: "700" },
+  joinBtn: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dbeafe",
+    borderRadius: 12,
+    paddingVertical: 11,
+    marginBottom: 8,
+  },
+  joinBtnText: { color: "#0f172a", fontWeight: "700" },
+  inviteBtn: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 12,
+    paddingVertical: 11,
+    marginBottom: 12,
+    backgroundColor: "#eff6ff",
+  },
+  inviteBtnText: { color: "#1d4ed8", fontWeight: "700" },
   matchesTitle: { fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 8 },
   matchCard: {
     backgroundColor: "#fff",

@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../screens";
 import { MainTabParamList } from "./types";
@@ -20,60 +21,128 @@ function CenterCreateButton({ onPress }: { onPress: () => void }) {
 }
 
 export function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#2563eb",
-        tabBarInactiveTintColor: "#8b98ac",
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabLabel,
-      }}
-    >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="DiscoverTab"
-        component={DiscoverScreen}
-        options={{
-          title: "Discover",
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="CreateTab"
-        component={HomeScreen}
-        options={({ navigation }) => ({
-          title: "",
-          tabBarLabel: () => <Text style={styles.hiddenLabel}>Create</Text>,
-          tabBarIcon: () => null,
-          tabBarButton: () => <CenterCreateButton onPress={() => navigation.navigate("CreateMatch" as never)} />,
-        })}
-      />
-      <Tab.Screen
-        name="MessagesTab"
-        component={MessagesScreen}
-        options={{
-          title: "Messages",
-          tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={ICON_SIZE} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={ICON_SIZE} color={color} />,
-        }}
-      />
-    </Tab.Navigator>
+  const navigation = useNavigation<any>();
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const navigateRoot = React.useCallback(
+    (route: string) => {
+      const parent = navigation.getParent?.();
+      if (parent?.navigate) parent.navigate(route);
+      else navigation.navigate(route);
+    },
+    [navigation],
   );
+  return (
+    <>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: "#2563eb",
+          tabBarInactiveTintColor: "#8b98ac",
+          tabBarStyle: styles.tabBar,
+          tabBarLabelStyle: styles.tabLabel,
+        }}
+      >
+        <Tab.Screen
+          name="HomeTab"
+          component={HomeScreen}
+          options={{
+            title: "Home",
+            tabBarIcon: ({ color }) => <Ionicons name="home" size={ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="DiscoverTab"
+          component={DiscoverScreen}
+          options={{
+            title: "Discover",
+            tabBarIcon: ({ color }) => <Ionicons name="search" size={ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="CreateTab"
+          component={HomeScreen}
+          options={{
+            title: "",
+            tabBarLabel: () => <Text style={styles.hiddenLabel}>Create</Text>,
+            tabBarIcon: () => null,
+            tabBarButton: () => <CenterCreateButton onPress={() => setCreateOpen(true)} />,
+          }}
+        />
+        <Tab.Screen
+          name="MessagesTab"
+          component={MessagesScreen}
+          options={{
+            title: "Messages",
+            tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses" size={ICON_SIZE} color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="ProfileTab"
+          component={ProfileScreen}
+          options={{
+            title: "Profile",
+            tabBarIcon: ({ color }) => <Ionicons name="person" size={ICON_SIZE} color={color} />,
+          }}
+        />
+      </Tab.Navigator>
+
+      <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => setCreateOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setCreateOpen(false)}>
+          <Pressable style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHead}>
+              <Text style={styles.sheetTitle}>Create</Text>
+              <Pressable onPress={() => setCreateOpen(false)}>
+                <Ionicons name="close" size={20} color="#64748b" />
+              </Pressable>
+            </View>
+
+            <ActionRow icon="flash-outline" title="Play Now" subtitle="Find a match instantly" route="InstantPlay" highlight />
+            <View style={styles.sectionDivider} />
+            <Text style={styles.sectionLabel}>Full Control</Text>
+            <ActionRow icon="tennisball-outline" title="Create Match" subtitle="Set up a one-off game" route="CreateMatch" />
+            <ActionRow icon="repeat-outline" title="Recurring Match" subtitle="Weekly match setup" route="CreateMatch" />
+            <View style={styles.sectionDivider} />
+            <Text style={styles.sectionLabel}>Competitions</Text>
+            <ActionRow icon="trophy-outline" title="Create Competition" subtitle="Tournament or league" route="CreateCompetition" />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+
+  function ActionRow({
+    icon,
+    title,
+    subtitle,
+    route,
+    highlight,
+  }: {
+    icon: string;
+    title: string;
+    subtitle: string;
+    route: string;
+    highlight?: boolean;
+  }) {
+    return (
+      <Pressable
+        style={[styles.actionRow, highlight && styles.actionRowHighlight]}
+        onPress={() => {
+          setCreateOpen(false);
+          navigateRoot(route);
+        }}
+      >
+        <View style={styles.actionIcon}>
+          <Ionicons name={icon as any} size={18} color="#2563eb" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.actionTitle}>{title}</Text>
+          <Text style={styles.actionSubtitle}>{subtitle}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+      </Pressable>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
@@ -110,4 +179,66 @@ const styles = StyleSheet.create({
   hiddenLabel: {
     display: "none",
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(2,6,23,0.45)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 26,
+    paddingTop: 8,
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+  sheetHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: "800", color: "#0f172a" },
+  sectionDivider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 4 },
+  sectionLabel: {
+    fontSize: 11,
+    color: "#64748b",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: "#f8fafc",
+  },
+  actionRowHighlight: {
+    backgroundColor: "#fff7ed",
+    borderColor: "#fed7aa",
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dbeafe",
+  },
+  actionTitle: { fontWeight: "700", fontSize: 14, color: "#0f172a" },
+  actionSubtitle: { marginTop: 2, color: "#64748b", fontSize: 12 },
 });

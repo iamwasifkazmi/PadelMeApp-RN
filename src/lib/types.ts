@@ -62,6 +62,15 @@ export type CompetitionDetailDto = CompetitionDto & {
   }>;
 };
 
+export type MatchChatMessageDto = {
+  id: string;
+  matchId: string;
+  senderEmail: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+};
+
 export type NotificationDto = {
   id: string;
   type: string;
