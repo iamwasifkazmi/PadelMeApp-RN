@@ -1,0 +1,29 @@
+export type MainTabParamList = {
+  HomeTab: undefined;
+  DiscoverTab: undefined;
+  CreateTab: undefined;
+  MessagesTab: undefined;
+  ProfileTab: undefined;
+};
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Onboarding: undefined;
+  AcceptInvite: { token?: string } | undefined;
+  CreateMatch: undefined;
+  MatchDetail: { id: string };
+  EditProfile: undefined;
+  Notifications: undefined;
+  Competitions: undefined;
+  CreateCompetition: undefined;
+  CompetitionDetail: { id: string };
+  InvitePlayers: { eventId?: string } | undefined;
+  Verification: undefined;
+  InstantPlay: undefined;
+  Players: undefined;
+  PlayerProfile: { id: string };
+  Friends: undefined;
+  PastEvents: undefined;
+  ConversationView: { id: string };
+  MatchChat: { matchId: string };
+};
