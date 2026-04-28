@@ -232,7 +232,7 @@ export function HomeScreen() {
           <Pressable style={styles.headerIconBtn}>
             <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.text} />
           </Pressable>
-          <Pressable style={styles.headerIconBtn}>
+          <Pressable style={styles.headerIconBtn} onPress={() => navigation.navigate("Notifications")}>
             <Ionicons name="notifications-outline" size={18} color={COLORS.text} />
           </Pressable>
         </View>
@@ -241,6 +241,9 @@ export function HomeScreen() {
       <View style={styles.instantCard}>
         <Text style={styles.instantTitle}>⚡ Instant Play</Text>
         <Text style={styles.instantSubtitle}>Find players near you right now</Text>
+        <Pressable style={styles.instantBtn} onPress={() => navigation.navigate("InstantPlay")}>
+          <Text style={styles.instantBtnText}>Start now</Text>
+        </Pressable>
       </View>
 
       <View style={styles.quickActionsRow}>
@@ -321,7 +324,9 @@ export function HomeScreen() {
 
       <SectionHeader title="🏆 Competitions" subtitle="Tournaments and leagues" action="See all →" />
       {competitions.map((c) => (
-        <CompetitionCard key={c.id} competition={c} />
+        <Pressable key={c.id} onPress={() => navigation.navigate("CompetitionDetail", { id: c.id })}>
+          <CompetitionCard competition={c} />
+        </Pressable>
       ))}
 
       <SectionHeader title="Recent Results" subtitle={`ELO ${eloSum >= 0 ? `+${eloSum}` : eloSum}`} action="All History →" />
@@ -366,6 +371,15 @@ const styles = StyleSheet.create({
   instantCard: { backgroundColor: COLORS.text, borderRadius: 16, padding: 16, marginBottom: 12 },
   instantTitle: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
   instantSubtitle: { color: COLORS.borderMuted, marginTop: 4, fontSize: 12 },
+  instantBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  instantBtnText: { color: COLORS.card, fontWeight: "700", fontSize: 12 },
   quickActionsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   quickAction: { flex: 1, borderRadius: 14, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
   quickActionAccent: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },

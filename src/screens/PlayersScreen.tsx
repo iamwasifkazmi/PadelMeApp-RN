@@ -1,5 +1,6 @@
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
@@ -51,6 +52,7 @@ export function PlayersScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Players</Text>
+      <Text style={styles.subtitle}>Recommended players around your level</Text>
       <TextInput
         style={styles.search}
         value={query}
@@ -78,6 +80,24 @@ export function PlayersScreen() {
               <Text style={styles.meta}>
                 {item.skillLabel || "intermediate"} · ELO {item.eloRating}
               </Text>
+              <View style={styles.rowActions}>
+                <Pressable
+                  style={styles.messageBtn}
+                  onPress={() => {
+                    const parent = navigation.getParent?.();
+                    if (parent?.navigate) parent.navigate("MessagesTab");
+                  }}
+                >
+                  <Ionicons name="chatbubble-outline" size={13} color={COLORS.primaryDark} />
+                  <Text style={styles.messageBtnText}>Message</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.profileBtn}
+                  onPress={() => navigation.navigate("PlayerProfile", { id: item.id })}
+                >
+                  <Text style={styles.profileBtnText}>View Profile</Text>
+                </Pressable>
+              </View>
             </View>
           </Pressable>
         )}
@@ -90,6 +110,7 @@ export function PlayersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: "800", color: COLORS.text, marginBottom: 10 },
+  subtitle: { marginTop: -6, marginBottom: 10, color: COLORS.textMuted, fontSize: 12 },
   search: {
     height: 42,
     borderRadius: 12,
@@ -115,6 +136,28 @@ const styles = StyleSheet.create({
   avatarText: { color: COLORS.card, fontWeight: "800" },
   name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   meta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted, textTransform: "capitalize" },
+  rowActions: { marginTop: 8, flexDirection: "row", gap: 6 },
+  messageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  messageBtnText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 11 },
+  profileBtn: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  profileBtnText: { color: COLORS.text, fontWeight: "700", fontSize: 11 },
   empty: { textAlign: "center", marginTop: 24, color: COLORS.textMuted },
 });
 

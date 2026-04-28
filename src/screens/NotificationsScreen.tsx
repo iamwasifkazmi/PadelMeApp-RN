@@ -32,6 +32,7 @@ function NotificationsSkeleton() {
 export function NotificationsScreen() {
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState<NotificationDto[]>([]);
+  const [tab, setTab] = React.useState<"all" | "unread">("all");
 
   const load = React.useCallback(async () => {
     try {
@@ -56,15 +57,41 @@ export function NotificationsScreen() {
     await load();
   };
 
+  const markAllRead = async () => {
+    await api.patch("/notifications/read-all", { email: USER_EMAIL });
+    await load();
+  };
+
   if (loading) return <NotificationsSkeleton />;
+  const filtered = tab === "all" ? items : items.filter((i) => !i.isRead);
+  const unreadCount = items.filter((i) => !i.isRead).length;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Notifications</Text>
-      <Text style={styles.subtitle}>Updates for matches and invites</Text>
+      <View style={styles.headRow}>
+        <View>
+          <Text style={styles.title}>Notifications</Text>
+          <Text style={styles.subtitle}>Updates for matches and invites</Text>
+        </View>
+        {unreadCount > 0 && (
+          <Pressable style={styles.markAllBtn} onPress={markAllRead}>
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </Pressable>
+        )}
+      </View>
+      <View style={styles.tabs}>
+        <Pressable style={[styles.tabBtn, tab === "all" && styles.tabBtnActive]} onPress={() => setTab("all")}>
+          <Text style={[styles.tabText, tab === "all" && styles.tabTextActive]}>All</Text>
+        </Pressable>
+        <Pressable style={[styles.tabBtn, tab === "unread" && styles.tabBtnActive]} onPress={() => setTab("unread")}>
+          <Text style={[styles.tabText, tab === "unread" && styles.tabTextActive]}>
+            Unread ({unreadCount})
+          </Text>
+        </Pressable>
+      </View>
 
       <FlatList
-        data={items}
+        data={filtered}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
@@ -94,8 +121,31 @@ export function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
+  headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
   subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
+  markAllBtn: {
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  markAllText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 12 },
+  tabs: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  tabBtn: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  tabBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tabText: { color: COLORS.textSoft, fontWeight: "700", fontSize: 12 },
+  tabTextActive: { color: COLORS.card },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 14,

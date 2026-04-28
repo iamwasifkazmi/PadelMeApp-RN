@@ -34,6 +34,7 @@ export function RootNavigator() {
         headerStyle: { backgroundColor: COLORS.card },
         headerTintColor: COLORS.text,
         headerTitleStyle: { fontWeight: "700" },
+        headerBackTitleVisible: false,
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
