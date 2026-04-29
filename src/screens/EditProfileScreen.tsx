@@ -1,8 +1,9 @@
 import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -25,6 +26,7 @@ function EditProfileSkeleton() {
 }
 
 export function EditProfileScreen() {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -60,9 +62,9 @@ export function EditProfileScreen() {
         bio,
         skillLabel,
       });
-      Alert.alert("Saved", "Profile updated");
+      showSnackbar("Profile updated", { type: "success" });
     } catch {
-      Alert.alert("Error", "Could not update profile");
+      showSnackbar("Could not update profile", { type: "error" });
     } finally {
       setSaving(false);
     }

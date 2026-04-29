@@ -1,11 +1,13 @@
 import React from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { AuthResponseDto } from "../lib/types";
 import { persistSession } from "../store";
 import { COLORS } from "../theme/colors";
 
 export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState(route?.params?.email || "");
   const [code, setCode] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -22,7 +24,7 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
 
   const onVerify = async () => {
     if (!email.trim() || code.length !== 6) {
-      Alert.alert("Invalid OTP", "Please enter your email and 6-digit OTP.");
+      showSnackbar("Please enter your email and 6-digit OTP.", { type: "error" });
       return;
     }
     try {
@@ -33,7 +35,7 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
       });
       await persistSession({ token: res.token, user: res.user });
     } catch {
-      Alert.alert("Verification failed", "Invalid or expired OTP.");
+      showSnackbar("Invalid or expired OTP.", { type: "error" });
     } finally {
       setLoading(false);
     }
@@ -45,9 +47,9 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
       setResendBusy(true);
       await api.post("/auth/resend-register-otp", { email: email.trim().toLowerCase() });
       setCooldown(45);
-      Alert.alert("OTP sent", "A new verification code has been sent to your email.");
+      showSnackbar("A new verification code has been sent to your email.", { type: "success" });
     } catch {
-      Alert.alert("Failed", "Could not resend OTP right now.");
+      showSnackbar("Could not resend OTP right now.", { type: "error" });
     } finally {
       setResendBusy(false);
     }

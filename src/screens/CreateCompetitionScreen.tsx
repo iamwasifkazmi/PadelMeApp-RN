@@ -1,6 +1,7 @@
 import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
@@ -25,6 +26,7 @@ function CreateCompetitionSkeleton() {
 }
 
 export function CreateCompetitionScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -68,7 +70,7 @@ export function CreateCompetitionScreen({ navigation, route }: { navigation: any
       });
       navigation.replace("CompetitionDetail", { id: created.id });
     } catch {
-      Alert.alert("Error", "Could not create competition");
+      showSnackbar("Could not create competition", { type: "error" });
     } finally {
       setSaving(false);
     }

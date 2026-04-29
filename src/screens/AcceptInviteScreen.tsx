@@ -1,7 +1,8 @@
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -24,6 +25,7 @@ function AcceptInviteSkeleton() {
 }
 
 export function AcceptInviteScreen({ route }: { route?: { params?: { token?: string } } }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading] = React.useState(false);
   const [token, setToken] = React.useState(route?.params?.token || "");
@@ -40,7 +42,7 @@ export function AcceptInviteScreen({ route }: { route?: { params?: { token?: str
       });
       setInviteState(invite.status || "accepted");
     } catch {
-      Alert.alert("Error", "Invite not found or expired");
+      showSnackbar("Invite not found or expired", { type: "error" });
     } finally {
       setBusy(false);
     }

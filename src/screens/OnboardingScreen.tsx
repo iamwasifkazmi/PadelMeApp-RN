@@ -1,7 +1,8 @@
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -25,6 +26,7 @@ function OnboardingSkeleton() {
 }
 
 export function OnboardingScreen({ navigation }: { navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -66,7 +68,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       });
       navigation.replace("MainTabs");
     } catch {
-      Alert.alert("Error", "Could not save onboarding details.");
+      showSnackbar("Could not save onboarding details.", { type: "error" });
     } finally {
       setSaving(false);
     }

@@ -4,6 +4,7 @@ import { StatusBar } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 import { RootNavigator } from "./src/navigation";
+import { SnackbarProvider } from "./src/components/Snackbar";
 import { bootstrapSession } from "./src/store";
 import { store } from "./src/store/store";
 import { COLORS } from "./src/theme/colors";
@@ -26,9 +27,11 @@ function App() {
       <SafeAreaProvider>
         <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
         <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-          <NavigationContainer theme={theme}>
-            <RootNavigator />
-          </NavigationContainer>
+          <SnackbarProvider>
+            <NavigationContainer theme={theme}>
+              <RootNavigator />
+            </NavigationContainer>
+          </SnackbarProvider>
         </SafeAreaView>
       </SafeAreaProvider>
     </Provider>

@@ -1,24 +1,26 @@
 import React from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
 
 export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
   const onSendCode = async () => {
     if (!email.trim()) {
-      Alert.alert("Missing email", "Please enter your email.");
+      showSnackbar("Please enter your email.", { type: "error" });
       return;
     }
     try {
       setLoading(true);
       await api.post("/auth/forgot-password", { email: email.trim().toLowerCase() });
-      Alert.alert("Code sent", "If your account exists, an OTP code has been emailed.");
+      showSnackbar("If your account exists, an OTP code has been emailed.", { type: "success" });
       navigation.navigate("ResetPassword", { email: email.trim().toLowerCase() });
     } catch {
-      Alert.alert("Failed", "Could not send reset code right now.");
+      showSnackbar("Could not send reset code right now.", { type: "error" });
     } finally {
       setLoading(false);
     }

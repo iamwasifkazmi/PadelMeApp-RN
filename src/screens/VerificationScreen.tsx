@@ -1,7 +1,8 @@
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -28,6 +29,7 @@ function VerificationSkeleton() {
 }
 
 export function VerificationScreen() {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
@@ -64,9 +66,9 @@ export function VerificationScreen() {
         selfieUrl,
       });
       setStatus(res.status || "pending");
-      Alert.alert("Submitted", "Your verification is now pending review.");
+      showSnackbar("Your verification is now pending review.", { type: "success" });
     } catch {
-      Alert.alert("Error", "Could not submit verification.");
+      showSnackbar("Could not submit verification.", { type: "error" });
     } finally {
       setSubmitting(false);
     }

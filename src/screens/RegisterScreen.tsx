@@ -1,11 +1,13 @@
 import React from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { RegisterResponseDto } from "../lib/types";
 import { COLORS } from "../theme/colors";
 
 export function RegisterScreen({ navigation }: { navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -14,7 +16,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
 
   const onRegister = async () => {
     if (!fullName.trim() || !email.trim() || password.length < 8) {
-      Alert.alert("Invalid details", "Name, valid email, and min 8 char password are required.");
+      showSnackbar("Name, valid email, and min 8 char password are required.", { type: "error" });
       return;
     }
 
@@ -28,10 +30,10 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
       if (res.requiresVerification) {
         navigation.replace("VerifyEmailOtp", { email: res.email });
       } else {
-        Alert.alert("Verification required", "Please verify your email using OTP.");
+        showSnackbar("Please verify your email using OTP.", { type: "info" });
       }
     } catch {
-      Alert.alert("Registration failed", "Please check details and try again.");
+      showSnackbar("Please check details and try again.", { type: "error" });
     } finally {
       setLoading(false);
     }

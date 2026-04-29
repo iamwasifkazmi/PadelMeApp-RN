@@ -1,6 +1,7 @@
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { MatchDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
@@ -13,6 +14,7 @@ export function MatchDetailScreen({
   route: { params: { id: string } };
   navigation: any;
 }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const id = route.params.id;
   const [match, setMatch] = React.useState<MatchDto | null>(null);
@@ -42,7 +44,7 @@ export function MatchDetailScreen({
       await api.post<MatchDto>(`/matches/${match.id}/join`, { email: USER_EMAIL });
       await load();
     } catch {
-      Alert.alert("Error", "Could not join match");
+      showSnackbar("Could not join match", { type: "error" });
     } finally {
       setBusy(false);
     }
@@ -59,7 +61,7 @@ export function MatchDetailScreen({
       });
       await load();
     } catch {
-      Alert.alert("Error", "Could not submit score");
+      showSnackbar("Could not submit score", { type: "error" });
     } finally {
       setBusy(false);
     }

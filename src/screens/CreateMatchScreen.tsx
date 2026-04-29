@@ -1,11 +1,13 @@
 import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { MatchDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const recurring = Boolean(route?.params?.recurring);
   const [title, setTitle] = React.useState(recurring ? "Recurring Padel Series" : "Evening Padel Doubles");
@@ -27,7 +29,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       });
       navigation.replace("MatchDetail", { id: created.id });
     } catch {
-      Alert.alert("Error", "Failed to create match");
+      showSnackbar("Failed to create match", { type: "error" });
     } finally {
       setSubmitting(false);
     }

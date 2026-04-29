@@ -1,7 +1,6 @@
 import React from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -12,11 +11,13 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { AuthResponseDto } from "../lib/types";
 import { persistSession } from "../store";
 import { COLORS } from "../theme/colors";
 
 export function LoginScreen({ navigation }: { navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
@@ -24,7 +25,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
   const onLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert("Missing details", "Please enter email and password.");
+      showSnackbar("Please enter email and password.", { type: "error" });
       return;
     }
 
@@ -38,10 +39,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     } catch (err: any) {
       const msg = String(err?.message || "");
       if (msg.toLowerCase().includes("verify")) {
-        Alert.alert("Verify your email", "Please verify your account with OTP before logging in.");
+        showSnackbar("Please verify your account with OTP before logging in.", { type: "info" });
         navigation.navigate("VerifyEmailOtp", { email: email.trim().toLowerCase() });
       } else {
-        Alert.alert("Login failed", "Invalid credentials or server error.");
+        showSnackbar("Invalid credentials or server error.", { type: "error" });
       }
     } finally {
       setLoading(false);

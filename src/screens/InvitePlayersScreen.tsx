@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { UserDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
@@ -43,6 +43,7 @@ function InvitePlayersSkeleton() {
 }
 
 export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: string } } }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const eventId = route?.params?.eventId || "";
   const [loading, setLoading] = React.useState(true);
@@ -93,7 +94,7 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
 
   const sendInvites = async () => {
     if (!eventId) {
-      Alert.alert("No event", "Missing event id for invite flow.");
+      showSnackbar("Missing event id for invite flow.", { type: "error" });
       return;
     }
     if (selectedEmails.length === 0) return;
@@ -106,9 +107,9 @@ export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: s
       });
       setSelected({});
       await load();
-      Alert.alert("Invites sent", `${selectedEmails.length} invite(s) created.`);
+      showSnackbar(`${selectedEmails.length} invite(s) created.`, { type: "success" });
     } catch {
-      Alert.alert("Error", "Could not send invites.");
+      showSnackbar("Could not send invites.", { type: "error" });
     } finally {
       setSending(false);
     }

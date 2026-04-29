@@ -1,10 +1,12 @@
 import React from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
 
 export function ResetPasswordScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState(route?.params?.email || "");
   const [code, setCode] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
@@ -15,11 +17,11 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
 
   const onReset = async () => {
     if (!email.trim() || !code.trim() || newPassword.length < 8) {
-      Alert.alert("Invalid details", "Email, 6-digit OTP, and min 8 char password are required.");
+      showSnackbar("Email, 6-digit OTP, and min 8 char password are required.", { type: "error" });
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Mismatch", "Password and confirm password do not match.");
+      showSnackbar("Password and confirm password do not match.", { type: "error" });
       return;
     }
 
@@ -30,10 +32,10 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
         code: code.trim(),
         newPassword,
       });
-      Alert.alert("Password updated", "You can now login with your new password.");
+      showSnackbar("Password updated. You can now login with your new password.", { type: "success" });
       navigation.navigate("Login");
     } catch {
-      Alert.alert("Reset failed", "Invalid/expired code or server error.");
+      showSnackbar("Invalid/expired code or server error.", { type: "error" });
     } finally {
       setLoading(false);
     }
