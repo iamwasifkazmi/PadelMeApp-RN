@@ -2,9 +2,8 @@ import React from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function OnboardingSkeleton() {
   return (
@@ -26,6 +25,7 @@ function OnboardingSkeleton() {
 }
 
 export function OnboardingScreen({ navigation }: { navigation: any }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState("");
@@ -52,7 +52,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [USER_EMAIL]);
 
   const complete = async () => {
     try {

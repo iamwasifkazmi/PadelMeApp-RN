@@ -3,9 +3,8 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 export function MatchDetailScreen({
   route,
@@ -14,6 +13,7 @@ export function MatchDetailScreen({
   route: { params: { id: string } };
   navigation: any;
 }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const id = route.params.id;
   const [match, setMatch] = React.useState<MatchDto | null>(null);
   const [loading, setLoading] = React.useState(true);

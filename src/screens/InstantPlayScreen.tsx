@@ -2,9 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function InstantPlaySkeleton() {
   return (
@@ -25,6 +24,8 @@ function InstantPlaySkeleton() {
 }
 
 export function InstantPlayScreen({ navigation }: { navigation: any }) {
+  const USER_EMAIL = getCurrentUserEmail();
+  const USER_NAME = getCurrentUserName();
   const [loading] = React.useState(false);
   const [requestId, setRequestId] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<string>("idle");
@@ -56,7 +57,7 @@ export function InstantPlayScreen({ navigation }: { navigation: any }) {
         "/instant-play/join",
         {
           userEmail: USER_EMAIL,
-          userName: "Demo Player",
+          userName: USER_NAME,
           matchType: "doubles",
           skillLevel: "intermediate",
           locationName: "Dubai",

@@ -91,3 +91,19 @@ export type FriendRequestDto = {
   createdAt: string;
 };
 
+export type AuthUserDto = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+};
+
+export type AuthResponseDto = {
+  token: string;
+  user: AuthUserDto;
+};
+
+export type RegisterResponseDto = {
+  requiresVerification: boolean;
+  email: string;
+};
+

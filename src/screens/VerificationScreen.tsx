@@ -2,9 +2,8 @@ import React from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function VerificationSkeleton() {
   return (
@@ -29,6 +28,7 @@ function VerificationSkeleton() {
 }
 
 export function VerificationScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [status, setStatus] = React.useState<string>("not_submitted");
@@ -49,7 +49,7 @@ export function VerificationScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [USER_EMAIL]);
 
   React.useEffect(() => {
     load();

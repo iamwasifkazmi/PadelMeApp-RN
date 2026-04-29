@@ -2,7 +2,10 @@ import React from "react";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { StatusBar } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { Provider } from "react-redux";
 import { RootNavigator } from "./src/navigation";
+import { bootstrapSession } from "./src/store";
+import { store } from "./src/store/store";
 import { COLORS } from "./src/theme/colors";
 
 const theme = {
@@ -14,15 +17,21 @@ const theme = {
 };
 
 function App() {
+  React.useEffect(() => {
+    bootstrapSession();
+  }, []);
+
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
-      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-        <NavigationContainer theme={theme}>
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <Provider store={store}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
+        <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+          <NavigationContainer theme={theme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </Provider>
   );
 }
 

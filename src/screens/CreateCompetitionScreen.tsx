@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { api } from "../lib/api";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 function CreateCompetitionSkeleton() {
@@ -24,6 +25,7 @@ function CreateCompetitionSkeleton() {
 }
 
 export function CreateCompetitionScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const defaultType = route?.params?.defaultType === "tournament" ? "tournament" : "league";
@@ -53,7 +55,7 @@ export function CreateCompetitionScreen({ navigation, route }: { navigation: any
         format,
         skillLevel,
         maxPlayers: Number(maxPlayers) || 16,
-        hostEmail: "demo@padelme.app",
+        hostEmail: USER_EMAIL,
         locationName,
         locationAddress,
         startDate: new Date(startDate).toISOString(),

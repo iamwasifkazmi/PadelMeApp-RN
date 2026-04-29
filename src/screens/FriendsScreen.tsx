@@ -3,9 +3,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
 import { FriendRequestDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function FriendsSkeleton() {
   return (
@@ -24,6 +23,7 @@ function FriendsSkeleton() {
 }
 
 export function FriendsScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [friends, setFriends] = React.useState<UserDto[]>([]);
   const [requests, setRequests] = React.useState<FriendRequestDto[]>([]);
@@ -53,7 +53,7 @@ export function FriendsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [USER_EMAIL]);
 
   React.useEffect(() => {
     load();

@@ -12,10 +12,8 @@ import {
 import { api } from "../lib/api";
 import { MatchChatMessageDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
-const USER_NAME = "Demo Player";
 
 function MatchChatSkeleton() {
   return (
@@ -48,6 +46,8 @@ export function MatchChatScreen({
 }: {
   route: { params: { matchId: string } };
 }) {
+  const USER_EMAIL = getCurrentUserEmail();
+  const USER_NAME = getCurrentUserName();
   const matchId = route.params.matchId;
   const [loading, setLoading] = React.useState(true);
   const [sending, setSending] = React.useState(false);

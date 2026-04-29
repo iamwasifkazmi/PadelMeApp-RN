@@ -7,13 +7,12 @@ import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../sc
 import { MainTabParamList } from "./types";
 import { api } from "../lib/api";
 import { ConversationDto } from "../lib/types";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const ICON_SIZE = 22;
-const USER_EMAIL = "demo@padelme.app";
-
 function CenterCreateButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.centerBtnWrap}>
@@ -25,6 +24,7 @@ function CenterCreateButton({ onPress }: { onPress: () => void }) {
 }
 
 export function MainTabs() {
+  const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [createOpen, setCreateOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
@@ -59,7 +59,7 @@ export function MainTabs() {
       mounted = false;
       clearInterval(t);
     };
-  }, []);
+  }, [USER_EMAIL]);
   return (
     <>
       <Tab.Navigator

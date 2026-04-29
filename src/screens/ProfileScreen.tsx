@@ -1,19 +1,20 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
 
-const USER_EMAIL = "demo@padelme.app";
-
 export function ProfileScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [user, setUser] = React.useState<UserDto | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [tab, setTab] = React.useState<"overview" | "performance">("overview");
+  const [logoutOpen, setLogoutOpen] = React.useState(false);
 
   React.useEffect(() => {
     let mounted = true;
@@ -29,11 +30,11 @@ export function ProfileScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [USER_EMAIL]);
 
   if (loading) return <ScreenSkeleton rows={3} topGap={12} />;
 
-  const fullName = user?.fullName || "Demo Player";
+  const fullName = user?.fullName || getCurrentUserName();
   const elo = user?.eloRating ?? 1000;
   const skill = user?.skillLabel || "intermediate";
   const rating = user?.averageRating ?? 4.5;
@@ -50,6 +51,9 @@ export function ProfileScreen() {
       <View style={styles.topBar}>
         <Text style={styles.topTitle}>My Profile</Text>
         <View style={styles.topActions}>
+          <Pressable style={styles.iconBtn} onPress={() => setLogoutOpen(true)}>
+            <Ionicons name="log-out-outline" size={16} color={COLORS.text} />
+          </Pressable>
           <Pressable style={styles.iconBtn} onPress={() => navigation.navigate("EditProfile")}>
             <Ionicons name="create-outline" size={16} color={COLORS.text} />
           </Pressable>
@@ -194,6 +198,28 @@ export function ProfileScreen() {
           </View>
         </View>
       )}
+      <Modal visible={logoutOpen} transparent animationType="fade" onRequestClose={() => setLogoutOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setLogoutOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>Logout?</Text>
+            <Text style={styles.modalSubtitle}>You will need to login again to access your account.</Text>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalCancel} onPress={() => setLogoutOpen(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalLogout}
+                onPress={async () => {
+                  setLogoutOpen(false);
+                  await clearPersistedSession();
+                }}
+              >
+                <Text style={styles.modalLogoutText}>Logout</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -412,5 +438,43 @@ const styles = StyleSheet.create({
   },
   perfValue: { fontSize: 16, color: COLORS.text, fontWeight: "800" },
   perfLabel: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(17,24,39,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text },
+  modalSubtitle: { marginTop: 6, color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+  modalActions: { flexDirection: "row", gap: 8, marginTop: 14 },
+  modalCancel: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    backgroundColor: COLORS.card,
+  },
+  modalCancelText: { color: COLORS.text, fontWeight: "700" },
+  modalLogout: {
+    flex: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary,
+  },
+  modalLogoutText: { color: COLORS.card, fontWeight: "700" },
 });
 

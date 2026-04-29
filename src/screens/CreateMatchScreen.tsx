@@ -2,11 +2,11 @@ import React from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
-const USER_EMAIL = "demo@padelme.app";
-
 export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const recurring = Boolean(route?.params?.recurring);
   const [title, setTitle] = React.useState(recurring ? "Recurring Padel Series" : "Evening Padel Doubles");
   const [date, setDate] = React.useState("2026-05-05");

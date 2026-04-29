@@ -12,16 +12,16 @@ import {
 import { api } from "../lib/api";
 import { MessageDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
-const USER_NAME = "Demo Player";
 
 export function ConversationViewScreen({
   route,
 }: {
   route: { params: { id: string } };
 }) {
+  const USER_EMAIL = getCurrentUserEmail();
+  const USER_NAME = getCurrentUserName();
   const id = route.params.id;
   const [loading, setLoading] = React.useState(true);
   const [messages, setMessages] = React.useState<MessageDto[]>([]);
@@ -46,7 +46,7 @@ export function ConversationViewScreen({
 
   React.useEffect(() => {
     api.post(`/conversations/${id}/read`, { email: USER_EMAIL }).catch(() => undefined);
-  }, [id]);
+  }, [id, USER_EMAIL]);
 
   const send = async () => {
     const payload = text.trim();

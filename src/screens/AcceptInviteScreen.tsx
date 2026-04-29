@@ -2,9 +2,8 @@ import React from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function AcceptInviteSkeleton() {
   return (
@@ -25,6 +24,7 @@ function AcceptInviteSkeleton() {
 }
 
 export function AcceptInviteScreen({ route }: { route?: { params?: { token?: string } } }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading] = React.useState(false);
   const [token, setToken] = React.useState(route?.params?.token || "");
   const [inviteState, setInviteState] = React.useState<string>("idle");

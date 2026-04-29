@@ -3,9 +3,8 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function EditProfileSkeleton() {
   return (
@@ -26,6 +25,7 @@ function EditProfileSkeleton() {
 }
 
 export function EditProfileScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [fullName, setFullName] = React.useState("");
@@ -48,7 +48,7 @@ export function EditProfileScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [USER_EMAIL]);
 
   const onSave = async () => {
     try {

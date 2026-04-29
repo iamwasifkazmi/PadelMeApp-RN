@@ -3,9 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function PlayerProfileSkeleton() {
   return (
@@ -35,6 +34,7 @@ export function PlayerProfileScreen({
 }: {
   route: { params: { id: string } };
 }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [user, setUser] = React.useState<UserDto | null>(null);
   const [requesting, setRequesting] = React.useState(false);

@@ -20,6 +20,11 @@ import { AcceptInviteScreen as ActualAcceptInviteScreen } from "./AcceptInviteSc
 import { VerificationScreen as ActualVerificationScreen } from "./VerificationScreen";
 import { InvitePlayersScreen as ActualInvitePlayersScreen } from "./InvitePlayersScreen";
 import { OnboardingScreen as ActualOnboardingScreen } from "./OnboardingScreen";
+import { LoginScreen as ActualLoginScreen } from "./LoginScreen";
+import { RegisterScreen as ActualRegisterScreen } from "./RegisterScreen";
+import { ForgotPasswordScreen as ActualForgotPasswordScreen } from "./ForgotPasswordScreen";
+import { ResetPasswordScreen as ActualResetPasswordScreen } from "./ResetPasswordScreen";
+import { VerifyEmailOtpScreen as ActualVerifyEmailOtpScreen } from "./VerifyEmailOtpScreen";
 
 export const HomeScreen = ActualHomeScreen;
 export const DiscoverScreen = FindMatchScreen;
@@ -44,3 +49,8 @@ export const ConversationViewScreen = ActualConversationViewScreen;
 export const MatchChatScreen = ActualMatchChatScreen;
 export const AcceptInviteScreen = ActualAcceptInviteScreen;
 export const OnboardingScreen = ActualOnboardingScreen;
+export const LoginScreen = ActualLoginScreen;
+export const RegisterScreen = ActualRegisterScreen;
+export const ForgotPasswordScreen = ActualForgotPasswordScreen;
+export const ResetPasswordScreen = ActualResetPasswordScreen;
+export const VerifyEmailOtpScreen = ActualVerifyEmailOtpScreen;

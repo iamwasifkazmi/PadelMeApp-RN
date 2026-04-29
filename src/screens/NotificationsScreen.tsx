@@ -4,9 +4,8 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { NotificationDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 function NotificationsSkeleton() {
   return (
@@ -30,6 +29,7 @@ function NotificationsSkeleton() {
 }
 
 export function NotificationsScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [items, setItems] = React.useState<NotificationDto[]>([]);
   const [tab, setTab] = React.useState<"all" | "unread">("all");
@@ -46,7 +46,7 @@ export function NotificationsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [USER_EMAIL]);
 
   React.useEffect(() => {
     load();

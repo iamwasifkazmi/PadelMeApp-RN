@@ -4,6 +4,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { CompetitionDetailDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 export function CompetitionDetailScreen({
@@ -13,6 +14,7 @@ export function CompetitionDetailScreen({
   route: { params: { id: string } };
   navigation: any;
 }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const id = route.params.id;
   const [loading, setLoading] = React.useState(true);
   const [item, setItem] = React.useState<CompetitionDetailDto | null>(null);
@@ -48,7 +50,7 @@ export function CompetitionDetailScreen({
   const joinCompetition = async () => {
     try {
       setJoining(true);
-      await api.post(`/competitions/${id}/join`, { email: "demo@padelme.app" });
+      await api.post(`/competitions/${id}/join`, { email: USER_EMAIL });
       await load();
     } finally {
       setJoining(false);

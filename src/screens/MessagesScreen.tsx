@@ -5,11 +5,11 @@ import { api } from "../lib/api";
 import { ConversationDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { useNavigation } from "@react-navigation/native";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
-const USER_EMAIL = "demo@padelme.app";
-
 export function MessagesScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [search, setSearch] = React.useState("");
   const [tab, setTab] = React.useState<"all" | "direct" | "groups">("all");
@@ -30,7 +30,7 @@ export function MessagesScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [USER_EMAIL]);
 
   if (loading) return <ScreenSkeleton rows={7} topGap={12} />;
   const filtered = conversations.filter((c) => {

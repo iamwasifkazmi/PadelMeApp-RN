@@ -11,9 +11,8 @@ import {
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { UserDto } from "../lib/types";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
-
-const USER_EMAIL = "demo@padelme.app";
 
 type InviteItem = {
   id: string;
@@ -44,6 +43,7 @@ function InvitePlayersSkeleton() {
 }
 
 export function InvitePlayersScreen({ route }: { route: { params?: { eventId?: string } } }) {
+  const USER_EMAIL = getCurrentUserEmail();
   const eventId = route?.params?.eventId || "";
   const [loading, setLoading] = React.useState(true);
   const [sending, setSending] = React.useState(false);

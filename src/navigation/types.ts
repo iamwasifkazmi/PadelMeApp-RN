@@ -8,6 +8,11 @@ export type MainTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: undefined;
+  Login: undefined;
+  Register: undefined;
+  VerifyEmailOtp: { email?: string } | undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { email?: string } | undefined;
   Onboarding: undefined;
   AcceptInvite: { token?: string } | undefined;
   CreateMatch: { recurring?: boolean } | undefined;
