@@ -23,13 +23,14 @@ function CreateCompetitionSkeleton() {
   );
 }
 
-export function CreateCompetitionScreen({ navigation }: { navigation: any }) {
+export function CreateCompetitionScreen({ navigation, route }: { navigation: any; route?: any }) {
   const [loading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [name, setName] = React.useState("Weekend League");
+  const defaultType = route?.params?.defaultType === "tournament" ? "tournament" : "league";
+  const [name, setName] = React.useState(defaultType === "tournament" ? "Weekend Tournament" : "Weekend League");
   const [description, setDescription] = React.useState("Community padel event");
-  const [type, setType] = React.useState("league");
-  const [format, setFormat] = React.useState("round_robin");
+  const [type, setType] = React.useState(defaultType);
+  const [format, setFormat] = React.useState(defaultType === "tournament" ? "knockout" : "round_robin");
   const [skillLevel, setSkillLevel] = React.useState("intermediate");
   const [maxPlayers, setMaxPlayers] = React.useState("16");
   const [locationName, setLocationName] = React.useState("Dubai");

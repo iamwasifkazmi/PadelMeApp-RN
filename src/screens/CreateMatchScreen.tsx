@@ -6,8 +6,9 @@ import { COLORS } from "../theme/colors";
 
 const USER_EMAIL = "demo@padelme.app";
 
-export function CreateMatchScreen({ navigation }: { navigation: any }) {
-  const [title, setTitle] = React.useState("Evening Padel Doubles");
+export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const recurring = Boolean(route?.params?.recurring);
+  const [title, setTitle] = React.useState(recurring ? "Recurring Padel Series" : "Evening Padel Doubles");
   const [date, setDate] = React.useState("2026-05-05");
   const [time, setTime] = React.useState("19:30");
   const [location, setLocation] = React.useState("Padel Club Downtown");
@@ -35,7 +36,9 @@ export function CreateMatchScreen({ navigation }: { navigation: any }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Create Match</Text>
-      <Text style={styles.subtitle}>Set up your game like Base44 flow</Text>
+      <Text style={styles.subtitle}>
+        {recurring ? "Recurring setup - weekly or repeating series" : "Set up your game like Base44 flow"}
+      </Text>
 
       <Field label="Title" value={title} onChangeText={setTitle} />
       <Field label="Date (YYYY-MM-DD)" value={date} onChangeText={setDate} />

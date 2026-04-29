@@ -10,12 +10,12 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Onboarding: undefined;
   AcceptInvite: { token?: string } | undefined;
-  CreateMatch: undefined;
+  CreateMatch: { recurring?: boolean } | undefined;
   MatchDetail: { id: string };
   EditProfile: undefined;
   Notifications: undefined;
   Competitions: undefined;
-  CreateCompetition: undefined;
+  CreateCompetition: { defaultType?: "tournament" | "league" } | undefined;
   CompetitionDetail: { id: string };
   InvitePlayers: { eventId?: string } | undefined;
   Verification: undefined;

@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../screens";
@@ -29,10 +29,10 @@ export function MainTabs() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
   const navigateRoot = React.useCallback(
-    (route: string) => {
+    (route: string, params?: Record<string, unknown>) => {
       const parent = navigation.getParent?.();
-      if (parent?.navigate) parent.navigate(route);
-      else navigation.navigate(route);
+      if (parent?.navigate) parent.navigate(route, params);
+      else navigation.navigate(route, params);
     },
     [navigation],
   );
@@ -119,7 +119,7 @@ export function MainTabs() {
 
       <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => setCreateOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setCreateOpen(false)}>
-          <Pressable style={styles.sheet}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>Create</Text>
@@ -127,15 +127,55 @@ export function MainTabs() {
                 <Ionicons name="close" size={20} color={COLORS.textMuted} />
               </Pressable>
             </View>
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={{ paddingBottom: 8 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <ActionRow
+                icon="radio-outline"
+                title="I'm Available to Play"
+                subtitle="Post to live feed and get discovered"
+                onPress={() => navigateRoot("InstantPlay")}
+                highlight
+              />
+              <ActionRow
+                icon="flash-outline"
+                title="Play Now"
+                subtitle="Find a match instantly - minimal setup"
+                onPress={() => navigateRoot("InstantPlay")}
+              />
 
-            <ActionRow icon="flash-outline" title="Play Now" subtitle="Find a match instantly" route="InstantPlay" highlight />
-            <View style={styles.sectionDivider} />
-            <Text style={styles.sectionLabel}>Full Control</Text>
-            <ActionRow icon="tennisball-outline" title="Create Match" subtitle="Set up a one-off game" route="CreateMatch" />
-            <ActionRow icon="repeat-outline" title="Recurring Match" subtitle="Weekly match setup" route="CreateMatch" />
-            <View style={styles.sectionDivider} />
-            <Text style={styles.sectionLabel}>Competitions</Text>
-            <ActionRow icon="trophy-outline" title="Create Competition" subtitle="Tournament or league" route="CreateCompetition" />
+              <View style={styles.sectionDivider} />
+              <Text style={styles.sectionLabel}>Full Control</Text>
+              <ActionRow
+                icon="tennisball-outline"
+                title="Create Match"
+                subtitle="Set up a single game with full options"
+                onPress={() => navigateRoot("CreateMatch")}
+              />
+              <ActionRow
+                icon="repeat-outline"
+                title="Recurring Match"
+                subtitle="Weekly or repeating series"
+                onPress={() => navigateRoot("CreateMatch", { recurring: true })}
+              />
+
+              <View style={styles.sectionDivider} />
+              <Text style={styles.sectionLabel}>Competitions</Text>
+              <ActionRow
+                icon="trophy-outline"
+                title="Create Tournament"
+                subtitle="Knockout or round robin"
+                onPress={() => navigateRoot("CreateCompetition", { defaultType: "tournament" })}
+              />
+              <ActionRow
+                icon="stats-chart-outline"
+                title="Create League"
+                subtitle="Season-long standings"
+                onPress={() => navigateRoot("CreateCompetition", { defaultType: "league" })}
+              />
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -146,13 +186,13 @@ export function MainTabs() {
     icon,
     title,
     subtitle,
-    route,
+    onPress,
     highlight,
   }: {
     icon: string;
     title: string;
     subtitle: string;
-    route: string;
+    onPress: () => void;
     highlight?: boolean;
   }) {
     return (
@@ -160,7 +200,7 @@ export function MainTabs() {
         style={[styles.actionRow, highlight && styles.actionRowHighlight]}
         onPress={() => {
           setCreateOpen(false);
-          navigateRoot(route);
+          onPress();
         }}
       >
         <View style={styles.actionIcon}>
@@ -220,9 +260,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
-    paddingBottom: 26,
+    paddingBottom: 14,
     paddingTop: 8,
+    maxHeight: "78%",
   },
+  sheetScroll: { maxHeight: "100%" },
   sheetHandle: {
     width: 44,
     height: 5,
