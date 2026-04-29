@@ -10,6 +10,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { MatchDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
+import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "../theme/colors";
 
@@ -149,11 +150,13 @@ function CompetitionCard({ competition }: { competition: Competition }) {
 }
 
 export function HomeScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [playersTab, setPlayersTab] = useState<"nearby" | "friends">("nearby");
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
   const [players, setPlayers] = useState<Player[]>(MOCK_PLAYERS);
   const [competitions, setCompetitions] = useState<Competition[]>(MOCK_COMPETITIONS);
+  const [me, setMe] = useState<UserDto | null>(null);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -161,15 +164,17 @@ export function HomeScreen() {
     const load = async () => {
       setLoading(true);
       try {
-        const [matchesResp, usersResp, compsResp] = await Promise.all([
+        const [matchesResp, usersResp, compsResp, meResp] = await Promise.all([
           api.get<MatchDto[]>("/matches?status=open"),
           api.get<UserDto[]>("/users"),
           api.get<
             { id: string; name: string; type: string; participants: string[]; maxPlayers?: number | null }[]
           >("/competitions"),
+          USER_EMAIL ? api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`) : Promise.resolve(null),
         ]);
 
         if (!mounted) return;
+        setMe(meResp);
         setMatches(
           matchesResp.slice(0, 4).map((m) => ({
             id: m.id,
@@ -182,8 +187,9 @@ export function HomeScreen() {
             status: (m.status as Match["status"]) || "open",
           })),
         );
+        const visibleUsers = usersResp.filter((u) => u.email !== USER_EMAIL);
         setPlayers(
-          usersResp.slice(0, 8).map((u) => ({
+          visibleUsers.slice(0, 8).map((u) => ({
             id: u.id,
             name: u.fullName || u.email.split("@")[0],
             level: u.skillLabel || "Intermediate",
@@ -208,11 +214,15 @@ export function HomeScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [USER_EMAIL]);
   const eloSum = useMemo(
     () => MOCK_RECENT.reduce((sum, r) => sum + r.elo, 0),
     [],
   );
+
+  const meName = me?.fullName || getCurrentUserName();
+  const meLocation = me?.location || "Your city";
+  const meInitial = meName.slice(0, 1).toUpperCase() || "P";
 
   if (loading) return <ScreenSkeleton rows={8} topGap={16} />;
 
@@ -226,11 +236,11 @@ export function HomeScreen() {
               navigation.navigate("MainTabs", { screen: "ProfileTab" });
             }}
           >
-            <Text style={styles.userAvatarText}>A</Text>
+            <Text style={styles.userAvatarText}>{meInitial}</Text>
           </Pressable>
           <View>
-            <Text style={styles.greeting}>Hi Ahmed 👋</Text>
-            <Text style={styles.greetingSub}>Dubai</Text>
+            <Text style={styles.greeting}>Hi {meName} 👋</Text>
+            <Text style={styles.greetingSub}>{meLocation}</Text>
           </View>
         </View>
         <View style={styles.headerActions}>

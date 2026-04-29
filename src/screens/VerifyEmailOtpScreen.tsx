@@ -104,6 +104,10 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
 function OtpField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const ref = React.useRef<TextInput>(null);
   const safe = value.replace(/\D/g, "").slice(0, 6);
+  React.useEffect(() => {
+    const t = setTimeout(() => ref.current?.focus(), 180);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <Pressable style={styles.otpWrap} onPress={() => ref.current?.focus()}>
@@ -118,6 +122,7 @@ function OtpField({ value, onChange }: { value: string; onChange: (v: string) =>
         onChangeText={(t) => onChange(t.replace(/\D/g, "").slice(0, 6))}
         keyboardType="number-pad"
         maxLength={6}
+        autoFocus
         placeholder="000000"
         style={styles.otpHiddenInput}
       />
