@@ -90,10 +90,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
-        <Text style={[styles.link, { color: colors.primary }]}>Forgot password?</Text>
+        <Text style={[styles.link, { color: colors.text }]}>Forgot password?</Text>
       </Pressable>
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Register")}>
-        <Text style={[styles.link, { color: colors.primary }]}>No account? Register</Text>
+        <Text style={[styles.link, { color: colors.text }]}>No account? Register</Text>
       </Pressable>
     </ScrollView>
   );

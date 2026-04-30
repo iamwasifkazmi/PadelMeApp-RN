@@ -87,7 +87,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={[styles.link, { color: colors.primary }]}>Already have an account? Login</Text>
+        <Text style={[styles.link, { color: colors.text }]}>Already have an account? Login</Text>
       </Pressable>
     </ScrollView>
   );

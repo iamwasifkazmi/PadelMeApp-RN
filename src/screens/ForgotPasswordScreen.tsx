@@ -58,7 +58,7 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={[styles.link, { color: colors.primary }]}>Back to login</Text>
+        <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
       </Pressable>
     </ScrollView>
   );
