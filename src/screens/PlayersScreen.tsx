@@ -31,21 +31,32 @@ function PlayersSkeleton() {
 export function PlayersScreen() {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [players, setPlayers] = React.useState<UserDto[]>([]);
 
-  React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get<UserDto[]>(`/users${query ? `?search=${encodeURIComponent(query)}` : ""}`)
-      .then((res) => mounted && setPlayers(res))
-      .catch(() => mounted && setPlayers([]))
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
+  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+    const isRefresh = opts?.refresh === true;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const res = await api.get<UserDto[]>(`/users${query ? `?search=${encodeURIComponent(query)}` : ""}`);
+      setPlayers(res);
+    } catch {
+      setPlayers([]);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
+    }
   }, [query]);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <PlayersSkeleton />;
 
@@ -64,6 +75,8 @@ export function PlayersScreen() {
       <FlatList
         data={players}
         keyExtractor={(i) => i.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
           <Pressable

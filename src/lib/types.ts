@@ -41,6 +41,10 @@ export type MessageDto = {
   senderName: string;
   text: string;
   createdAt: string;
+  status?: "sent" | "delivered" | "read";
+  readBy?: string[];
+  deliveredAt?: string | null;
+  readAt?: string | null;
 };
 
 export type CompetitionDto = {
@@ -71,6 +75,10 @@ export type MatchChatMessageDto = {
   senderEmail: string;
   senderName: string;
   text: string;
+  readBy?: string[];
+  status?: "sent" | "delivered" | "read";
+  deliveredAt?: string | null;
+  readAt?: string | null;
   createdAt: string;
 };
 

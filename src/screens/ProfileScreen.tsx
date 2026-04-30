@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
@@ -13,24 +13,35 @@ export function ProfileScreen() {
   const navigation = useNavigation<any>();
   const [user, setUser] = React.useState<UserDto | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [tab, setTab] = React.useState<"overview" | "performance">("overview");
   const [logoutOpen, setLogoutOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`)
-      .then((res) => mounted && setUser(res))
-      .catch(() => mounted && setUser(null))
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+  const load = React.useCallback(
+    async (opts?: { refresh?: boolean }) => {
+      const isRefresh = opts?.refresh === true;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      try {
+        const res = await api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`);
+        setUser(res);
+      } catch {
+        setUser(null);
+      } finally {
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
+      }
+    },
+    [USER_EMAIL],
+  );
 
-    return () => {
-      mounted = false;
-    };
-  }, [USER_EMAIL]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <ScreenSkeleton rows={3} topGap={12} />;
 
@@ -47,7 +58,18 @@ export function ProfileScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 120 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={COLORS.primary}
+          colors={[COLORS.primary]}
+        />
+      }
+    >
       <View style={styles.topBar}>
         <Text style={styles.topTitle}>My Profile</Text>
         <View style={styles.topActions}>

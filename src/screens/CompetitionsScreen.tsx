@@ -10,23 +10,32 @@ import { COLORS } from "../theme/colors";
 export function CompetitionsScreen() {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<CompetitionDto[]>([]);
   const [tab, setTab] = React.useState<"all" | "tournament" | "league">("all");
 
-  React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get<CompetitionDto[]>("/competitions")
-      .then((res) => mounted && setItems(res))
-      .catch(() => mounted && setItems([]))
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+    const isRefresh = opts?.refresh === true;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const res = await api.get<CompetitionDto[]>("/competitions");
+      setItems(res);
+    } catch {
+      setItems([]);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <ScreenSkeleton rows={6} topGap={12} />;
   const filtered = items.filter((i) => (tab === "all" ? true : i.type === tab));
@@ -55,6 +64,8 @@ export function CompetitionsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 110 }}
         renderItem={({ item }) => (
           <Pressable

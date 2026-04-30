@@ -15,25 +15,35 @@ export function FindMatchScreen() {
   const [level, setLevel] = React.useState<(typeof LEVELS)[number]>("any");
   const [matches, setMatches] = React.useState<MatchDto[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const load = React.useCallback(
+    async (opts?: { refresh?: boolean }) => {
+      const isRefresh = opts?.refresh === true;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      try {
+        const res = await api.get<MatchDto[]>(
+          `/matches?status=open${level !== "any" ? `&skill=${level}` : ""}`,
+        );
+        setMatches(res);
+      } catch {
+        setMatches([]);
+      } finally {
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
+      }
+    },
+    [level],
+  );
 
   React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get<MatchDto[]>(`/matches?status=open${level !== "any" ? `&skill=${level}` : ""}`)
-      .then((res) => {
-        if (mounted) setMatches(res);
-      })
-      .catch(() => {
-        if (mounted) setMatches([]);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [level]);
+    load();
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <ScreenSkeleton rows={6} topGap={12} />;
   const filtered = matches.filter((m) => {
@@ -98,6 +108,8 @@ export function FindMatchScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
           <Pressable

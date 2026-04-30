@@ -25,14 +25,17 @@ function FriendsSkeleton() {
 export function FriendsScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [friends, setFriends] = React.useState<UserDto[]>([]);
   const [requests, setRequests] = React.useState<FriendRequestDto[]>([]);
   const [users, setUsers] = React.useState<UserDto[]>([]);
   const [tab, setTab] = React.useState<"friends" | "requests" | "discover">("friends");
 
-  const load = React.useCallback(async () => {
+  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+    const isRefresh = opts?.refresh === true;
     try {
-      setLoading(true);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       const data = await api.get<{ friends: UserDto[]; requests: FriendRequestDto[] }>(
         `/friends?email=${encodeURIComponent(USER_EMAIL)}`,
       );
@@ -51,7 +54,8 @@ export function FriendsScreen() {
       setRequests([]);
       setUsers([]);
     } finally {
-      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
     }
   }, [USER_EMAIL]);
 
@@ -63,6 +67,10 @@ export function FriendsScreen() {
     await api.patch(`/friends/requests/${id}`, { status });
     await load();
   };
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <FriendsSkeleton />;
 
@@ -102,6 +110,8 @@ export function FriendsScreen() {
       <FlatList
         data={tab === "friends" ? friends : tab === "requests" ? [] : users}
         keyExtractor={(i) => i.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
           <View style={styles.card}>

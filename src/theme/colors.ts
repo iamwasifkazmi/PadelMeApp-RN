@@ -1,4 +1,4 @@
-export const COLORS = {
+export const LIGHT_COLORS = {
   bg: "#F5F7FA",
   card: "#FFFFFF",
   cardOverlay: "#FFFFFFEE",
@@ -37,3 +37,37 @@ export const COLORS = {
   darkBorder: "#1F2937",
 } as const;
 
+export const DARK_COLORS = {
+  ...LIGHT_COLORS,
+  bg: "#0A1B2A",
+  card: "#111827",
+  cardOverlay: "#111827EE",
+  text: "#F9FAFB",
+  textMuted: "#9CA3AF",
+  textSubtle: "#D1D5DB",
+  textSoft: "#6B7280",
+  iconMuted: "#9CA3AF",
+  tabInactive: "#9CA3AF",
+  border: "#1F2937",
+  borderMuted: "#374151",
+  borderStrong: "#4B5563",
+  primarySoft: "#2A150D",
+  primarySoftAlt: "#3D1A0D",
+  primaryPale: "#2A150D",
+  infoSoft: "#0B2B32",
+  infoText: "#67E8F9",
+  successSoft: "#052E16",
+  successText: "#86EFAC",
+  dangerSoft: "#3B0A0A",
+  warningSoft: "#422006",
+  warningText: "#FCD34D",
+  highlightSoft: "#0B2B32",
+} as const;
+
+export const COLORS = LIGHT_COLORS;
+
+export type AppColors = typeof LIGHT_COLORS;
+
+export function getThemeColors(isDark: boolean): AppColors {
+  return isDark ? DARK_COLORS : LIGHT_COLORS;
+}

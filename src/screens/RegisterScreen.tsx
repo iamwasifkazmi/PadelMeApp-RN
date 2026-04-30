@@ -5,8 +5,10 @@ import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { RegisterResponseDto } from "../lib/types";
 import { COLORS } from "../theme/colors";
+import { useAuthTheme } from "../theme/authTheme";
 
 export function RegisterScreen({ navigation }: { navigation: any }) {
+  const { colors, logoSource } = useAuthTheme();
   const { showSnackbar } = useSnackbar();
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -40,18 +42,23 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.logoWrap}>
-        <Image source={require("../../logo.jpeg")} style={styles.logo} />
+        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
       </View>
-      <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>Register once and stay signed in.</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Register once and stay signed in.</Text>
 
       <Field
         label="Full Name"
         value={fullName}
         onChangeText={setFullName}
         placeholder="Your full name"
+        colors={colors}
       />
       <Field
         label="Email"
@@ -59,6 +66,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
         onChangeText={setEmail}
         keyboardType="email-address"
         placeholder="you@example.com"
+        colors={colors}
       />
       <Field
         label="Password"
@@ -66,19 +74,20 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
         onChangeText={setPassword}
         secureTextEntry={!showPassword}
         placeholder="Create a strong password"
+        colors={colors}
         rightIcon={
           <Pressable onPress={() => setShowPassword((s) => !s)}>
-            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={COLORS.iconMuted} />
+            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
           </Pressable>
         }
       />
 
-      <Pressable style={[styles.cta, loading && styles.disabled]} onPress={onRegister} disabled={loading}>
-        {loading ? <ActivityIndicator color={COLORS.card} /> : <Text style={styles.ctaText}>Register</Text>}
+      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onRegister} disabled={loading}>
+        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Register</Text>}
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.link}>Already have an account? Login</Text>
+        <Text style={[styles.link, { color: colors.primary }]}>Already have an account? Login</Text>
       </Pressable>
     </ScrollView>
   );
@@ -100,11 +109,12 @@ function Field({
   secureTextEntry?: boolean;
   rightIcon?: React.ReactNode;
   placeholder?: string;
+  colors: typeof COLORS;
 }) {
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.inputWrap}>
+      <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>{label}</Text>
+      <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -112,8 +122,8 @@ function Field({
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           placeholder={placeholder}
-          placeholderTextColor={COLORS.iconMuted}
-          style={styles.input}
+          placeholderTextColor={colors.iconMuted}
+          style={[styles.input, { color: colors.text }]}
         />
         {rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}
       </View>

@@ -25,29 +25,38 @@ function PastEventsSkeleton() {
 
 export function PastEventsScreen() {
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<MatchDto[]>([]);
 
-  React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    Promise.all([
+  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+    const isRefresh = opts?.refresh === true;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const [a, b, c] = await Promise.all([
       api.get<MatchDto[]>("/matches?status=completed"),
       api.get<MatchDto[]>("/matches?status=cancelled"),
       api.get<MatchDto[]>("/matches?status=abandoned"),
-    ])
-      .then(([a, b, c]) => {
-        if (!mounted) return;
-        const all = [...a, ...b, ...c].sort(
-          (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime(),
-        );
-        setItems(all);
-      })
-      .catch(() => mounted && setItems([]))
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
+      ]);
+      const all = [...a, ...b, ...c].sort(
+        (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime(),
+      );
+      setItems(all);
+    } catch {
+      setItems([]);
+    } finally {
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <PastEventsSkeleton />;
 
@@ -58,6 +67,8 @@ export function PastEventsScreen() {
       <FlatList
         data={items}
         keyExtractor={(i) => i.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
           <View style={styles.card}>

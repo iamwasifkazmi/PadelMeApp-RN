@@ -4,8 +4,10 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
+import { useAuthTheme } from "../theme/authTheme";
 
 export function ResetPasswordScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const { colors, logoSource } = useAuthTheme();
   const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState(route?.params?.email || "");
   const [code, setCode] = React.useState("");
@@ -42,12 +44,16 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.logoWrap}>
-        <Image source={require("../../logo.jpeg")} style={styles.logo} />
+        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
       </View>
-      <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.subtitle}>Enter email, OTP code, and new password.</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter email, OTP code, and new password.</Text>
 
       <Field
         label="Email"
@@ -55,10 +61,11 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
         onChangeText={setEmail}
         keyboardType="email-address"
         placeholder="you@example.com"
+        colors={colors}
       />
       <View style={styles.fieldBlock}>
-        <Text style={styles.fieldLabel}>OTP Code</Text>
-        <OtpField value={code} onChange={setCode} />
+        <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>OTP Code</Text>
+        <OtpField value={code} onChange={setCode} colors={colors} />
       </View>
       <Field
         label="New Password"
@@ -66,9 +73,10 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
         onChangeText={setNewPassword}
         secureTextEntry={!showNewPassword}
         placeholder="Enter new password"
+        colors={colors}
         rightIcon={
           <Pressable onPress={() => setShowNewPassword((s) => !s)}>
-            <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={18} color={COLORS.iconMuted} />
+            <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
           </Pressable>
         }
       />
@@ -78,19 +86,20 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
         onChangeText={setConfirmPassword}
         secureTextEntry={!showConfirmPassword}
         placeholder="Re-enter new password"
+        colors={colors}
         rightIcon={
           <Pressable onPress={() => setShowConfirmPassword((s) => !s)}>
-            <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={18} color={COLORS.iconMuted} />
+            <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
           </Pressable>
         }
       />
 
-      <Pressable style={[styles.cta, loading && styles.disabled]} onPress={onReset} disabled={loading}>
-        {loading ? <ActivityIndicator color={COLORS.card} /> : <Text style={styles.ctaText}>Reset Password</Text>}
+      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onReset} disabled={loading}>
+        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Reset Password</Text>}
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.link}>Back to login</Text>
+        <Text style={[styles.link, { color: colors.primary }]}>Back to login</Text>
       </Pressable>
     </ScrollView>
   );
@@ -112,11 +121,12 @@ function Field({
   secureTextEntry?: boolean;
   rightIcon?: React.ReactNode;
   placeholder?: string;
+  colors: typeof COLORS;
 }) {
   return (
     <View style={styles.fieldBlock}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.inputWrap}>
+      <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>{label}</Text>
+      <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -124,8 +134,8 @@ function Field({
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           placeholder={placeholder}
-          placeholderTextColor={COLORS.iconMuted}
-          style={styles.input}
+          placeholderTextColor={colors.iconMuted}
+          style={[styles.input, { color: colors.text }]}
         />
         {rightIcon ? <View style={styles.rightIcon}>{rightIcon}</View> : null}
       </View>
@@ -133,7 +143,15 @@ function Field({
   );
 }
 
-function OtpField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function OtpField({
+  value,
+  onChange,
+  colors,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  colors: typeof COLORS;
+}) {
   const ref = React.useRef<TextInput>(null);
   const safe = value.replace(/\D/g, "").slice(0, 6);
   React.useEffect(() => {
@@ -144,8 +162,15 @@ function OtpField({ value, onChange }: { value: string; onChange: (v: string) =>
   return (
     <Pressable style={styles.otpWrap} onPress={() => ref.current?.focus()}>
       {Array.from({ length: 6 }).map((_, idx) => (
-        <View key={idx} style={[styles.otpCell, safe.length === idx && styles.otpCellActive]}>
-          <Text style={styles.otpDigit}>{safe[idx] || ""}</Text>
+        <View
+          key={idx}
+          style={[
+            styles.otpCell,
+            { borderColor: colors.border, backgroundColor: colors.card },
+            safe.length === idx && [styles.otpCellActive, { borderColor: colors.primary, backgroundColor: colors.primaryPale }],
+          ]}
+        >
+          <Text style={[styles.otpDigit, { color: colors.text }]}>{safe[idx] || ""}</Text>
         </View>
       ))}
       <TextInput

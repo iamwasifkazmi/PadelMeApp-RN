@@ -31,12 +31,15 @@ function NotificationsSkeleton() {
 export function NotificationsScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<NotificationDto[]>([]);
   const [tab, setTab] = React.useState<"all" | "unread">("all");
 
-  const load = React.useCallback(async () => {
+  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+    const isRefresh = opts?.refresh === true;
     try {
-      setLoading(true);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       const res = await api.get<NotificationDto[]>(
         `/notifications?email=${encodeURIComponent(USER_EMAIL)}`,
       );
@@ -44,7 +47,8 @@ export function NotificationsScreen() {
     } catch {
       setItems([]);
     } finally {
-      setLoading(false);
+      if (isRefresh) setRefreshing(false);
+      else setLoading(false);
     }
   }, [USER_EMAIL]);
 
@@ -61,6 +65,10 @@ export function NotificationsScreen() {
     await api.patch("/notifications/read-all", { email: USER_EMAIL });
     await load();
   };
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <NotificationsSkeleton />;
   const filtered = tab === "all" ? items : items.filter((i) => !i.isRead);
@@ -93,6 +101,8 @@ export function NotificationsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
           <Pressable style={styles.card} onPress={() => markRead(item.id)}>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -116,11 +117,13 @@ export function HomeScreen() {
   const [recentResults, setRecentResults] = useState<RecentResult[]>([]);
   const [me, setMe] = useState<UserDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
+  const load = React.useCallback(
+    async (opts?: { refresh?: boolean }) => {
+      const isRefresh = opts?.refresh === true;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       try {
         const [matchesRes, usersRes, compsRes, meRes, recentRes] = await Promise.allSettled([
           api.get<MatchDto[]>("/matches?status=open"),
@@ -128,15 +131,15 @@ export function HomeScreen() {
           api.get<
             { id: string; name: string; type: string; participants: string[]; maxPlayers?: number | null }[]
           >("/competitions"),
-          USER_EMAIL ? api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`) : Promise.resolve(null),
+          USER_EMAIL
+            ? api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`)
+            : Promise.resolve(null),
           USER_EMAIL
             ? api.get<Array<{ id: string; result: "W" | "L"; elo: number; date: string }>>(
                 `/users/recent-results?email=${encodeURIComponent(USER_EMAIL)}`,
               )
             : Promise.resolve([]),
         ]);
-
-        if (!mounted) return;
 
         const matchesResp = matchesRes.status === "fulfilled" ? matchesRes.value : [];
         const usersResp = usersRes.status === "fulfilled" ? usersRes.value : [];
@@ -149,7 +152,10 @@ export function HomeScreen() {
           matchesResp.slice(0, 4).map((m) => ({
             id: m.id,
             title: m.title,
-            date: new Date(m.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+            date: new Date(m.date).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+            }),
             time: m.timeLabel,
             location: m.locationName,
             players: m.players.length,
@@ -179,25 +185,32 @@ export function HomeScreen() {
             id: r.id,
             result: r.result,
             elo: r.elo,
-            date: new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+            date: new Date(r.date).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+            }),
           })),
         );
       } catch {
-        if (mounted) {
-          setMatches([]);
-          setPlayers([]);
-          setCompetitions([]);
-          setRecentResults([]);
-        }
+        setMatches([]);
+        setPlayers([]);
+        setCompetitions([]);
+        setRecentResults([]);
       } finally {
-        if (mounted) setLoading(false);
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
       }
-    };
+    },
+    [USER_EMAIL],
+  );
+
+  React.useEffect(() => {
     load();
-    return () => {
-      mounted = false;
-    };
-  }, [USER_EMAIL]);
+  }, [load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
   const eloSum = useMemo(
     () => recentResults.reduce((sum, r) => sum + r.elo, 0),
     [recentResults],
@@ -210,7 +223,18 @@ export function HomeScreen() {
   if (loading) return <ScreenSkeleton rows={8} topGap={16} />;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={COLORS.primary}
+          colors={[COLORS.primary]}
+        />
+      }
+    >
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <Pressable

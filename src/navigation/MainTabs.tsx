@@ -6,6 +6,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../screens";
 import { MainTabParamList } from "./types";
 import { api } from "../lib/api";
+import { getSocket } from "../lib/socket";
 import { ConversationDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
@@ -39,7 +40,7 @@ export function MainTabs() {
 
   React.useEffect(() => {
     let mounted = true;
-    const load = async () => {
+    const loadUnread = async () => {
       try {
         const conversations = await api.get<ConversationDto[]>(
           `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
@@ -53,11 +54,21 @@ export function MainTabs() {
         if (mounted) setUnread(0);
       }
     };
-    load();
-    const t = setInterval(load, 12000);
+    loadUnread();
+    const t = setInterval(loadUnread, 12000);
+
+    const socket = getSocket(USER_EMAIL);
+    const onConversationChanged = () => {
+      loadUnread().catch(() => undefined);
+    };
+    socket?.on("conversation:message", onConversationChanged);
+    socket?.on("conversation:updated", onConversationChanged);
+
     return () => {
       mounted = false;
       clearInterval(t);
+      socket?.off("conversation:message", onConversationChanged);
+      socket?.off("conversation:updated", onConversationChanged);
     };
   }, [USER_EMAIL]);
   return (

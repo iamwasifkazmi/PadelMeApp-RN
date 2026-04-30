@@ -3,8 +3,10 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, Text
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
+import { useAuthTheme } from "../theme/authTheme";
 
 export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
+  const { colors, logoSource } = useAuthTheme();
   const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -27,32 +29,36 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.bg }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.logoWrap}>
-        <Image source={require("../../logo.jpeg")} style={styles.logo} />
+        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
       </View>
-      <Text style={styles.title}>Forgot Password</Text>
-      <Text style={styles.subtitle}>Enter your email to receive OTP reset code.</Text>
+      <Text style={[styles.title, { color: colors.text }]}>Forgot Password</Text>
+      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter your email to receive OTP reset code.</Text>
 
       <View style={{ marginBottom: 12 }}>
-        <Text style={styles.fieldLabel}>Email</Text>
+        <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>Email</Text>
         <TextInput
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
           placeholder="Enter your registered email"
-          placeholderTextColor={COLORS.iconMuted}
-          style={styles.input}
+          placeholderTextColor={colors.iconMuted}
+          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
         />
       </View>
 
-      <Pressable style={[styles.cta, loading && styles.disabled]} onPress={onSendCode} disabled={loading}>
-        {loading ? <ActivityIndicator color={COLORS.card} /> : <Text style={styles.ctaText}>Send OTP</Text>}
+      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onSendCode} disabled={loading}>
+        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Send OTP</Text>}
       </Pressable>
 
       <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.link}>Back to login</Text>
+        <Text style={[styles.link, { color: colors.primary }]}>Back to login</Text>
       </Pressable>
     </ScrollView>
   );

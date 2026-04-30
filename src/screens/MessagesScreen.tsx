@@ -2,6 +2,7 @@ import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { getSocket } from "../lib/socket";
 import { ConversationDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { useNavigation } from "@react-navigation/native";
@@ -15,22 +16,49 @@ export function MessagesScreen() {
   const [tab, setTab] = React.useState<"all" | "direct" | "groups">("all");
   const [conversations, setConversations] = React.useState<ConversationDto[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const load = React.useCallback(
+    async (opts?: { refresh?: boolean }) => {
+      const isRefresh = opts?.refresh === true;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      try {
+        const res = await api.get<ConversationDto[]>(
+          `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
+        );
+        setConversations(res);
+      } catch {
+        setConversations([]);
+      } finally {
+        if (isRefresh) setRefreshing(false);
+        else setLoading(false);
+      }
+    },
+    [USER_EMAIL],
+  );
 
   React.useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    api
-      .get<ConversationDto[]>(`/conversations?email=${encodeURIComponent(USER_EMAIL)}`)
-      .then((res) => mounted && setConversations(res))
-      .catch(() => mounted && setConversations([]))
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+    load();
+  }, [load]);
 
-    return () => {
-      mounted = false;
+  React.useEffect(() => {
+    const socket = getSocket(USER_EMAIL);
+    if (!socket) return;
+    const onConversationChanged = () => {
+      load({ refresh: true }).catch(() => undefined);
     };
-  }, [USER_EMAIL]);
+    socket.on("conversation:message", onConversationChanged);
+    socket.on("conversation:updated", onConversationChanged);
+    return () => {
+      socket.off("conversation:message", onConversationChanged);
+      socket.off("conversation:updated", onConversationChanged);
+    };
+  }, [USER_EMAIL, load]);
+
+  const onRefresh = React.useCallback(() => {
+    load({ refresh: true });
+  }, [load]);
 
   if (loading) return <ScreenSkeleton rows={7} topGap={12} />;
   const filtered = conversations.filter((c) => {
@@ -77,6 +105,8 @@ export function MessagesScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 110 }}
         renderItem={({ item }) => (
           <Pressable
