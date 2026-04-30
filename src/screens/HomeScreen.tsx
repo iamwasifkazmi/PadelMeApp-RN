@@ -29,49 +29,6 @@ type Player = { id: string; name: string; level: string };
 type Competition = { id: string; name: string; type: string; joined: number; max: number };
 type RecentResult = { id: string; result: "W" | "L"; elo: number; date: string };
 
-const MOCK_MATCHES: Match[] = [
-  {
-    id: "m1",
-    title: "Evening Padel Doubles",
-    date: "Fri 2 May",
-    time: "19:30",
-    location: "Padel Club Downtown",
-    players: 3,
-    maxPlayers: 4,
-    status: "open",
-  },
-  {
-    id: "m2",
-    title: "Competitive Session",
-    date: "Sat 3 May",
-    time: "11:00",
-    location: "Central Courts",
-    players: 4,
-    maxPlayers: 4,
-    status: "awaiting_score",
-  },
-];
-
-const MOCK_PLAYERS: Player[] = [
-  { id: "p1", name: "Ahmed", level: "Advanced" },
-  { id: "p2", name: "Mariam", level: "Intermediate" },
-  { id: "p3", name: "Hassan", level: "Advanced" },
-  { id: "p4", name: "Nora", level: "Beginner" },
-];
-
-const MOCK_COMPETITIONS: Competition[] = [
-  { id: "c1", name: "Spring Open", type: "Tournament", joined: 18, max: 32 },
-  { id: "c2", name: "Weekend League", type: "League", joined: 10, max: 16 },
-];
-
-const MOCK_RECENT: RecentResult[] = [
-  { id: "r1", result: "W", elo: 12, date: "27 Apr" },
-  { id: "r2", result: "L", elo: -8, date: "24 Apr" },
-  { id: "r3", result: "W", elo: 15, date: "19 Apr" },
-  { id: "r4", result: "W", elo: 7, date: "15 Apr" },
-  { id: "r5", result: "L", elo: -6, date: "10 Apr" },
-];
-
 function SectionHeader({
   title,
   subtitle,
@@ -153,9 +110,10 @@ export function HomeScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [playersTab, setPlayersTab] = useState<"nearby" | "friends">("nearby");
-  const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
-  const [players, setPlayers] = useState<Player[]>(MOCK_PLAYERS);
-  const [competitions, setCompetitions] = useState<Competition[]>(MOCK_COMPETITIONS);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [recentResults, setRecentResults] = useState<RecentResult[]>([]);
   const [me, setMe] = useState<UserDto | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -164,16 +122,28 @@ export function HomeScreen() {
     const load = async () => {
       setLoading(true);
       try {
-        const [matchesResp, usersResp, compsResp, meResp] = await Promise.all([
+        const [matchesRes, usersRes, compsRes, meRes, recentRes] = await Promise.allSettled([
           api.get<MatchDto[]>("/matches?status=open"),
           api.get<UserDto[]>("/users"),
           api.get<
             { id: string; name: string; type: string; participants: string[]; maxPlayers?: number | null }[]
           >("/competitions"),
           USER_EMAIL ? api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`) : Promise.resolve(null),
+          USER_EMAIL
+            ? api.get<Array<{ id: string; result: "W" | "L"; elo: number; date: string }>>(
+                `/users/recent-results?email=${encodeURIComponent(USER_EMAIL)}`,
+              )
+            : Promise.resolve([]),
         ]);
 
         if (!mounted) return;
+
+        const matchesResp = matchesRes.status === "fulfilled" ? matchesRes.value : [];
+        const usersResp = usersRes.status === "fulfilled" ? usersRes.value : [];
+        const compsResp = compsRes.status === "fulfilled" ? compsRes.value : [];
+        const meResp = meRes.status === "fulfilled" ? meRes.value : null;
+        const recentResp = recentRes.status === "fulfilled" ? recentRes.value : [];
+
         setMe(meResp);
         setMatches(
           matchesResp.slice(0, 4).map((m) => ({
@@ -204,8 +174,21 @@ export function HomeScreen() {
             max: c.maxPlayers || 16,
           })),
         );
+        setRecentResults(
+          recentResp.map((r) => ({
+            id: r.id,
+            result: r.result,
+            elo: r.elo,
+            date: new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          })),
+        );
       } catch {
-        // Keep mock data when backend is not available.
+        if (mounted) {
+          setMatches([]);
+          setPlayers([]);
+          setCompetitions([]);
+          setRecentResults([]);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -216,8 +199,8 @@ export function HomeScreen() {
     };
   }, [USER_EMAIL]);
   const eloSum = useMemo(
-    () => MOCK_RECENT.reduce((sum, r) => sum + r.elo, 0),
-    [],
+    () => recentResults.reduce((sum, r) => sum + r.elo, 0),
+    [recentResults],
   );
 
   const meName = me?.fullName || getCurrentUserName();
@@ -353,29 +336,33 @@ export function HomeScreen() {
       ))}
 
       <SectionHeader title="Recent Results" subtitle={`ELO ${eloSum >= 0 ? `+${eloSum}` : eloSum}`} action="All History →" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsRow}>
-        {MOCK_RECENT.map((r) => (
-          <View key={r.id} style={styles.resultDotWrap}>
-            <View
-              style={[
-                styles.resultDot,
-                r.result === "W" ? styles.resultDotWin : styles.resultDotLoss,
-              ]}
-            >
-              <Text
+      {recentResults.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsRow}>
+          {recentResults.map((r) => (
+            <View key={r.id} style={styles.resultDotWrap}>
+              <View
                 style={[
-                  styles.resultDotText,
-                  r.result === "W" ? styles.resultDotTextWin : styles.resultDotTextLoss,
+                  styles.resultDot,
+                  r.result === "W" ? styles.resultDotWin : styles.resultDotLoss,
                 ]}
               >
-                {r.result}
-              </Text>
+                <Text
+                  style={[
+                    styles.resultDotText,
+                    r.result === "W" ? styles.resultDotTextWin : styles.resultDotTextLoss,
+                  ]}
+                >
+                  {r.result}
+                </Text>
+              </View>
+              <Text style={styles.resultElo}>{r.elo > 0 ? `+${r.elo}` : r.elo}</Text>
+              <Text style={styles.resultDate}>{r.date}</Text>
             </View>
-            <Text style={styles.resultElo}>{r.elo > 0 ? `+${r.elo}` : r.elo}</Text>
-            <Text style={styles.resultDate}>{r.date}</Text>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={styles.emptyResults}>No recent results yet.</Text>
+      )}
     </ScrollView>
   );
 }
@@ -444,5 +431,6 @@ const styles = StyleSheet.create({
   resultDotTextLoss: { color: COLORS.dangerText },
   resultElo: { fontSize: 10, marginTop: 4, color: COLORS.textSubtle, fontWeight: "700" },
   resultDate: { fontSize: 9, marginTop: 2, color: COLORS.textMuted },
+  emptyResults: { fontSize: 12, color: COLORS.textMuted, marginBottom: 12 },
 });
 
