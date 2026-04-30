@@ -113,6 +113,7 @@ function Field({
   secureTextEntry,
   rightIcon,
   placeholder,
+  colors,
 }: {
   label: string;
   value: string;
