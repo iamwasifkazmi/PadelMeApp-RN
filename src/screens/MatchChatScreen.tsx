@@ -22,16 +22,16 @@ import { COLORS } from "../theme/colors";
 function MatchChatSkeleton() {
   return (
     <View style={styles.container}>
-      <View style={{ padding: 16 }}>
+      <View style={styles.matchChatSkeletonPad}>
         <SkeletonBlock height={24} width="35%" rounded={8} />
-        <View style={{ height: 12 }} />
+        <View style={styles.matchChatSkeletonGap} />
         {Array.from({ length: 8 }).map((_, i) => (
           <View
             key={i}
-            style={{
-              alignSelf: i % 2 ? "flex-end" : "flex-start",
-              marginBottom: 8,
-            }}
+            style={[
+              styles.matchChatSkeletonBubbleWrap,
+              i % 2 ? styles.matchChatSkeletonBubbleRight : styles.matchChatSkeletonBubbleLeft,
+            ]}
           >
             <SkeletonBlock
               height={34}
@@ -56,6 +56,7 @@ export function MatchChatScreen({
   const [loading, setLoading] = React.useState(true);
   const [sending, setSending] = React.useState(false);
   const [text, setText] = React.useState("");
+  const [composerHeight, setComposerHeight] = React.useState(42);
   const [messages, setMessages] = React.useState<MatchChatMessageDto[]>([]);
   const [typingUsers, setTypingUsers] = React.useState<string[]>([]);
   const listRef = React.useRef<FlatList<MatchChatMessageDto>>(null);
@@ -257,12 +258,14 @@ export function MatchChatScreen({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
     >
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         onContentSizeChange={() => {
@@ -274,7 +277,7 @@ export function MatchChatScreen({
             <View style={[styles.row, mine ? styles.rowMine : styles.rowOther]}>
               <View style={[styles.messageWrap, mine ? styles.messageWrapMine : styles.messageWrapOther]}>
                 <View style={[styles.bubble, mine ? styles.mine : styles.other]}>
-                  <Text style={[styles.bubbleText, mine && { color: COLORS.card }]}>
+                  <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>
                     {item.text}
                   </Text>
                 </View>
@@ -293,17 +296,20 @@ export function MatchChatScreen({
         }
       />
 
-      <View style={styles.liveMetaRow}>
-        {!!typingLabel && <Text style={styles.typingText}>{typingLabel}</Text>}
-      </View>
-
-      <View style={styles.inputRow}>
+      <View style={styles.composerWrap}>
+        <View style={styles.liveMetaRow}>
+          {!!typingLabel && <Text style={styles.typingText}>{typingLabel}</Text>}
+        </View>
+        <View style={styles.inputRow}>
         <TextInput
           value={text}
           onChangeText={setText}
           placeholder="Message players..."
           placeholderTextColor={COLORS.iconMuted}
-          style={styles.input}
+          style={[styles.input, { height: Math.min(96, Math.max(42, composerHeight)) }]}
+          multiline
+          textAlignVertical="top"
+          onContentSizeChange={(e) => setComposerHeight(e.nativeEvent.contentSize.height + 12)}
           onBlur={() => {
             if (isTypingRef.current) {
               emitTyping(false);
@@ -312,12 +318,13 @@ export function MatchChatScreen({
           }}
         />
         <Pressable
-          style={[styles.sendBtn, sending && { opacity: 0.65 }]}
+          style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
           onPress={send}
           disabled={sending}
         >
           <Text style={styles.sendBtnText}>Send</Text>
         </Pressable>
+      </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -335,6 +342,8 @@ function MessageReceipt({ status }: { status?: MatchChatMessageDto["status"] }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  list: { flex: 1 },
+  listContent: { padding: 16, paddingBottom: 10 },
   row: { marginBottom: 8, flexDirection: "row" },
   rowMine: { justifyContent: "flex-end" },
   rowOther: { justifyContent: "flex-start" },
@@ -345,48 +354,55 @@ const styles = StyleSheet.create({
   mine: { backgroundColor: COLORS.primary },
   other: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
   bubbleText: { color: COLORS.text, fontSize: 14 },
+  bubbleTextMine: { color: COLORS.card },
   metaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 4 },
   metaRowMine: { alignSelf: "flex-end" },
   metaText: { fontSize: 10, color: COLORS.textMuted },
   metaTick: { marginTop: 0.5 },
-  liveMetaRow: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 58,
-    alignItems: "flex-start",
-  },
-  typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
-  inputRow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+  composerWrap: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
+    paddingTop: 2,
+    paddingBottom: Platform.OS === "ios" ? 8 : 9,
+  },
+  liveMetaRow: { minHeight: 14, paddingHorizontal: 14, alignItems: "flex-start", justifyContent: "center" },
+  typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
+  inputRow: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 3,
     flexDirection: "row",
-    gap: 8,
+    alignItems: "flex-end",
+    gap: 9,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    paddingTop: Platform.OS === "ios" ? 11 : 9,
+    paddingBottom: 9,
     color: COLORS.text,
+    backgroundColor: COLORS.bg,
+    fontSize: 16,
   },
   sendBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderRadius: 14,
+    height: 44,
+    minWidth: 76,
+    paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendBtnText: { color: COLORS.card, fontWeight: "700" },
+  sendBtnDisabled: { opacity: 0.65 },
+  sendBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
   empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
+  matchChatSkeletonPad: { padding: 16 },
+  matchChatSkeletonGap: { height: 12 },
+  matchChatSkeletonBubbleWrap: { marginBottom: 8 },
+  matchChatSkeletonBubbleLeft: { alignSelf: "flex-start" },
+  matchChatSkeletonBubbleRight: { alignSelf: "flex-end" },
 });
 

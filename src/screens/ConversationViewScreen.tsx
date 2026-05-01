@@ -16,9 +16,63 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { ConversationDto, MessageDto } from "../lib/types";
-import { ScreenSkeleton } from "../components/Skeleton";
+import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
+
+function ConversationSkeleton() {
+  return (
+    <View style={styles.container}>
+      <View style={styles.conversationSkeletonWrap}>
+        <View style={styles.conversationBubbleLeft}>
+          <SkeletonBlock height={14} width={120} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock height={12} width={96} rounded={8} />
+        </View>
+        <View style={styles.conversationBubbleRight}>
+          <SkeletonBlock height={14} width={140} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock height={12} width={84} rounded={8} />
+        </View>
+        <View style={styles.conversationBubbleLeft}>
+          <SkeletonBlock height={14} width={100} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock height={12} width={76} rounded={8} />
+        </View>
+      </View>
+      <View style={styles.conversationComposerSkeleton}>
+        <SkeletonBlock height={42} width="78%" rounded={12} />
+        <SkeletonBlock height={42} width={70} rounded={12} />
+      </View>
+    </View>
+  );
+}
+
+function HeaderTitle({
+  title,
+  showPresence,
+  online,
+}: {
+  title: string;
+  showPresence: boolean;
+  online: boolean;
+}) {
+  return (
+    <View style={styles.headerTitleWrap}>
+      <Text numberOfLines={1} style={styles.headerTitleText}>
+        {title}
+      </Text>
+      {showPresence ? (
+        <View
+          style={[
+            styles.presenceDot,
+            online ? styles.presenceDotOnline : styles.presenceDotOffline,
+          ]}
+        />
+      ) : null}
+    </View>
+  );
+}
 
 export function ConversationViewScreen({
   route,
@@ -36,6 +90,7 @@ export function ConversationViewScreen({
   const [isPeerTyping, setIsPeerTyping] = React.useState(false);
   const [text, setText] = React.useState("");
   const [sending, setSending] = React.useState(false);
+  const [composerHeight, setComposerHeight] = React.useState(42);
   const listRef = React.useRef<FlatList<MessageDto>>(null);
   const nearBottomRef = React.useRef(true);
   const typingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -207,25 +262,22 @@ export function ConversationViewScreen({
     conversation?.entityName ||
     (otherParticipantEmail ? otherParticipantEmail.split("@")[0] : "Conversation");
 
+  const headerTitleRenderer = React.useCallback(
+    () => (
+      <HeaderTitle
+        title={peerTitle}
+        showPresence={Boolean(otherParticipantEmail)}
+        online={peerOnline}
+      />
+    ),
+    [peerTitle, otherParticipantEmail, peerOnline],
+  );
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: () => (
-        <View style={styles.headerTitleWrap}>
-          <Text numberOfLines={1} style={styles.headerTitleText}>
-            {peerTitle}
-          </Text>
-          {otherParticipantEmail ? (
-            <View
-              style={[
-                styles.presenceDot,
-                peerOnline ? styles.presenceDotOnline : styles.presenceDotOffline,
-              ]}
-            />
-          ) : null}
-        </View>
-      ),
+      headerTitle: headerTitleRenderer,
     });
-  }, [navigation, otherParticipantEmail, peerOnline, peerTitle]);
+  }, [navigation, headerTitleRenderer]);
 
   const send = async () => {
     const payload = text.trim();
@@ -260,18 +312,20 @@ export function ConversationViewScreen({
     nearBottomRef.current = distanceFromBottom < 120;
   }, []);
 
-  if (loading) return <ScreenSkeleton rows={7} topGap={12} />;
+  if (loading) return <ConversationSkeleton />;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
     >
       <FlatList
         ref={listRef}
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         onContentSizeChange={() => {
@@ -289,7 +343,7 @@ export function ConversationViewScreen({
             <View style={[styles.bubbleWrap, mine ? styles.bubbleWrapMine : styles.bubbleWrapOther]}>
               <View style={styles.messageWrap}>
                 <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
-                  <Text style={[styles.bubbleText, mine && { color: COLORS.card }]}>{item.text}</Text>
+                  <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.text}</Text>
                 </View>
                 <View
                   style={[
@@ -307,17 +361,20 @@ export function ConversationViewScreen({
         ListEmptyComponent={<Text style={styles.empty}>No messages yet.</Text>}
       />
 
-      <View style={styles.liveMetaRow}>
-        {isPeerTyping ? <Text style={styles.typingText}>Typing...</Text> : null}
-      </View>
-
-      <View style={styles.inputRow}>
+      <View style={styles.composerWrap}>
+        <View style={styles.liveMetaRow}>
+          {isPeerTyping ? <Text style={styles.typingText}>Typing...</Text> : null}
+        </View>
+        <View style={styles.inputRow}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { height: Math.min(96, Math.max(42, composerHeight)) }]}
           value={text}
           onChangeText={setText}
           placeholder="Type a message..."
           placeholderTextColor={COLORS.iconMuted}
+          multiline
+          textAlignVertical="top"
+          onContentSizeChange={(e) => setComposerHeight(e.nativeEvent.contentSize.height + 12)}
           onBlur={() => {
             if (isTypingRef.current) {
               emitTyping(false);
@@ -326,12 +383,13 @@ export function ConversationViewScreen({
           }}
         />
         <Pressable
-          style={[styles.sendBtn, sending && { opacity: 0.65 }]}
+          style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
           onPress={send}
           disabled={sending}
         >
           <Text style={styles.sendBtnText}>Send</Text>
         </Pressable>
+      </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -370,6 +428,8 @@ function MessageReceipt({ status }: { status?: "sent" | "delivered" | "read" }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  list: { flex: 1 },
+  listContent: { padding: 16, paddingBottom: 10 },
   headerTitleWrap: { flexDirection: "row", alignItems: "center", maxWidth: 220 },
   headerTitleText: { fontSize: 18, fontWeight: "700", color: COLORS.text },
   presenceDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 7 },
@@ -383,49 +443,83 @@ const styles = StyleSheet.create({
   bubbleMine: { backgroundColor: COLORS.primary },
   bubbleOther: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
   bubbleText: { color: COLORS.text, fontSize: 14 },
+  bubbleTextMine: { color: COLORS.card },
   messageMetaRow: { marginTop: 3, flexDirection: "row", alignItems: "center", gap: 4 },
   messageMetaRowMine: { justifyContent: "flex-end" },
   messageMetaRowOther: { justifyContent: "flex-start" },
   messageTime: { fontSize: 10, color: COLORS.textMuted },
   messageTick: { marginTop: 0.5 },
-  liveMetaRow: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 68,
-    alignItems: "flex-start",
+  composerWrap: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    paddingTop: 2,
+    paddingBottom: Platform.OS === "ios" ? 8 : 9,
   },
+  liveMetaRow: { minHeight: 14, paddingHorizontal: 14, alignItems: "flex-start", justifyContent: "center" },
   typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
   inputRow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 8,
+    paddingHorizontal: 12,
+    paddingTop: 3,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 9,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    paddingTop: Platform.OS === "ios" ? 11 : 9,
+    paddingBottom: 9,
+    color: COLORS.text,
+    backgroundColor: COLORS.bg,
+    fontSize: 16,
+  },
+  sendBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    height: 44,
+    minWidth: 76,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: { opacity: 0.65 },
+  sendBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
+  empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
+  conversationSkeletonWrap: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  conversationBubbleLeft: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
+    maxWidth: "75%",
+  },
+  conversationBubbleRight: {
+    alignSelf: "flex-end",
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
+    maxWidth: "75%",
+  },
+  skeletonGapXs: { height: 6 },
+  conversationComposerSkeleton: {
+    flexDirection: "row",
+    gap: 8,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    flexDirection: "row",
-    gap: 8,
+    marginBottom: 8,
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    color: COLORS.text,
-  },
-  sendBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendBtnText: { color: COLORS.card, fontWeight: "700" },
-  empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
 });
 

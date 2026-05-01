@@ -1,5 +1,18 @@
 import React from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
@@ -44,64 +57,73 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 18 : 0}
     >
-      <View style={styles.logoWrap}>
-        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
-      </View>
-      <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter email, OTP code, and new password.</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flexOne}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.logoWrap}>
+            <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter email, OTP code, and new password.</Text>
 
-      <Field
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        placeholder="you@example.com"
-        colors={colors}
-      />
-      <View style={styles.fieldBlock}>
-        <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>OTP Code</Text>
-        <OtpField value={code} onChange={setCode} colors={colors} />
-      </View>
-      <Field
-        label="New Password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry={!showNewPassword}
-        placeholder="Enter new password"
-        colors={colors}
-        rightIcon={
-          <Pressable onPress={() => setShowNewPassword((s) => !s)}>
-            <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+          <Field
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            colors={colors}
+          />
+          <View style={styles.fieldBlock}>
+            <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>OTP Code</Text>
+            <OtpField value={code} onChange={setCode} colors={colors} />
+          </View>
+          <Field
+            label="New Password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry={!showNewPassword}
+            placeholder="Enter new password"
+            colors={colors}
+            rightIcon={
+              <Pressable onPress={() => setShowNewPassword((s) => !s)}>
+                <Ionicons name={showNewPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+              </Pressable>
+            }
+          />
+          <Field
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            placeholder="Re-enter new password"
+            colors={colors}
+            rightIcon={
+              <Pressable onPress={() => setShowConfirmPassword((s) => !s)}>
+                <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+              </Pressable>
+            }
+          />
+
+          <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onReset} disabled={loading}>
+            {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Reset Password</Text>}
           </Pressable>
-        }
-      />
-      <Field
-        label="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry={!showConfirmPassword}
-        placeholder="Re-enter new password"
-        colors={colors}
-        rightIcon={
-          <Pressable onPress={() => setShowConfirmPassword((s) => !s)}>
-            <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+
+          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
+            <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
           </Pressable>
-        }
-      />
-
-      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onReset} disabled={loading}>
-        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Reset Password</Text>}
-      </Pressable>
-
-      <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
-      </Pressable>
-    </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -189,7 +211,8 @@ function OtpField({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  flexOne: { flex: 1 },
+  content: { flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 34 },
   logoWrap: { alignItems: "center", marginBottom: 16 },
   logo: { width: 112, height: 112, borderRadius: 56, borderWidth: 2, borderColor: COLORS.border },
   title: { fontSize: 28, fontWeight: "800", color: COLORS.text, textAlign: "center" },

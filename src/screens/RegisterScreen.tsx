@@ -1,5 +1,18 @@
 import React from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
@@ -42,54 +55,63 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 18 : 0}
     >
-      <View style={styles.logoWrap}>
-        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
-      </View>
-      <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Register once and stay signed in.</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flexOne}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.logoWrap}>
+            <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Register once and stay signed in.</Text>
 
-      <Field
-        label="Full Name"
-        value={fullName}
-        onChangeText={setFullName}
-        placeholder="Your full name"
-        colors={colors}
-      />
-      <Field
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        placeholder="you@example.com"
-        colors={colors}
-      />
-      <Field
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={!showPassword}
-        placeholder="Create a strong password"
-        colors={colors}
-        rightIcon={
-          <Pressable onPress={() => setShowPassword((s) => !s)}>
-            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+          <Field
+            label="Full Name"
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Your full name"
+            colors={colors}
+          />
+          <Field
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            colors={colors}
+          />
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            placeholder="Create a strong password"
+            colors={colors}
+            rightIcon={
+              <Pressable onPress={() => setShowPassword((s) => !s)}>
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.iconMuted} />
+              </Pressable>
+            }
+          />
+
+          <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onRegister} disabled={loading}>
+            {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Register</Text>}
           </Pressable>
-        }
-      />
 
-      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onRegister} disabled={loading}>
-        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Register</Text>}
-      </Pressable>
-
-      <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={[styles.link, { color: colors.text }]}>Already have an account? Login</Text>
-      </Pressable>
-    </ScrollView>
+          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
+            <Text style={[styles.link, { color: colors.text }]}>Already have an account? Login</Text>
+          </Pressable>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -113,7 +135,7 @@ function Field({
   colors: typeof COLORS;
 }) {
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={styles.fieldBlock}>
       <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>{label}</Text>
       <View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <TextInput
@@ -134,11 +156,13 @@ function Field({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  flexOne: { flex: 1 },
+  content: { flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 34 },
   logoWrap: { alignItems: "center", marginBottom: 16 },
   logo: { width: 112, height: 112, borderRadius: 56, borderWidth: 2, borderColor: COLORS.border },
   title: { fontSize: 28, fontWeight: "800", color: COLORS.text, textAlign: "center" },
   subtitle: { marginTop: 4, marginBottom: 20, textAlign: "center", color: COLORS.textMuted },
+  fieldBlock: { marginBottom: 12 },
   fieldLabel: { fontSize: 12, marginBottom: 6, color: COLORS.textSubtle, fontWeight: "600" },
   inputWrap: {
     backgroundColor: COLORS.card,

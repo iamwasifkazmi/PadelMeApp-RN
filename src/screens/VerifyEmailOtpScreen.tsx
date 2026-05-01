@@ -1,5 +1,18 @@
 import React from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { AuthResponseDto } from "../lib/types";
@@ -58,56 +71,65 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.bg }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 18 : 0}
     >
-      <View style={styles.logoWrap}>
-        <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
-      </View>
-      <Text style={[styles.title, { color: colors.text }]}>Verify Email</Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter the 6-digit OTP sent to your email.</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flexOne}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.logoWrap}>
+            <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Verify Email</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter the 6-digit OTP sent to your email.</Text>
 
-      <View style={styles.fieldBlock}>
-        <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>Email</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="you@example.com"
-          placeholderTextColor={colors.iconMuted}
-          style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
-        />
-      </View>
+          <View style={styles.fieldBlock}>
+            <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="you@example.com"
+              placeholderTextColor={colors.iconMuted}
+              style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
+            />
+          </View>
 
-      <View style={styles.fieldBlock}>
-        <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>OTP Code</Text>
-        <OtpField value={code} onChange={setCode} colors={colors} />
-      </View>
+          <View style={styles.fieldBlock}>
+            <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>OTP Code</Text>
+            <OtpField value={code} onChange={setCode} colors={colors} />
+          </View>
 
-      <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onVerify} disabled={loading}>
-        {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Verify Account</Text>}
-      </Pressable>
-      <Pressable
-        style={[
-          styles.secondaryBtn,
-          { borderColor: colors.borderMuted, backgroundColor: colors.card },
-          (resendBusy || cooldown > 0) && styles.disabled,
-        ]}
-        onPress={onResend}
-        disabled={resendBusy || cooldown > 0}
-      >
-        <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-          {resendBusy ? "Sending..." : cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
-        </Text>
-      </Pressable>
+          <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onVerify} disabled={loading}>
+            {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Verify Account</Text>}
+          </Pressable>
+          <Pressable
+            style={[
+              styles.secondaryBtn,
+              { borderColor: colors.borderMuted, backgroundColor: colors.card },
+              (resendBusy || cooldown > 0) && styles.disabled,
+            ]}
+            onPress={onResend}
+            disabled={resendBusy || cooldown > 0}
+          >
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+              {resendBusy ? "Sending..." : cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
+            </Text>
+          </Pressable>
 
-      <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-        <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
-      </Pressable>
-    </ScrollView>
+          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
+            <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
+          </Pressable>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -157,7 +179,8 @@ function OtpField({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  flexOne: { flex: 1 },
+  content: { flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 34 },
   logoWrap: { alignItems: "center", marginBottom: 16 },
   logo: { width: 112, height: 112, borderRadius: 56, borderWidth: 2, borderColor: COLORS.border },
   title: { fontSize: 28, fontWeight: "800", color: COLORS.text, textAlign: "center" },

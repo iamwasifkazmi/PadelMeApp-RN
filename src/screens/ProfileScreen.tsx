@@ -4,7 +4,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { ProfileSummaryDto, UserDto } from "../lib/types";
-import { ScreenSkeleton } from "../components/Skeleton";
+import { SkeletonBlock } from "../components/Skeleton";
 import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -15,6 +15,61 @@ const TAG_EMOJI: Record<string, string> = {
   Social: "🤝",
   "Training partner": "💪",
 };
+
+function ProfileSkeleton() {
+  return (
+    <View style={styles.container}>
+      <View style={styles.topBar}>
+        <SkeletonBlock height={28} width={140} rounded={8} />
+        <View style={styles.profileSkeletonActions}>
+          <SkeletonBlock height={34} width={34} rounded={10} />
+          <SkeletonBlock height={34} width={34} rounded={10} />
+          <SkeletonBlock height={34} width={34} rounded={10} />
+        </View>
+      </View>
+
+      <View style={styles.hero}>
+        <View style={styles.heroHeaderRow}>
+          <SkeletonBlock height={72} width={72} rounded={18} />
+          <View style={{ flex: 1 }}>
+            <SkeletonBlock height={20} width="65%" rounded={8} />
+            <View style={styles.profileSkeletonGapSm} />
+            <SkeletonBlock height={12} width="45%" rounded={8} />
+            <View style={styles.profileSkeletonGapSm} />
+            <SkeletonBlock height={12} width="55%" rounded={8} />
+            <View style={styles.profileSkeletonGapSm} />
+            <View style={styles.profileSkeletonBadgeRow}>
+              <SkeletonBlock height={24} width={72} rounded={999} />
+              <SkeletonBlock height={24} width={64} rounded={999} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.profileSkeletonGapMd} />
+        <View style={styles.heroButtons}>
+          <SkeletonBlock height={38} width="48%" rounded={12} />
+          <SkeletonBlock height={38} width="48%" rounded={12} />
+        </View>
+      </View>
+
+      <View style={styles.switchTabs}>
+        <SkeletonBlock height={34} width="49%" rounded={9} />
+        <SkeletonBlock height={34} width="49%" rounded={9} />
+      </View>
+
+      {Array.from({ length: 3 }).map((_, i) => (
+        <View key={i} style={styles.sectionCard}>
+          <SkeletonBlock height={16} width="45%" rounded={8} />
+          <View style={styles.profileSkeletonGapMd} />
+          <SkeletonBlock height={12} width="90%" rounded={8} />
+          <View style={styles.profileSkeletonGapSm} />
+          <SkeletonBlock height={12} width="80%" rounded={8} />
+          <View style={styles.profileSkeletonGapSm} />
+          <SkeletonBlock height={12} width="70%" rounded={8} />
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export function ProfileScreen() {
   const USER_EMAIL = getCurrentUserEmail();
@@ -57,7 +112,7 @@ export function ProfileScreen() {
     load({ refresh: true });
   }, [load]);
 
-  if (loading) return <ScreenSkeleton rows={3} topGap={12} />;
+  if (loading) return <ProfileSkeleton />;
 
   const fullName = summary?.user.fullName || user?.fullName || getCurrentUserName();
   const elo = summary?.stats.eloRating ?? user?.eloRating ?? 1000;
@@ -711,5 +766,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   completeProfileBtnText: { color: COLORS.text, fontWeight: "700", fontSize: 13 },
+  profileSkeletonActions: { flexDirection: "row", gap: 8 },
+  profileSkeletonBadgeRow: { flexDirection: "row", gap: 6, marginTop: 2 },
+  profileSkeletonGapSm: { height: 6 },
+  profileSkeletonGapMd: { height: 10 },
 });
 
