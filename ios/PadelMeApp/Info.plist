@@ -35,6 +35,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow MiPadel to select your profile photo.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Allow MiPadel to save profile-related images when needed.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

@@ -74,7 +74,7 @@ export function RootNavigator() {
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="InstantPlay" component={InstantPlayScreen} />
       <Stack.Screen name="Players" component={PlayersScreen} />
-      <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+      <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PastEvents" component={PastEventsScreen} />
       <Stack.Screen name="ConversationView" component={ConversationViewScreen} />

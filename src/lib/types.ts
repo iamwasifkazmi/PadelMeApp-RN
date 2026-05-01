@@ -19,9 +19,122 @@ export type UserDto = {
   email: string;
   fullName?: string | null;
   location?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  bio?: string | null;
+  photoUrl?: string | null;
   eloRating: number;
+  skillLevel?: number | null;
   skillLabel?: string | null;
+  skillConfidence?: string | null;
+  preferredPosition?: string | null;
+  availabilityDays?: string[];
+  availabilityTimes?: string[];
+  travelRadiusKm?: number | null;
+  useCurrentLocation?: boolean;
+  matchTypePreference?: string | null;
+  matchFormatPreference?: string | null;
+  tags?: string[];
+  profileVisibility?: "public" | "private";
+  notifyInstantPlay?: boolean;
+  notifyNearbyMatches?: boolean;
+  notifyMatchInvites?: boolean;
+  notifyTournaments?: boolean;
+  profileComplete?: boolean;
   averageRating?: number | null;
+  idVerified?: boolean;
+  photoVerified?: boolean;
+};
+
+export type ProfileSummaryDto = {
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    location?: string | null;
+    bio?: string | null;
+    photoUrl?: string | null;
+    age?: number | null;
+    gender?: string | null;
+    skillLevel?: number | null;
+    skillLabel: string;
+    skillConfidence?: string | null;
+    preferredPosition?: string | null;
+    availabilityDays?: string[];
+    availabilityTimes?: string[];
+    travelRadiusKm?: number | null;
+    useCurrentLocation?: boolean;
+    matchTypePreference?: string | null;
+    matchFormatPreference?: string | null;
+    tags?: string[];
+    profileVisibility?: "public" | "private";
+    notifyInstantPlay?: boolean;
+    notifyNearbyMatches?: boolean;
+    notifyMatchInvites?: boolean;
+    notifyTournaments?: boolean;
+    statusLine?: string | null;
+    averageRating?: number | null;
+    eloRating: number;
+    idVerified: boolean;
+    photoVerified: boolean;
+    profileComplete: boolean;
+  };
+  stats: {
+    matchesPlayed: number;
+    matchesWon: number;
+    matchesLost: number;
+    winRate: number;
+    eloRating: number;
+    eloPeak: number;
+  };
+  recentFormDots: Array<"W" | "L">;
+  achievements: Array<{
+    key: string;
+    icon: string;
+    label: string;
+    desc: string;
+    earned: boolean;
+  }>;
+  trustBadges: {
+    idVerified: boolean;
+    photoVerified: boolean;
+    topRated: boolean;
+    reliable: boolean;
+  };
+  social: {
+    friends: Array<{
+      id: string;
+      email: string;
+      fullName: string;
+      photoUrl?: string | null;
+    }>;
+    playedWith: Array<{
+      id: string;
+      email: string;
+      fullName: string;
+      photoUrl?: string | null;
+    }>;
+    friendCount: number;
+  };
+  upcomingMatches: Array<{
+    id: string;
+    title: string;
+    date: string;
+    locationName: string;
+    status: string;
+  }>;
+  recentHistory: Array<{
+    id: string;
+    type: "match" | "competition";
+    title: string;
+    date: string;
+    result: string;
+    scoreTeamA?: string | null;
+    scoreTeamB?: string | null;
+    eloChange?: number | null;
+    eloAfter?: number | null;
+    competitionType?: string;
+  }>;
 };
 
 export type ConversationDto = {

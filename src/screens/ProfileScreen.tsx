@@ -1,17 +1,26 @@
 import React from "react";
-import { Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
-import { UserDto } from "../lib/types";
+import { ProfileSummaryDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
+
+const TAG_EMOJI: Record<string, string> = {
+  Competitive: "🎯",
+  Casual: "😎",
+  "Beginner-friendly": "🌱",
+  Social: "🤝",
+  "Training partner": "💪",
+};
 
 export function ProfileScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [user, setUser] = React.useState<UserDto | null>(null);
+  const [summary, setSummary] = React.useState<ProfileSummaryDto | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [tab, setTab] = React.useState<"overview" | "performance">("overview");
@@ -23,10 +32,15 @@ export function ProfileScreen() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       try {
-        const res = await api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`);
-        setUser(res);
+        const [userRes, summaryRes] = await Promise.all([
+          api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`),
+          api.get<ProfileSummaryDto>(`/users/profile-summary?email=${encodeURIComponent(USER_EMAIL)}`),
+        ]);
+        setUser(userRes);
+        setSummary(summaryRes);
       } catch {
         setUser(null);
+        setSummary(null);
       } finally {
         if (isRefresh) setRefreshing(false);
         else setLoading(false);
@@ -45,17 +59,16 @@ export function ProfileScreen() {
 
   if (loading) return <ScreenSkeleton rows={3} topGap={12} />;
 
-  const fullName = user?.fullName || getCurrentUserName();
-  const elo = user?.eloRating ?? 1000;
-  const skill = user?.skillLabel || "intermediate";
-  const rating = user?.averageRating ?? 4.5;
+  const fullName = summary?.user.fullName || user?.fullName || getCurrentUserName();
+  const elo = summary?.stats.eloRating ?? user?.eloRating ?? 1000;
+  const skill = summary?.user.skillLabel || user?.skillLabel || "intermediate";
+  const rating = summary?.user.averageRating ?? user?.averageRating ?? 0;
   const eloPercent = Math.max(6, Math.min(100, ((elo - 700) / 600) * 100));
-  const achievements = [
-    { icon: "flame-outline", label: "10 Matches", earned: true },
-    { icon: "trophy-outline", label: "5 Wins", earned: true },
-    { icon: "star-outline", label: "Top Rated", earned: rating >= 4.5 },
-    { icon: "shield-checkmark-outline", label: "Verified", earned: false },
-  ];
+  const achievements = summary?.achievements || [];
+  const earnedAchievements = achievements.filter((a) => a.earned);
+  const lockedAchievements = achievements.filter((a) => !a.earned).slice(0, 3);
+  const recentFormDots = summary?.recentFormDots || [];
+  const userTags = summary?.user.tags || [];
 
   return (
     <ScrollView
@@ -89,51 +102,119 @@ export function ProfileScreen() {
         <View style={styles.heroGlow} />
       </View>
       <View style={styles.hero}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{fullName.slice(0, 1)}</Text>
-        </View>
-        <Text style={styles.name}>{fullName}</Text>
-        <Text style={styles.location}>{user?.location || "Set your location"}</Text>
-        <Text style={styles.statusLine}>🎾 Looking for games</Text>
-        <View style={styles.heroBadges}>
-          <Badge label={skill} />
-          <Badge label={`⭐ ${rating.toFixed(1)}`} />
-          <Badge label={`ELO ${elo}`} />
+        <View style={styles.heroHeaderRow}>
+          <View style={styles.avatarWrap}>
+            {summary?.user.photoUrl ? (
+              <Image source={{ uri: summary.user.photoUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{fullName.slice(0, 1)}</Text>
+              </View>
+            )}
+            {summary?.user.idVerified ? (
+              <View style={[styles.verifyDot, styles.verifyDotBlue]}>
+                <Ionicons name="shield-checkmark" size={11} color={COLORS.card} />
+              </View>
+            ) : summary?.user.photoVerified ? (
+              <View style={[styles.verifyDot, styles.verifyDotGreen]}>
+                <Ionicons name="checkmark" size={11} color={COLORS.card} />
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.heroInfo}>
+            <Text style={styles.name}>{fullName}</Text>
+            <Text style={styles.location}>{summary?.user.location || user?.location || "Set your location"}</Text>
+            <Text style={styles.statusLine}>{summary?.user.statusLine || "🎾 Looking for games"}</Text>
+            <View style={styles.heroBadges}>
+              <Badge label={skill} />
+              {rating > 0 ? <Badge label={`⭐ ${rating.toFixed(1)}`} /> : null}
+              <Badge label={`ELO ${elo}`} />
+            </View>
+          </View>
         </View>
         <View style={styles.heroButtons}>
           <Pressable style={styles.heroCta} onPress={() => navigation.navigate("InstantPlay")}>
             <Ionicons name="flash-outline" size={14} color={COLORS.card} />
             <Text style={styles.heroCtaText}>Play Now</Text>
           </Pressable>
-          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("AcceptInvite")}>
-            <Text style={styles.heroGhostText}>Accept Invite</Text>
+          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("InvitePlayers")}>
+            <Text style={styles.heroGhostText}>Invite to Match</Text>
           </Pressable>
         </View>
+        {!!summary?.user.bio && <Text style={styles.bioText}>{summary.user.bio}</Text>}
+        {userTags.length > 0 ? (
+          <View style={styles.tagRow}>
+            {userTags.map((tag) => (
+              <View key={tag} style={styles.tagChip}>
+                <Text style={styles.tagChipText}>
+                  {TAG_EMOJI[tag] || "🎾"} {tag}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.statsRow}>
-        <Stat title="ELO" value={String(elo)} />
-        <Stat title="Skill" value={skill} />
-        <Stat title="Rating" value={rating.toFixed(1)} />
-      </View>
       <View style={styles.switchTabs}>
         <Pressable style={[styles.switchBtn, tab === "overview" && styles.switchBtnActive]} onPress={() => setTab("overview")}>
           <Text style={[styles.switchText, tab === "overview" && styles.switchTextActive]}>Overview</Text>
         </Pressable>
         <Pressable style={[styles.switchBtn, tab === "performance" && styles.switchBtnActive]} onPress={() => setTab("performance")}>
-          <Text style={[styles.switchText, tab === "performance" && styles.switchTextActive]}>Performance</Text>
+          <Text style={[styles.switchText, tab === "performance" && styles.switchTextActive]}>📊 Performance</Text>
         </Pressable>
       </View>
 
       {tab === "overview" ? (
         <>
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Trust & Badges</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>📈 Performance</Text>
+              {recentFormDots.length > 0 ? (
+                <View style={styles.recentFormRow}>
+                  <Text style={styles.recentFormLabel}>Recent</Text>
+                  {recentFormDots.map((result, index) => (
+                    <View
+                      key={`${result}-${index}`}
+                      style={[
+                        styles.formDot,
+                        result === "W" ? styles.formDotWin : styles.formDotLoss,
+                      ]}
+                    >
+                      <Text style={styles.formDotText}>{result}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+            <View style={styles.performancePills}>
+              <Perf label="Matches" value={String(summary?.stats.matchesPlayed ?? 0)} />
+              <Perf label="Win Rate" value={`${summary?.stats.winRate ?? 0}%`} />
+              <Perf label="Wins" value={String(summary?.stats.matchesWon ?? 0)} />
+              <Perf label="Losses" value={String(summary?.stats.matchesLost ?? 0)} />
+            </View>
+            <View style={styles.eloSection}>
+              <View style={styles.eloHeadRow}>
+                <Text style={styles.eloLabel}>Skill Rating (ELO)</Text>
+                <Text style={styles.eloHeadValue}>{elo}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${eloPercent}%` }]} />
+              </View>
+              <View style={styles.scaleRow}>
+                <Text style={styles.scaleText}>Beginner</Text>
+                <Text style={styles.scaleText}>Intermediate</Text>
+                <Text style={styles.scaleText}>Advanced</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>🛡️ Trust & Badges</Text>
             <View style={styles.badgeRow}>
-              <TrustChip label="ID Verified" active={false} />
-              <TrustChip label="Photo Verified" active={false} />
-              <TrustChip label="Top Rated" active={rating >= 4.5} />
-              <TrustChip label="Reliable" active={true} />
+              <TrustChip label="ID Verified" active={Boolean(summary?.trustBadges.idVerified)} />
+              <TrustChip label="Photo Verified" active={Boolean(summary?.trustBadges.photoVerified)} />
+              <TrustChip label="Top Rated" active={Boolean(summary?.trustBadges.topRated)} />
+              <TrustChip label="Reliable" active={Boolean(summary?.trustBadges.reliable)} />
             </View>
             <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("Verification")}>
               <View>
@@ -145,56 +226,115 @@ export function ProfileScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Achievements</Text>
-            {achievements.map((a) => (
-              <View key={a.label} style={[styles.achievementRow, !a.earned && { opacity: 0.55 }]}>
-                <Ionicons name={a.icon as any} size={16} color={a.earned ? COLORS.primary : COLORS.iconMuted} />
-                <Text style={styles.achievementText}>{a.label}</Text>
-                <Text style={[styles.achievementTag, a.earned ? styles.achievementTagOn : styles.achievementTagOff]}>
-                  {a.earned ? "EARNED" : "LOCKED"}
+            <Text style={styles.sectionTitle}>🏆 Achievements</Text>
+            {earnedAchievements.map((a) => (
+              <View key={a.key} style={styles.achievementRow}>
+                <Text style={styles.achievementEmoji}>{a.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.achievementText}>{a.label}</Text>
+                  <Text style={styles.rowMeta}>{a.desc}</Text>
+                </View>
+                <Text style={[styles.achievementTag, styles.achievementTagOn]}>
+                  EARNED
+                </Text>
+              </View>
+            ))}
+            {lockedAchievements.map((a) => (
+              <View key={a.key} style={[styles.achievementRow, { opacity: 0.52 }]}>
+                <Text style={styles.achievementEmoji}>{a.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.achievementText}>{a.label}</Text>
+                  <Text style={styles.rowMeta}>{a.desc}</Text>
+                </View>
+                <Text style={[styles.achievementTag, styles.achievementTagOff]}>
+                  LOCKED
                 </Text>
               </View>
             ))}
           </View>
 
-          <View style={styles.quickRow}>
-            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("InstantPlay")}>
-              <Ionicons name="flash-outline" size={18} color={COLORS.warning} />
-              <Text style={styles.quickTitle}>Play Now</Text>
-              <Text style={styles.quickMeta}>Instant matching</Text>
-            </Pressable>
-            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("PastEvents")}>
-              <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.quickTitle}>History</Text>
-              <Text style={styles.quickMeta}>Past matches</Text>
-            </Pressable>
-          </View>
-          <View style={styles.quickRow}>
-            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("Onboarding")}>
-              <Ionicons name="person-add-outline" size={18} color={COLORS.primaryDark} />
-              <Text style={styles.quickTitle}>Complete Setup</Text>
-              <Text style={styles.quickMeta}>Open onboarding flow</Text>
-            </Pressable>
-            <Pressable style={styles.quickCard} onPress={() => navigation.navigate("AcceptInvite")}>
-              <Ionicons name="mail-open-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.quickTitle}>Accept Invite</Text>
-              <Text style={styles.quickMeta}>Join via invite token</Text>
-            </Pressable>
+          {(summary?.social.friends.length || summary?.social.playedWith.length) ? (
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>🤝 Social</Text>
+                <Pressable style={styles.socialFindBtn} onPress={() => navigation.navigate("Players")}>
+                  <Ionicons name="person-add-outline" size={12} color={COLORS.text} />
+                  <Text style={styles.socialFindBtnText}>Find Players</Text>
+                </Pressable>
+              </View>
+              {!!summary?.social.friends.length && (
+                <View style={styles.socialBlock}>
+                  <Text style={styles.socialLabel}>Friends · {summary?.social.friendCount || 0}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.socialRow}>
+                    {summary.social.friends.map((friend) => (
+                      <Pressable key={friend.id} style={styles.socialAvatarWrap} onPress={() => navigation.navigate("PlayerProfile", { id: friend.id })}>
+                        <View style={styles.socialAvatar}>
+                          <Text style={styles.socialAvatarText}>{friend.fullName.slice(0, 1)}</Text>
+                        </View>
+                        <Text style={styles.socialName}>{friend.fullName.split(" ")[0]}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+              {!!summary?.social.playedWith.length && (
+                <View style={styles.socialBlock}>
+                  <Text style={styles.socialLabel}>Played with</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.socialRow}>
+                    {summary.social.playedWith.map((player) => (
+                      <Pressable key={player.id} style={styles.socialAvatarWrap} onPress={() => navigation.navigate("PlayerProfile", { id: player.id })}>
+                        <View style={[styles.socialAvatar, styles.socialAvatarSmall]}>
+                          <Text style={styles.socialAvatarText}>{player.fullName.slice(0, 1)}</Text>
+                        </View>
+                        <Text style={styles.socialName}>{player.fullName.split(" ")[0]}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>📅 Upcoming</Text>
+            {summary?.upcomingMatches.length ? (
+              summary.upcomingMatches.map((match) => (
+                <Pressable key={match.id} style={styles.rowBtn} onPress={() => navigation.navigate("MatchDetail", { id: match.id })}>
+                  <View>
+                    <Text style={styles.rowTitle}>{match.title}</Text>
+                    <Text style={styles.rowMeta}>
+                      {new Date(match.date).toLocaleDateString()} · {match.locationName}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+                </Pressable>
+              ))
+            ) : (
+              <Text style={[styles.rowMeta, styles.emptyStateTopPad]}>No upcoming matches yet.</Text>
+            )}
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Upcoming</Text>
-            <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("DiscoverTab")}>
-              <View>
-                <Text style={styles.rowTitle}>Evening Padel Doubles</Text>
-                <Text style={styles.rowMeta}>Fri 2 May · 19:30 · Padel Club Downtown</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
-            </Pressable>
+            <Text style={styles.sectionTitle}>🕘 Recent History</Text>
+            {summary?.recentHistory.length ? (
+              summary.recentHistory.map((item) => (
+                <Pressable key={`${item.type}-${item.id}`} style={styles.rowBtn} onPress={() => navigation.navigate("PastEvents")}>
+                  <View>
+                    <Text style={styles.rowTitle}>{item.title}</Text>
+                    <Text style={styles.rowMeta}>
+                      {item.type === "competition" ? "Competition" : "Match"} · {new Date(item.date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+                </Pressable>
+              ))
+            ) : (
+              <Text style={[styles.rowMeta, styles.emptyStateTopPad]}>No event history yet.</Text>
+            )}
             <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("PastEvents")}>
               <View>
-                <Text style={styles.rowTitle}>Recent History</Text>
-                <Text style={styles.rowMeta}>See all your past events and results</Text>
+                <Text style={styles.rowTitle}>See all history</Text>
+                <Text style={styles.rowMeta}>Matches and competitions timeline</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
@@ -213,13 +353,18 @@ export function ProfileScreen() {
             <Text style={styles.scaleText}>Advanced</Text>
           </View>
           <View style={styles.performanceGrid}>
-            <Perf label="Matches" value="24" />
-            <Perf label="Win Rate" value="62%" />
-            <Perf label="Streak" value="W3" />
-            <Perf label="Peak ELO" value={String(Math.max(elo, 1080))} />
+            <Perf label="Matches" value={String(summary?.stats.matchesPlayed ?? 0)} />
+            <Perf label="Win Rate" value={`${summary?.stats.winRate ?? 0}%`} />
+            <Perf label="Wins" value={String(summary?.stats.matchesWon ?? 0)} />
+            <Perf label="Peak ELO" value={String(summary?.stats.eloPeak ?? Math.max(elo, 1000))} />
           </View>
         </View>
       )}
+      {!summary?.user.profileComplete ? (
+        <Pressable style={styles.completeProfileBtn} onPress={() => navigation.navigate("EditProfile")}>
+          <Text style={styles.completeProfileBtnText}>✨ Complete Your Profile</Text>
+        </Pressable>
+      ) : null}
       <Modal visible={logoutOpen} transparent animationType="fade" onRequestClose={() => setLogoutOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setLogoutOpen(false)}>
           <Pressable style={styles.modalCard} onPress={() => undefined}>
@@ -243,15 +388,6 @@ export function ProfileScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
-  );
-}
-
-function Stat({ title, value }: { title: string; value: string }) {
-  return (
-    <View style={styles.statCard}>
-      <Text style={styles.statTitle}>{title}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-    </View>
   );
 }
 
@@ -284,8 +420,8 @@ function TrustChip({ label, active }: { label: string; active: boolean }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  topTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  topTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, letterSpacing: -0.2 },
   topActions: { flexDirection: "row", gap: 8 },
   iconBtn: {
     width: 34,
@@ -320,10 +456,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    alignItems: "center",
-    paddingVertical: 20,
+    alignItems: "stretch",
+    paddingVertical: 18,
+    paddingHorizontal: 14,
     marginBottom: 12,
   },
+  heroHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  heroInfo: { flex: 1 },
+  avatarWrap: { position: "relative" },
+  avatarImage: { width: 72, height: 72, borderRadius: 36 },
   avatar: {
     width: 72,
     height: 72,
@@ -333,10 +474,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: { color: COLORS.card, fontSize: 28, fontWeight: "800" },
-  name: { marginTop: 12, fontSize: 22, fontWeight: "800", color: COLORS.text },
-  location: { marginTop: 4, color: COLORS.textMuted, fontSize: 13 },
-  statusLine: { marginTop: 6, fontSize: 12, color: COLORS.textSubtle, fontWeight: "600" },
-  heroBadges: { flexDirection: "row", gap: 6, marginTop: 10 },
+  verifyDot: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.card,
+  },
+  verifyDotBlue: { backgroundColor: "#3B82F6" },
+  verifyDotGreen: { backgroundColor: COLORS.success },
+  name: { fontSize: 22, fontWeight: "800", color: COLORS.text, lineHeight: 26, letterSpacing: -0.2 },
+  location: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },
+  statusLine: { marginTop: 4, fontSize: 12, color: COLORS.textSubtle, fontWeight: "600" },
+  bioText: {
+    marginTop: 10,
+    marginHorizontal: 2,
+    color: COLORS.textMuted,
+    textAlign: "left",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  tagChip: {
+    borderWidth: 1,
+    borderColor: COLORS.primaryPale,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  tagChipText: { color: COLORS.primaryDark, fontSize: 12, fontWeight: "700" },
+  heroBadges: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
   badge: { backgroundColor: COLORS.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.textSubtle, textTransform: "capitalize" },
   heroButtons: { flexDirection: "row", gap: 8, marginTop: 12 },
@@ -359,18 +532,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
   },
   heroGhostText: { color: COLORS.text, fontWeight: "700", fontSize: 12 },
-  statsRow: { flexDirection: "row", gap: 8 },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  statTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: "600" },
-  statValue: { marginTop: 5, color: COLORS.text, fontSize: 16, fontWeight: "800", textTransform: "capitalize" },
   switchTabs: {
     flexDirection: "row",
     marginTop: 10,
@@ -407,7 +568,19 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 12,
   },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 8 },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  recentFormRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  recentFormLabel: { fontSize: 10, color: COLORS.textMuted, marginRight: 4 },
+  formDot: { width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  formDotWin: { backgroundColor: COLORS.successSoft },
+  formDotLoss: { backgroundColor: COLORS.dangerSoft },
+  formDotText: { fontSize: 10, fontWeight: "800", color: COLORS.text },
+  performancePills: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  eloSection: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  eloHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  eloLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
+  eloHeadValue: { fontSize: 14, fontWeight: "800", color: COLORS.primary },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 8, letterSpacing: -0.2 },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
   trustChip: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1 },
   trustChipOn: { backgroundColor: COLORS.infoSoft, borderColor: COLORS.infoBorder },
@@ -427,6 +600,7 @@ const styles = StyleSheet.create({
   },
   rowTitle: { fontSize: 13, fontWeight: "700", color: COLORS.text },
   rowMeta: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
+  emptyStateTopPad: { marginTop: 8, marginBottom: 8 },
   achievementRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -440,6 +614,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   achievementText: { flex: 1, fontSize: 12, color: COLORS.text, fontWeight: "600" },
+  achievementEmoji: { fontSize: 18 },
   achievementTag: { fontSize: 10, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, overflow: "hidden" },
   achievementTagOn: { backgroundColor: COLORS.primarySoftAlt, color: COLORS.primaryDark },
   achievementTagOff: { backgroundColor: COLORS.border, color: COLORS.textMuted },
@@ -460,6 +635,33 @@ const styles = StyleSheet.create({
   },
   perfValue: { fontSize: 16, color: COLORS.text, fontWeight: "800" },
   perfLabel: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
+  socialBlock: { marginTop: 2, marginBottom: 8 },
+  socialFindBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    backgroundColor: COLORS.bg,
+  },
+  socialFindBtnText: { color: COLORS.text, fontSize: 11, fontWeight: "700" },
+  socialLabel: { fontSize: 11, color: COLORS.textMuted, marginBottom: 8 },
+  socialRow: { gap: 10, paddingBottom: 2 },
+  socialAvatarWrap: { alignItems: "center", width: 50 },
+  socialAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  socialAvatarSmall: { width: 36, height: 36, borderRadius: 18 },
+  socialAvatarText: { color: COLORS.primaryDark, fontWeight: "800" },
+  socialName: { marginTop: 4, fontSize: 10, color: COLORS.textMuted },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(17,24,39,0.45)",
@@ -498,5 +700,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   modalLogoutText: { color: COLORS.card, fontWeight: "700" },
+  completeProfileBtn: {
+    marginTop: 10,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  completeProfileBtnText: { color: COLORS.text, fontWeight: "700", fontSize: 13 },
 });
 
