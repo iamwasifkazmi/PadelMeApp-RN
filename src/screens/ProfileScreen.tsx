@@ -132,15 +132,6 @@ export function ProfileScreen() {
             </View>
           </View>
         </View>
-        <View style={styles.heroButtons}>
-          <Pressable style={styles.heroCta} onPress={() => navigation.navigate("InstantPlay")}>
-            <Ionicons name="flash-outline" size={14} color={COLORS.card} />
-            <Text style={styles.heroCtaText}>Play Now</Text>
-          </Pressable>
-          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("InvitePlayers")}>
-            <Text style={styles.heroGhostText}>Invite to Match</Text>
-          </Pressable>
-        </View>
         {!!summary?.user.bio && <Text style={styles.bioText}>{summary.user.bio}</Text>}
         {userTags.length > 0 ? (
           <View style={styles.tagRow}>
@@ -153,6 +144,15 @@ export function ProfileScreen() {
             ))}
           </View>
         ) : null}
+        <View style={styles.heroButtons}>
+          <Pressable style={styles.heroCta} onPress={() => navigation.navigate("InstantPlay")}>
+            <Ionicons name="flash-outline" size={14} color={COLORS.card} />
+            <Text style={styles.heroCtaText}>Play Now</Text>
+          </Pressable>
+          <Pressable style={styles.heroGhost} onPress={() => navigation.navigate("InvitePlayers")}>
+            <Text style={styles.heroGhostText}>Invite to Match</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.switchTabs}>
@@ -464,11 +464,11 @@ const styles = StyleSheet.create({
   heroHeaderRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   heroInfo: { flex: 1 },
   avatarWrap: { position: "relative" },
-  avatarImage: { width: 72, height: 72, borderRadius: 36 },
+  avatarImage: { width: 72, height: 72, borderRadius: 18 },
   avatar: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.text,
     alignItems: "center",
     justifyContent: "center",
