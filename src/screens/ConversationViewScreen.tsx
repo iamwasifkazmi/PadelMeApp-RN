@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
@@ -24,6 +25,7 @@ export function ConversationViewScreen({
 }: {
   route: { params: { id: string } };
 }) {
+  const navigation = useNavigation<any>();
   const USER_EMAIL = getCurrentUserEmail();
   const USER_NAME = getCurrentUserName();
   const id = route.params.id;
@@ -201,6 +203,29 @@ export function ConversationViewScreen({
   const otherParticipantEmail =
     conversation?.participantEmails?.find((email) => email !== USER_EMAIL) || "";
   const peerOnline = !!otherParticipantEmail && onlineEmails.includes(otherParticipantEmail.toLowerCase());
+  const peerTitle =
+    conversation?.entityName ||
+    (otherParticipantEmail ? otherParticipantEmail.split("@")[0] : "Conversation");
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerTitleWrap}>
+          <Text numberOfLines={1} style={styles.headerTitleText}>
+            {peerTitle}
+          </Text>
+          {otherParticipantEmail ? (
+            <View
+              style={[
+                styles.presenceDot,
+                peerOnline ? styles.presenceDotOnline : styles.presenceDotOffline,
+              ]}
+            />
+          ) : null}
+        </View>
+      ),
+    });
+  }, [navigation, otherParticipantEmail, peerOnline, peerTitle]);
 
   const send = async () => {
     const payload = text.trim();
@@ -283,11 +308,7 @@ export function ConversationViewScreen({
       />
 
       <View style={styles.liveMetaRow}>
-        {isPeerTyping ? (
-          <Text style={styles.typingText}>Typing...</Text>
-        ) : otherParticipantEmail ? (
-          <Text style={styles.presenceText}>{peerOnline ? "Online" : "Offline"}</Text>
-        ) : null}
+        {isPeerTyping ? <Text style={styles.typingText}>Typing...</Text> : null}
       </View>
 
       <View style={styles.inputRow}>
@@ -349,6 +370,11 @@ function MessageReceipt({ status }: { status?: "sent" | "delivered" | "read" }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  headerTitleWrap: { flexDirection: "row", alignItems: "center", maxWidth: 220 },
+  headerTitleText: { fontSize: 18, fontWeight: "700", color: COLORS.text },
+  presenceDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 7 },
+  presenceDotOnline: { backgroundColor: COLORS.success },
+  presenceDotOffline: { backgroundColor: COLORS.textSoft },
   bubbleWrap: { marginBottom: 8, flexDirection: "row" },
   bubbleWrapMine: { justifyContent: "flex-end" },
   bubbleWrapOther: { justifyContent: "flex-start" },
@@ -370,7 +396,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
-  presenceText: { fontSize: 11, color: COLORS.textMuted, fontWeight: "600" },
   inputRow: {
     position: "absolute",
     left: 0,

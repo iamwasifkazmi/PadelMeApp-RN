@@ -5,6 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 function PlayersSkeleton() {
@@ -30,10 +32,13 @@ function PlayersSkeleton() {
 
 export function PlayersScreen() {
   const navigation = useNavigation<any>();
+  const { showSnackbar } = useSnackbar();
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [players, setPlayers] = React.useState<UserDto[]>([]);
+  const [openingChatEmail, setOpeningChatEmail] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
     const isRefresh = opts?.refresh === true;
@@ -57,6 +62,42 @@ export function PlayersScreen() {
   const onRefresh = React.useCallback(() => {
     load({ refresh: true });
   }, [load]);
+
+  const openDirectChat = React.useCallback(
+    async (player: UserDto) => {
+      if (!player.email || player.email === USER_EMAIL) return;
+      if (openingChatEmail) return;
+      try {
+        setOpeningChatEmail(player.email);
+        const conversations = await api.get<any[]>(
+          `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
+        );
+        const existing = conversations.find(
+          (c) =>
+            c.type === "direct" &&
+            Array.isArray(c.participantEmails) &&
+            c.participantEmails.includes(USER_EMAIL) &&
+            c.participantEmails.includes(player.email),
+        );
+
+        let conversationId = existing?.id as string | undefined;
+        if (!conversationId) {
+          const created = await api.post<any>("/conversations", {
+            type: "direct",
+            participantEmails: [USER_EMAIL, player.email],
+            entityName: player.fullName || player.email.split("@")[0],
+          });
+          conversationId = created.id;
+        }
+        navigation.navigate("ConversationView", { id: conversationId });
+      } catch {
+        showSnackbar("Could not open chat right now. Please try again.", { type: "error" });
+      } finally {
+        setOpeningChatEmail(null);
+      }
+    },
+    [USER_EMAIL, navigation, openingChatEmail, showSnackbar],
+  );
 
   if (loading) return <PlayersSkeleton />;
 
@@ -96,17 +137,22 @@ export function PlayersScreen() {
               <View style={styles.rowActions}>
                 <Pressable
                   style={styles.messageBtn}
-                  onPress={() => {
-                    const parent = navigation.getParent?.();
-                    if (parent?.navigate) parent.navigate("MessagesTab");
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    openDirectChat(item).catch(() => undefined);
                   }}
                 >
                   <Ionicons name="chatbubble-outline" size={13} color={COLORS.primaryDark} />
-                  <Text style={styles.messageBtnText}>Message</Text>
+                  <Text style={styles.messageBtnText}>
+                    {openingChatEmail === item.email ? "Opening..." : "Message"}
+                  </Text>
                 </Pressable>
                 <Pressable
                   style={styles.profileBtn}
-                  onPress={() => navigation.navigate("PlayerProfile", { id: item.id })}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    navigation.navigate("PlayerProfile", { id: item.id });
+                  }}
                 >
                   <Text style={styles.profileBtnText}>View Profile</Text>
                 </Pressable>
