@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -79,6 +80,7 @@ export function CreateCompetitionScreen({
   const USER_EMAIL = getCurrentUserEmail();
   const loading = false;
   const [activeDateField, setActiveDateField] = React.useState<"startDate" | "endDate" | null>(null);
+  const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const defaultType: CompetitionTypeValue =
     route?.params?.defaultType === "tournament" ? "tournament" : "league";
@@ -252,6 +254,10 @@ export function CreateCompetitionScreen({
           placeholder="Al Quoz, Dubai"
           onChangeText={(v) => update("locationAddress", v)}
         />
+        <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
+          <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
+          <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+        </Pressable>
         <View style={styles.row2}>
           <View style={styles.flexOne}>
             <DateField
@@ -663,6 +669,16 @@ export function CreateCompetitionScreen({
           onDismiss={onDateDismiss}
         />
       ) : null}
+      <LocationSearchModal
+        visible={locationPickerOpen}
+        title="Pick competition location"
+        initialQuery={form.locationName || form.locationAddress}
+        onClose={() => setLocationPickerOpen(false)}
+        onPick={(loc) => {
+          update("locationName", loc.city || loc.label);
+          update("locationAddress", loc.address);
+        }}
+      />
     </ScrollView>
   );
 }
@@ -867,6 +883,21 @@ const styles = StyleSheet.create({
   },
   dateFieldText: { color: COLORS.text, fontSize: 12 },
   dateFieldPlaceholder: { color: COLORS.textMuted },
+  pickLocationBtn: {
+    marginTop: 2,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 10,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  pickLocationBtnText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 6 },
   chip: {
     borderWidth: 1,

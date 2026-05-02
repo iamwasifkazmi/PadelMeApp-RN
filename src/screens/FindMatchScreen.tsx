@@ -13,7 +13,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
-import { ScreenSkeleton } from "../components/Skeleton";
+import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -95,7 +95,7 @@ export function FindMatchScreen() {
   const todayMatches = filteredMatches.filter((m) => String(m.date).slice(0, 10) === todayIso && !m.isInstant);
   const upcomingMatches = filteredMatches.filter((m) => String(m.date).slice(0, 10) > todayIso && !m.isInstant);
 
-  if (loading) return <ScreenSkeleton rows={7} topGap={10} />;
+  if (loading) return <DiscoverSkeleton />;
 
   return (
     <View style={styles.container}>
@@ -291,6 +291,57 @@ export function FindMatchScreen() {
           </View>
         }
       />
+    </View>
+  );
+}
+
+function DiscoverSkeleton() {
+  return (
+    <View style={styles.container}>
+      <View style={styles.headRow}>
+        <View>
+          <SkeletonBlock width={170} height={34} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock width={210} height={11} rounded={8} />
+        </View>
+        <View style={styles.headActions}>
+          <SkeletonBlock width={86} height={30} rounded={999} />
+          <SkeletonBlock width={30} height={30} rounded={15} />
+        </View>
+      </View>
+
+      <View style={styles.searchWrap}>
+        <SkeletonBlock width="100%" height={36} rounded={12} />
+      </View>
+
+      <View style={styles.tabsRow}>
+        <SkeletonBlock width="31.5%" height={40} rounded={12} />
+        <SkeletonBlock width="31.5%" height={40} rounded={12} />
+        <SkeletonBlock width="31.5%" height={40} rounded={12} />
+      </View>
+
+      <View style={styles.skeletonFilterRow}>
+        <SkeletonBlock width={98} height={32} rounded={999} />
+        <SkeletonBlock width={90} height={32} rounded={999} />
+        <SkeletonBlock width={78} height={32} rounded={999} />
+      </View>
+
+      <View style={styles.liveCard}>
+        <SkeletonBlock width="78%" height={12} rounded={8} />
+      </View>
+
+      <View style={styles.skeletonGapSm} />
+      {Array.from({ length: 3 }).map((_, i) => (
+        <View key={i} style={styles.matchCard}>
+          <SkeletonBlock width="35%" height={10} rounded={8} />
+          <View style={styles.skeletonGapSm} />
+          <SkeletonBlock width="62%" height={14} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock width="55%" height={11} rounded={8} />
+          <View style={styles.skeletonGapXs} />
+          <SkeletonBlock width="42%" height={11} rounded={8} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -540,4 +591,7 @@ const styles = StyleSheet.create({
   },
   footerTitle: { fontSize: 13, fontWeight: "700", color: COLORS.text },
   footerMeta: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
+  skeletonFilterRow: { flexDirection: "row", gap: 7, alignItems: "center", marginBottom: 8 },
+  skeletonGapXs: { height: 5 },
+  skeletonGapSm: { height: 8 },
 });

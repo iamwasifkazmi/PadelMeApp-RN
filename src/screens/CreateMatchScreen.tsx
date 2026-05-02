@@ -13,6 +13,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchDto } from "../lib/types";
+import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -75,6 +76,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const recurring = Boolean(route?.params?.recurring);
   const [stepIndex, setStepIndex] = React.useState(0);
   const [pickerField, setPickerField] = React.useState<"date" | "time" | null>(null);
+  const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [form, setForm] = React.useState<FormState>({
     mode: recurring ? "recurring" : "scheduled",
@@ -312,6 +314,10 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               onChangeText={(v) => update("locationAddress", v)}
               placeholder="Street, city"
             />
+            <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
+              <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
+              <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+            </Pressable>
           </>
         ) : null}
 
@@ -421,6 +427,16 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
           ) : null}
         </View>
       ) : null}
+      <LocationSearchModal
+        visible={locationPickerOpen}
+        title="Pick match location"
+        initialQuery={form.locationName || form.locationAddress}
+        onClose={() => setLocationPickerOpen(false)}
+        onPick={(loc) => {
+          update("locationName", loc.city || loc.label);
+          update("locationAddress", loc.address);
+        }}
+      />
     </View>
   );
 }
@@ -571,6 +587,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dateText: { color: COLORS.text, fontSize: 13, fontWeight: "600" },
+  pickLocationBtn: {
+    marginTop: 3,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  pickLocationBtnText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
   choiceBtn: {
     minWidth: "48%",
     borderWidth: 1,

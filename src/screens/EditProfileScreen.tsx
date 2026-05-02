@@ -15,6 +15,7 @@ import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
+import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -96,6 +97,7 @@ export function EditProfileScreen() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [pickingPhoto, setPickingPhoto] = React.useState(false);
+  const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [activeStep, setActiveStep] = React.useState(0);
   const [bioLength, setBioLength] = React.useState(0);
   const [form, setForm] = React.useState({
@@ -346,6 +348,10 @@ export function EditProfileScreen() {
             keyboardType="number-pad"
           />
           <Field label="Location *" value={form.location} onChangeText={(v) => setForm((p) => ({ ...p, location: v }))} />
+          <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
+            <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
+            <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+          </Pressable>
           <Text style={styles.fieldLabel}>Gender</Text>
           <View style={styles.chipsRow}>
             {["male", "female", "other"].map((g) => (
@@ -553,6 +559,13 @@ export function EditProfileScreen() {
         </Pressable>
         <Text style={styles.saveHint}>You can change this anytime</Text>
       </View>
+      <LocationSearchModal
+        visible={locationPickerOpen}
+        title="Pick your location"
+        initialQuery={form.location}
+        onClose={() => setLocationPickerOpen(false)}
+        onPick={(loc) => setForm((p) => ({ ...p, location: loc.city || loc.label }))}
+      />
     </View>
   );
 }
@@ -745,6 +758,21 @@ const styles = StyleSheet.create({
   photoInlineBtnText: { color: COLORS.card, fontSize: 11, fontWeight: "700" },
   fieldWrap: { marginBottom: 10 },
   fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 11, fontWeight: "600" },
+  pickLocationBtn: {
+    marginTop: -1,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    borderRadius: 10,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  pickLocationBtnText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
   input: {
     backgroundColor: COLORS.bg,
     borderWidth: 1,
