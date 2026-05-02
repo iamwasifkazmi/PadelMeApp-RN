@@ -4,6 +4,8 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName?: string | null;
+  /** Set at sign-in: true → onboarding; false → main app; omit → use profile check via API. */
+  isNewUser?: boolean;
 };
 
 export type AuthState = {

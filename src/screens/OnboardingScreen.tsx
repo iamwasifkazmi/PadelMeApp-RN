@@ -5,7 +5,8 @@ import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { LocationSearchModal } from "../components/LocationSearchModal";
-import { getCurrentUserEmail } from "../store";
+import { getCurrentUserEmail, persistSession } from "../store";
+import { store } from "../store/store";
 import { COLORS } from "../theme/colors";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -83,6 +84,13 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
         skillLabel,
         profileComplete: true,
       });
+      const auth = store.getState().auth;
+      if (auth.token && auth.user?.email) {
+        await persistSession({
+          token: auth.token,
+          user: { ...auth.user, isNewUser: false },
+        });
+      }
       navigation.dispatch(
         CommonActions.reset({
           index: 0,

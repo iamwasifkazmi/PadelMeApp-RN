@@ -254,6 +254,8 @@ export type AuthUserDto = {
 export type AuthResponseDto = {
   token: string;
   user: AuthUserDto;
+  /** True when account was just created (registration OTP or first Google sign-in). False for returning password login. */
+  isNewUser?: boolean;
 };
 
 export type RegisterResponseDto = {

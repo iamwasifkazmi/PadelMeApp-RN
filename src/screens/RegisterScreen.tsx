@@ -75,7 +75,10 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
       setGoogleLoading(true);
       const idToken = await signInWithGoogleIdToken();
       const res = await api.post<AuthResponseDto>("/auth/google", { idToken });
-      await persistSession({ token: res.token, user: res.user });
+      await persistSession({
+        token: res.token,
+        user: { ...res.user, isNewUser: res.isNewUser },
+      });
     } catch (err: unknown) {
       const msg = String((err as Error)?.message || "");
       if (msg === "cancelled") return;

@@ -48,7 +48,10 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
         email: email.trim().toLowerCase(),
         code,
       });
-      await persistSession({ token: res.token, user: res.user });
+      await persistSession({
+        token: res.token,
+        user: { ...res.user, isNewUser: res.isNewUser },
+      });
     } catch {
       showSnackbar("Invalid or expired OTP.", { type: "error" });
     } finally {

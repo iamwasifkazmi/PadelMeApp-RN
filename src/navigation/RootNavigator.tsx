@@ -60,6 +60,22 @@ export function RootNavigator() {
       };
     }
 
+    const hint = user?.isNewUser;
+    if (hint === true) {
+      setAuthedInitialRoute("Onboarding");
+      setAuthRouteReady(true);
+      return () => {
+        mounted = false;
+      };
+    }
+    if (hint === false) {
+      setAuthedInitialRoute("MainTabs");
+      setAuthRouteReady(true);
+      return () => {
+        mounted = false;
+      };
+    }
+
     setAuthRouteReady(false);
     api
       .get<{ profileComplete?: boolean; bio?: string | null; location?: string | null }>(
@@ -81,7 +97,7 @@ export function RootNavigator() {
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, user?.email]);
+  }, [isAuthenticated, user?.email, user?.isNewUser]);
 
   if (!hydrated || !authRouteReady) {
     return null;
