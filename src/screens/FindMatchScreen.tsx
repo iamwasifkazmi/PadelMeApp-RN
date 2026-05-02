@@ -17,7 +17,6 @@ import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
-type DayFilter = "" | "today" | "tomorrow" | "week";
 type SkillFilter = "" | "beginner" | "intermediate" | "advanced";
 type FormatFilter = "" | "singles" | "doubles" | "mixed_doubles";
 type Tab = "games" | "players" | "friends";
@@ -27,7 +26,8 @@ export function FindMatchScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const [tab, setTab] = React.useState<Tab>("games");
   const [query, setQuery] = React.useState("");
-  const [dayFilter, setDayFilter] = React.useState<DayFilter>("");
+  // Keep legacy hook slot stable after removing day chips (prevents fast-refresh hook-order warnings).
+  React.useState("");
   const [skillFilter, setSkillFilter] = React.useState<SkillFilter>("");
   const [formatFilter, setFormatFilter] = React.useState<FormatFilter>("");
   const [loading, setLoading] = React.useState(true);
@@ -71,8 +71,6 @@ export function FindMatchScreen() {
   }, [load]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const tomorrowIso = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-  const weekOutIso = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
   const filteredMatches = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,14 +86,10 @@ export function FindMatchScreen() {
         if (formatFilter && m.matchType && m.matchType !== formatFilter) {
           return false;
         }
-        const dateIso = String(m.date).slice(0, 10);
-        if (dayFilter === "today" && dateIso !== todayIso) return false;
-        if (dayFilter === "tomorrow" && dateIso !== tomorrowIso) return false;
-        if (dayFilter === "week" && dateIso > weekOutIso) return false;
         return true;
       })
       .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  }, [matches, query, skillFilter, formatFilter, dayFilter, todayIso, tomorrowIso, weekOutIso]);
+  }, [matches, query, skillFilter, formatFilter]);
 
   const instantMatches = filteredMatches.filter((m) => m.isInstant);
   const todayMatches = filteredMatches.filter((m) => String(m.date).slice(0, 10) === todayIso && !m.isInstant);
@@ -170,24 +164,9 @@ export function FindMatchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filterStripWrap}
         contentContainerStyle={styles.filterStrip}
       >
-        <FilterChip
-          label="Today"
-          active={dayFilter === "today"}
-          onPress={() => setDayFilter(dayFilter === "today" ? "" : "today")}
-        />
-        <FilterChip
-          label="Tomorrow"
-          active={dayFilter === "tomorrow"}
-          onPress={() => setDayFilter(dayFilter === "tomorrow" ? "" : "tomorrow")}
-        />
-        <FilterChip
-          label="This Week"
-          active={dayFilter === "week"}
-          onPress={() => setDayFilter(dayFilter === "week" ? "" : "week")}
-        />
-        <View style={styles.filterDivider} />
         {[
           { v: "beginner", l: "🌱 Beginner" },
           { v: "intermediate", l: "⚡ Mid" },
@@ -213,11 +192,10 @@ export function FindMatchScreen() {
             onPress={() => setFormatFilter(formatFilter === item.v ? "" : (item.v as FormatFilter))}
           />
         ))}
-        {(dayFilter || skillFilter || formatFilter) ? (
+        {(skillFilter || formatFilter) ? (
           <Pressable
             style={styles.clearChip}
             onPress={() => {
-              setDayFilter("");
               setSkillFilter("");
               setFormatFilter("");
             }}
@@ -351,7 +329,9 @@ function FilterChip({
 }) {
   return (
     <Pressable style={[styles.filterChip, active && styles.filterChipActive]} onPress={onPress}>
-      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+      <Text allowFontScaling={false} style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -377,10 +357,10 @@ function buildRows(instant: MatchDto[], today: MatchDto[], upcoming: MatchDto[])
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 14, paddingTop: 10 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 14, paddingTop: 8 },
   headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   headActions: { marginTop: 6, flexDirection: "row", gap: 8, alignItems: "center" },
-  title: { fontSize: 28, fontWeight: "800", color: COLORS.text },
+  title: { fontSize: 40, fontWeight: "800", color: COLORS.text, lineHeight: 44 },
   subtitle: { color: COLORS.textMuted, marginTop: 2, fontSize: 12 },
   locBtn: {
     borderRadius: 999,
@@ -405,9 +385,9 @@ const styles = StyleSheet.create({
   },
   locText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
   searchWrap: {
-    marginTop: 10,
+    marginTop: 9,
     marginBottom: 10,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
@@ -422,41 +402,46 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
+    borderRadius: 13,
     backgroundColor: COLORS.card,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   topTabActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  topTabText: { color: COLORS.textSubtle, fontSize: 11, fontWeight: "700" },
+  topTabText: { color: COLORS.textSubtle, fontSize: 12, fontWeight: "700" },
   topTabTextActive: { color: COLORS.card },
   countPill: { borderRadius: 999, backgroundColor: COLORS.primarySoft, paddingHorizontal: 6, paddingVertical: 1 },
   countPillActive: { backgroundColor: "rgba(255,255,255,0.28)" },
   countText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark },
   countTextActive: { color: COLORS.card },
-  filterStrip: { gap: 7, paddingBottom: 8 },
-  filterDivider: { width: 1, backgroundColor: COLORS.border, marginHorizontal: 3, marginVertical: 4 },
+  filterStripWrap: { maxHeight: 40 },
+  filterStrip: { gap: 7, paddingBottom: 8, alignItems: "center" },
+  filterDivider: { width: 1, height: 24, backgroundColor: COLORS.border, marginHorizontal: 3, alignSelf: "center" },
   filterChip: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
     backgroundColor: COLORS.card,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    height: 32,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  filterChipText: { color: COLORS.textSubtle, fontSize: 11, fontWeight: "700" },
+  filterChipText: { color: COLORS.textSubtle, fontSize: 10, fontWeight: "700" },
   filterChipTextActive: { color: COLORS.primaryDark },
   clearChip: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.dangerText,
     backgroundColor: COLORS.dangerSoft,
+    height: 32,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
@@ -465,7 +450,7 @@ const styles = StyleSheet.create({
   liveCard: {
     marginTop: 1,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
@@ -479,12 +464,12 @@ const styles = StyleSheet.create({
   liveText: { color: COLORS.textMuted, fontSize: 11, fontWeight: "600" },
   listContent: { paddingBottom: 120 },
   sectionHeader: { marginTop: 6, marginBottom: 7 },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: COLORS.text },
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: COLORS.text },
   matchCard: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 13,
     marginBottom: 9,
   },

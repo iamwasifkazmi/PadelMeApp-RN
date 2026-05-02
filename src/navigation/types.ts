@@ -31,4 +31,5 @@ export type RootStackParamList = {
   PastEvents: undefined;
   ConversationView: { id: string };
   MatchChat: { matchId: string };
+  SubscriptionGate: undefined;
 };

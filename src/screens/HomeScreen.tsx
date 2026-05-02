@@ -226,6 +226,37 @@ export function HomeScreen() {
     load({ refresh: true });
   }, [load]);
 
+  const navigateToTab = React.useCallback(
+    (tabName: "DiscoverTab" | "MessagesTab" | "ProfileTab") => {
+      const selfState = navigation.getState?.();
+      if (selfState?.routeNames?.includes(tabName)) {
+        navigation.navigate(tabName);
+        return;
+      }
+
+      const parent = navigation.getParent?.();
+      const parentState = parent?.getState?.();
+      if (parent?.navigate && parentState?.routeNames?.includes(tabName)) {
+        parent.navigate(tabName);
+        return;
+      }
+
+      const root = parent?.getParent?.();
+      const rootState = root?.getState?.();
+      if (root?.navigate && rootState?.routeNames?.includes("MainTabs")) {
+        root.navigate("MainTabs", { screen: tabName });
+        return;
+      }
+
+      navigation.navigate("MainTabs", { screen: tabName });
+    },
+    [navigation],
+  );
+
+  const goDiscover = React.useCallback(() => navigateToTab("DiscoverTab"), [navigateToTab]);
+  const goMessages = React.useCallback(() => navigateToTab("MessagesTab"), [navigateToTab]);
+  const goProfile = React.useCallback(() => navigateToTab("ProfileTab"), [navigateToTab]);
+
   if (loading) return <HomeSkeleton />;
 
   const meName = me?.fullName || getCurrentUserName();
@@ -284,10 +315,7 @@ export function HomeScreen() {
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <Pressable
-            onPress={() => {
-              const parent = navigation.getParent?.();
-              if (parent?.navigate) parent.navigate("ProfileTab");
-            }}
+            onPress={goProfile}
           >
             {me?.photoUrl ? (
               <Image source={{ uri: me.photoUrl }} style={styles.userAvatarImage} />
@@ -311,10 +339,7 @@ export function HomeScreen() {
         <View style={styles.headerActions}>
           <Pressable
             style={styles.headerIconBtn}
-            onPress={() => {
-              const parent = navigation.getParent?.();
-              if (parent?.navigate) parent.navigate("MessagesTab");
-            }}
+            onPress={goMessages}
           >
             <Ionicons name="chatbubble-ellipses-outline" size={18} color={COLORS.text} />
             {unreadMessages > 0 ? (
@@ -358,19 +383,13 @@ export function HomeScreen() {
       </View>
 
       <View style={styles.quickActionsRow}>
-        <QuickAction icon="search" label="Find Game" onPress={() => {
-          const parent = navigation.getParent?.();
-          if (parent?.navigate) parent.navigate("DiscoverTab");
-        }} />
+        <QuickAction icon="search" label="Find Game" onPress={goDiscover} />
         <QuickAction icon="add" label="Create" accent onPress={() => navigation.navigate("CreateMatch")} />
         <QuickAction icon="trophy-outline" label="Compete" onPress={() => navigation.navigate("Competitions")} />
         <QuickAction icon="people-outline" label="Players" onPress={() => navigation.navigate("Players")} />
       </View>
 
-      <SectionHeader title="📅 Your Matches" subtitle="Matches you're in" action="See all →" onAction={() => {
-        const parent = navigation.getParent?.();
-        if (parent?.navigate) parent.navigate("DiscoverTab");
-      }} />
+      <SectionHeader title="📅 Your Matches" subtitle="Matches you're in" action="See all →" onAction={goDiscover} />
       {myUpcomingMatches.length > 0 ? (
         myUpcomingMatches.map((m) => (
           <Pressable key={m.id} style={styles.matchCard} onPress={() => navigation.navigate("MatchDetail", { id: m.id })}>
@@ -388,10 +407,7 @@ export function HomeScreen() {
           icon="📅"
           message="You're not in any upcoming matches"
           action="Find a match to join"
-          onAction={() => {
-            const parent = navigation.getParent?.();
-            if (parent?.navigate) parent.navigate("DiscoverTab");
-          }}
+          onAction={goDiscover}
         />
       )}
 
@@ -478,10 +494,7 @@ export function HomeScreen() {
         </>
       ) : null}
 
-      <SectionHeader title="🔍 Open Matches" subtitle="Find a game to join" action="See all →" onAction={() => {
-        const parent = navigation.getParent?.();
-        if (parent?.navigate) parent.navigate("DiscoverTab");
-      }} />
+      <SectionHeader title="🔍 Open Matches" subtitle="Find a game to join" action="See all →" onAction={goDiscover} />
       {joinableOpenMatches.length > 0 ? (
         joinableOpenMatches.map((m) => (
           <Pressable key={m.id} style={styles.matchCard} onPress={() => navigation.navigate("MatchDetail", { id: m.id })}>
@@ -505,7 +518,7 @@ export function HomeScreen() {
             <View style={styles.competitionIconWrap}>
               <Ionicons name="trophy-outline" size={18} color={COLORS.primary} />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.flexOne}>
               <Text style={styles.competitionName}>{c.name}</Text>
               <Text style={styles.competitionMeta}>
                 {c.type} · {c.participants.length}/{c.maxPlayers || 16}
@@ -647,6 +660,7 @@ const styles = StyleSheet.create({
   playerAvatarText: { color: COLORS.primaryDark, fontWeight: "800" },
   playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text, maxWidth: 80 },
   playerLevel: { fontSize: 10, color: COLORS.textMuted, marginTop: 2, textTransform: "capitalize" },
+  flexOne: { flex: 1 },
   competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.card, padding: 12, marginBottom: 8 },
   competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
   competitionName: { fontSize: 14, fontWeight: "700", color: COLORS.text },

@@ -317,7 +317,7 @@ export function ConversationViewScreen({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
     >
       <FlatList
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     paddingBottom: 9,
     color: COLORS.text,
     backgroundColor: COLORS.bg,
-    fontSize: 16,
+    fontSize: 14,
   },
   sendBtn: {
     backgroundColor: COLORS.primary,

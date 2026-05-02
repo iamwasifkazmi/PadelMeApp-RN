@@ -25,6 +25,7 @@ import { RegisterScreen as ActualRegisterScreen } from "./RegisterScreen";
 import { ForgotPasswordScreen as ActualForgotPasswordScreen } from "./ForgotPasswordScreen";
 import { ResetPasswordScreen as ActualResetPasswordScreen } from "./ResetPasswordScreen";
 import { VerifyEmailOtpScreen as ActualVerifyEmailOtpScreen } from "./VerifyEmailOtpScreen";
+import { SubscriptionGateScreen as ActualSubscriptionGateScreen } from "./SubscriptionGateScreen";
 
 export const HomeScreen = ActualHomeScreen;
 export const DiscoverScreen = FindMatchScreen;
@@ -54,3 +55,4 @@ export const RegisterScreen = ActualRegisterScreen;
 export const ForgotPasswordScreen = ActualForgotPasswordScreen;
 export const ResetPasswordScreen = ActualResetPasswordScreen;
 export const VerifyEmailOtpScreen = ActualVerifyEmailOtpScreen;
+export const SubscriptionGateScreen = ActualSubscriptionGateScreen;

@@ -1,6 +1,6 @@
 import React from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
@@ -172,11 +172,16 @@ export function CreateCompetitionScreen({
       ? new Date(`${form[activeDateField]}T12:00:00`)
       : new Date();
 
-  const onDateChange = (_event: any, selectedDate?: Date) => {
+  const onDateValueChange = (_event: any, selectedDate?: Date) => {
     if (!activeDateField) return;
-    if (selectedDate) {
-      update(activeDateField, formatDate(selectedDate));
+    if (!selectedDate) return;
+    update(activeDateField, formatDate(selectedDate));
+    if (Platform.OS !== "ios") {
+      setActiveDateField(null);
     }
+  };
+
+  const onDateDismiss = () => {
     if (Platform.OS !== "ios") {
       setActiveDateField(null);
     }
@@ -184,9 +189,6 @@ export function CreateCompetitionScreen({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Host a Padel Competition</Text>
-      <Text style={styles.subtitle}>Set up a Padel tournament or weekly league</Text>
-
       <View style={styles.typeToggle}>
         <Choice
           label="🏆 Tournament"
@@ -628,20 +630,38 @@ export function CreateCompetitionScreen({
         <Text style={styles.saveBtnText}>{saving ? "Creating..." : "Create Competition 🏆"}</Text>
       </Pressable>
 
-      {activeDateField ? (
-        <View style={styles.datePickerCard}>
-          <DateTimePicker
-            value={activeDateValue}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={onDateChange}
-          />
-          {Platform.OS === "ios" ? (
-            <Pressable style={styles.dateDoneBtn} onPress={() => setActiveDateField(null)}>
-              <Text style={styles.dateDoneText}>Done</Text>
-            </Pressable>
-          ) : null}
-        </View>
+      {activeDateField && Platform.OS === "ios" ? (
+        <Modal transparent animationType="fade" visible onRequestClose={() => setActiveDateField(null)}>
+          <View style={styles.dateModalRoot}>
+            <Pressable style={styles.dateModalBackdrop} onPress={() => setActiveDateField(null)} />
+            <View style={styles.datePickerCard}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>
+                  {activeDateField === "startDate" ? "Select start date" : "Select end date"}
+                </Text>
+                <Pressable style={styles.dateDoneBtn} onPress={() => setActiveDateField(null)}>
+                  <Text style={styles.dateDoneText}>Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={activeDateValue}
+                mode="date"
+                display="spinner"
+                onValueChange={onDateValueChange}
+                onDismiss={onDateDismiss}
+              />
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+      {activeDateField && Platform.OS !== "ios" ? (
+        <DateTimePicker
+          value={activeDateValue}
+          mode="date"
+          display="default"
+          onValueChange={onDateValueChange}
+          onDismiss={onDateDismiss}
+        />
       ) : null}
     </ScrollView>
   );
@@ -797,85 +817,83 @@ function formatDate(date: Date) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 16, paddingBottom: 120 },
-  title: { fontSize: 28, fontWeight: "800", color: COLORS.text },
-  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted, fontSize: 12 },
-  typeToggle: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  content: { padding: 14, paddingBottom: 112, paddingTop: 8 },
+  typeToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
   choiceBtn: {
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: COLORS.card,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: "center",
   },
   choiceBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  choiceText: { color: COLORS.textMuted, fontSize: 12, fontWeight: "700" },
+  choiceText: { color: COLORS.textMuted, fontSize: 11, fontWeight: "700" },
   choiceTextActive: { color: COLORS.primaryDark },
   sectionCard: {
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
   },
-  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
-  sectionTitle: { color: COLORS.text, fontSize: 15, fontWeight: "700" },
-  fieldWrap: { marginBottom: 10 },
-  fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "600" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  sectionTitle: { color: COLORS.text, fontSize: 14, fontWeight: "700" },
+  fieldWrap: { marginBottom: 8 },
+  fieldLabel: { marginBottom: 5, color: COLORS.textSubtle, fontSize: 11, fontWeight: "600" },
   input: {
     backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 11,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     color: COLORS.text,
-    fontSize: 13,
+    fontSize: 12,
   },
   inputMultiline: { minHeight: 72, textAlignVertical: "top" },
   dateField: {
     backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 11,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  dateFieldText: { color: COLORS.text, fontSize: 13 },
+  dateFieldText: { color: COLORS.text, fontSize: 12 },
   dateFieldPlaceholder: { color: COLORS.textMuted },
-  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 6 },
   chip: {
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
     borderRadius: 999,
     backgroundColor: COLORS.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  chipText: { color: COLORS.text, fontSize: 11, fontWeight: "600" },
+  chipText: { color: COLORS.text, fontSize: 10, fontWeight: "600" },
   chipTextActive: { color: COLORS.primaryDark },
-  row2: { flexDirection: "row", gap: 10 },
-  row3: { flexDirection: "row", gap: 10 },
+  row2: { flexDirection: "row", gap: 8 },
+  row3: { flexDirection: "row", gap: 8 },
   flexOne: { flex: 1 },
   feeCard: {
     borderWidth: 1,
     borderColor: COLORS.primaryPale,
     backgroundColor: COLORS.primarySoft,
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: 11,
+    padding: 9,
+    marginBottom: 8,
   },
-  feeDivider: { height: 1, backgroundColor: COLORS.primaryPale, marginVertical: 6 },
+  feeDivider: { height: 1, backgroundColor: COLORS.primaryPale, marginVertical: 5 },
   rowLabel: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowLabelText: { color: COLORS.textSubtle, fontSize: 12 },
-  rowLabelValue: { color: COLORS.text, fontSize: 12, fontWeight: "600" },
+  rowLabelText: { color: COLORS.textSubtle, fontSize: 11 },
+  rowLabelValue: { color: COLORS.text, fontSize: 11, fontWeight: "600" },
   rowLabelTextSubtle: { color: COLORS.textMuted },
   rowLabelValueSubtle: { color: COLORS.textMuted },
   rowLabelTextStrong: { color: COLORS.primaryDark, fontWeight: "700" },
@@ -885,16 +903,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
+    borderRadius: 11,
     backgroundColor: COLORS.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  toggleTitle: { color: COLORS.text, fontSize: 13, fontWeight: "600" },
-  toggleSub: { marginTop: 1, color: COLORS.textMuted, fontSize: 11 },
+  toggleTitle: { color: COLORS.text, fontSize: 12, fontWeight: "600" },
+  toggleSub: { marginTop: 1, color: COLORS.textMuted, fontSize: 10 },
   togglePill: {
     width: 24,
     height: 24,
@@ -904,29 +922,35 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
   },
   togglePillOn: { backgroundColor: COLORS.primary },
-  helperText: { marginTop: 2, color: COLORS.textMuted, fontSize: 11, lineHeight: 16 },
+  helperText: { marginTop: 2, color: COLORS.textMuted, fontSize: 10, lineHeight: 14 },
   saveBtn: {
-    marginTop: 8,
+    marginTop: 6,
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   saveBtnDisabled: { opacity: 0.65 },
-  saveBtnText: { color: COLORS.card, fontWeight: "700", fontSize: 14 },
+  saveBtnText: { color: COLORS.card, fontWeight: "700", fontSize: 13 },
   datePickerCard: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
     backgroundColor: COLORS.card,
-    paddingVertical: 8,
+    paddingTop: 6,
+    paddingBottom: 12,
   },
+  dateModalRoot: { flex: 1, justifyContent: "flex-end" },
+  dateModalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.25)" },
+  datePickerHeader: {
+    paddingHorizontal: 10,
+    paddingBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  datePickerTitle: { color: COLORS.text, fontWeight: "700", fontSize: 12 },
   dateDoneBtn: {
-    alignSelf: "flex-end",
-    marginTop: 4,
-    marginRight: 10,
     backgroundColor: COLORS.primarySoft,
     borderRadius: 10,
     paddingHorizontal: 12,

@@ -174,12 +174,25 @@ export type MessageDto = {
 export type CompetitionDto = {
   id: string;
   name: string;
+  description?: string | null;
   type: string;
   format: string;
   status: string;
+  visibility?: string;
+  locationName?: string | null;
+  locationAddress?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
   skillLevel?: string | null;
   maxPlayers?: number | null;
   participants: string[];
+  hostEmail?: string | null;
+  entryFee?: number | null;
+  prizePool?: number | null;
+  scoringMode?: string | null;
+  numSets?: number | null;
+  gamesPerSet?: number | null;
+  tiebreakRule?: string | null;
   createdAt: string;
 };
 
@@ -187,9 +200,18 @@ export type CompetitionDetailDto = CompetitionDto & {
   matches: Array<{
     id: string;
     round: number;
+    roundName?: string | null;
     status: string;
+    player1Email?: string | null;
     player1Name?: string | null;
+    player2Email?: string | null;
     player2Name?: string | null;
+    scorePlayer1?: string | null;
+    scorePlayer2?: string | null;
+    winnerEmail?: string | null;
+    winnerTeam?: string | null;
+    scheduledDate?: string | null;
+    scheduledTime?: string | null;
   }>;
 };
 

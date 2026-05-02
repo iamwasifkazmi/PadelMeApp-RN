@@ -1,8 +1,8 @@
 import { store } from "../store/store";
 
-export const API_BASE_URL =
-  "http://localhost:4000/api";
-// "https://padelme-backend-775252415773.europe-west2.run.app/api";
+export const API_BASE_URL = "https://padelme-backend-775252415773.europe-west2.run.app/api";
+
+  // "http://localhost:4000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = store.getState().auth.token;

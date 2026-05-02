@@ -24,6 +24,7 @@ import {
   ForgotPasswordScreen,
   ResetPasswordScreen,
   VerificationScreen,
+  SubscriptionGateScreen,
 } from "../screens";
 import { COLORS } from "../theme/colors";
 import { MainTabs } from "./MainTabs";
@@ -79,6 +80,7 @@ export function RootNavigator() {
       <Stack.Screen name="PastEvents" component={PastEventsScreen} />
       <Stack.Screen name="ConversationView" component={ConversationViewScreen} />
       <Stack.Screen name="MatchChat" component={MatchChatScreen} />
+      <Stack.Screen name="SubscriptionGate" component={SubscriptionGateScreen} />
         </>
       )}
     </Stack.Navigator>
