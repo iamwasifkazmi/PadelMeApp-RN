@@ -92,6 +92,14 @@
 				<string>mipadel</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.775252415773-9j5drsnrenjmgmvvlbpimr7k7o6qp5kp</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

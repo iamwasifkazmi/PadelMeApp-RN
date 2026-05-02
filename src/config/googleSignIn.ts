@@ -1,13 +1,11 @@
 /**
- * Google Sign-In — OAuth client IDs from Google Cloud Console (APIs & Services → Credentials).
+ * Google Sign-In OAuth client IDs (GCP → Google Auth Platform → Clients).
+ * Web JSON + iOS plist were copied from repo `assets-to-copy-from/` into the iOS target.
  *
- * Required: **Web application** client ID (used by the native SDK for `idToken` and by the backend to verify tokens).
- * Optional: **iOS** client ID if you configure without `GoogleService-Info.plist`, or to match your iOS OAuth client.
- *
- * Backend: set `GOOGLE_OAUTH_CLIENT_IDS` to a comma-separated list of the same Web + iOS + Android client IDs
- * whose tokens you accept (see `docs/google-sign-in-setup.md`).
+ * Backend: `GOOGLE_OAUTH_CLIENT_IDS` must include both Web and iOS client IDs (see Backend/.env.example).
  */
-export const GOOGLE_WEB_CLIENT_ID = "";
+export const GOOGLE_WEB_CLIENT_ID =
+  "775252415773-g3l6i0uvfpbi0tkl1o133v9dhe15o221.apps.googleusercontent.com";
 
-/** Optional; leave empty if you use GoogleService-Info.plist for iOS. */
-export const GOOGLE_IOS_CLIENT_ID = "";
+export const GOOGLE_IOS_CLIENT_ID =
+  "775252415773-9j5drsnrenjmgmvvlbpimr7k7o6qp5kp.apps.googleusercontent.com";
