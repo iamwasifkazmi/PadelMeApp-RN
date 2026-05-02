@@ -12,6 +12,8 @@ import {
   View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { MatchChatMessageDto } from "../lib/types";
@@ -50,6 +52,8 @@ export function MatchChatScreen({
 }: {
   route: { params: { matchId: string } };
 }) {
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const USER_EMAIL = getCurrentUserEmail();
   const USER_NAME = getCurrentUserName();
   const matchId = route.params.matchId;
@@ -254,11 +258,15 @@ export function MatchChatScreen({
 
   if (loading) return <MatchChatSkeleton />;
 
+  const iosKeyboardOffset =
+    headerHeight + Math.min(insets.top, 24) + (insets.bottom > 0 ? 8 : 16) + 22;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
+      enabled
     >
       <FlatList
         ref={listRef}

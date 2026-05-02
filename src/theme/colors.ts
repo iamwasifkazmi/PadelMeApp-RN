@@ -13,6 +13,7 @@ export const LIGHT_COLORS = {
   borderStrong: "#9CA3AF",
   primary: "#FF5C1A",
   primaryDark: "#0A1B2A",
+  link: "#2563EB",
   primarySoft: "#FFF2EC",
   primarySoftAlt: "#FFE6DB",
   primaryPale: "#FFF7F3",
@@ -62,6 +63,7 @@ export const DARK_COLORS = {
   warningSoft: "#422006",
   warningText: "#FCD34D",
   highlightSoft: "#0B2B32",
+  link: "#60A5FA",
 } as const;
 
 export const COLORS = LIGHT_COLORS;

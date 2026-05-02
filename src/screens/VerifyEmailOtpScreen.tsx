@@ -19,9 +19,13 @@ import { AuthResponseDto } from "../lib/types";
 import { persistSession } from "../store";
 import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
+import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
+  const insets = useSafeAreaInsets();
+  const keyboardBottomInset = useKeyboardBottomInset();
   const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState(route?.params?.email || "");
   const [code, setCode] = React.useState("");
@@ -77,14 +81,18 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 18 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.flexOne}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 28 + insets.bottom + keyboardBottomInset },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator
         >
           <View style={styles.logoWrap}>
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
@@ -127,8 +135,9 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
             </Text>
           </Pressable>
 
-          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
-            <Text style={[styles.link, { color: colors.text }]}>Back to login</Text>
+          <Pressable style={styles.footerLinkRow} onPress={() => navigation.navigate("Login")}>
+            <Text style={[styles.footerMuted, { color: colors.textMuted }]}>Back to </Text>
+            <Text style={[styles.footerAction, { color: colors.link }]}>Login</Text>
           </Pressable>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -183,7 +192,7 @@ function OtpField({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   flexOne: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 34 },
+  content: { flexGrow: 1, justifyContent: "flex-start", padding: 20, paddingTop: 28 },
   logoWrap: { alignItems: "center", marginBottom: 16 },
   logo: { width: 112, height: 112, borderRadius: 56, borderWidth: 2, borderColor: COLORS.border },
   title: { fontSize: 28, fontWeight: "800", color: COLORS.text, textAlign: "center" },
@@ -234,6 +243,13 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: COLORS.text, fontSize: 14, fontWeight: "700" },
   disabled: { opacity: 0.6 },
-  linkBtn: { marginTop: 12, alignItems: "center" },
-  link: { color: COLORS.primaryDark, fontWeight: "600" },
+  footerLinkRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  footerMuted: { fontSize: 15 },
+  footerAction: { fontSize: 15, fontWeight: "700" },
 });

@@ -21,9 +21,13 @@ import { AuthResponseDto } from "../lib/types";
 import { persistSession } from "../store";
 import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
+import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function LoginScreen({ navigation }: { navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
+  const insets = useSafeAreaInsets();
+  const keyboardBottomInset = useKeyboardBottomInset();
   const { showSnackbar } = useSnackbar();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -88,14 +92,18 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 18 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.flexOne}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: 28 + insets.bottom + keyboardBottomInset },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator
         >
           <View style={styles.logoWrap}>
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
@@ -124,6 +132,12 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             }
             colors={colors}
           />
+
+          <View style={styles.forgotRow}>
+            <Pressable onPress={() => navigation.navigate("ForgotPassword")} hitSlop={10}>
+              <Text style={[styles.forgotLink, { color: colors.link }]}>Forgot password?</Text>
+            </Pressable>
+          </View>
 
           <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onLogin} disabled={loading}>
             {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Login</Text>}
@@ -154,11 +168,9 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             )}
           </Pressable>
 
-          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
-            <Text style={[styles.link, { color: colors.text }]}>Forgot password?</Text>
-          </Pressable>
-          <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Register")}>
-            <Text style={[styles.link, { color: colors.text }]}>No account? Register</Text>
+          <Pressable style={styles.footerLinkRow} onPress={() => navigation.navigate("Register")}>
+            <Text style={[styles.footerMuted, { color: colors.textMuted }]}>No account? </Text>
+            <Text style={[styles.footerAction, { color: colors.link }]}>Register</Text>
           </Pressable>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -208,7 +220,7 @@ function Field({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   flexOne: { flex: 1 },
-  content: { flexGrow: 1, justifyContent: "center", padding: 20, paddingBottom: 34 },
+  content: { flexGrow: 1, justifyContent: "flex-start", padding: 20, paddingTop: 28 },
   logoWrap: { alignItems: "center", marginBottom: 16 },
   logo: { width: 112, height: 112, borderRadius: 56, borderWidth: 2, borderColor: COLORS.border },
   title: { fontSize: 28, fontWeight: "800", color: COLORS.text, textAlign: "center" },
@@ -255,6 +267,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
   },
   googleBtnText: { fontSize: 15, fontWeight: "700" },
-  linkBtn: { marginTop: 12, alignItems: "center" },
-  link: { color: COLORS.primaryDark, fontWeight: "600" },
+  forgotRow: { alignItems: "flex-end", marginTop: 4, marginBottom: 4 },
+  forgotLink: { fontSize: 14, fontWeight: "600" },
+  footerLinkRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  footerMuted: { fontSize: 15 },
+  footerAction: { fontSize: 15, fontWeight: "700" },
 });

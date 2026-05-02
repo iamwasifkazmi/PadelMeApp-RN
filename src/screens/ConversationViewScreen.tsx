@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { ConversationDto, MessageDto } from "../lib/types";
@@ -80,6 +82,8 @@ export function ConversationViewScreen({
   route: { params: { id: string } };
 }) {
   const navigation = useNavigation<any>();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const USER_EMAIL = getCurrentUserEmail();
   const USER_NAME = getCurrentUserName();
   const id = route.params.id;
@@ -314,11 +318,16 @@ export function ConversationViewScreen({
 
   if (loading) return <ConversationSkeleton />;
 
+  /** Larger offset = more lift (RN subtracts this from keyboard screenY). Header + safe-area nudge + extra for native stack. */
+  const iosKeyboardOffset =
+    headerHeight + Math.min(insets.top, 24) + (insets.bottom > 0 ? 8 : 16) + 22;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
+      enabled
     >
       <FlatList
         ref={listRef}
