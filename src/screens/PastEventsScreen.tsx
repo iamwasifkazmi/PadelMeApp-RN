@@ -1,8 +1,9 @@
 import React from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { api } from "../lib/api";
-import { MatchDto } from "../lib/types";
+import { CompetitionDto, MatchDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 
 function PastEventsSkeleton() {
@@ -24,21 +25,51 @@ function PastEventsSkeleton() {
 }
 
 export function PastEventsScreen() {
+  const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
-  const [items, setItems] = React.useState<MatchDto[]>([]);
+  const [items, setItems] = React.useState<Array<
+    | { kind: "match"; id: string; title: string; date: string; subtitle: string; status: string; score?: string }
+    | { kind: "competition"; id: string; title: string; date: string; subtitle: string; status: string }
+  >>([]);
 
   const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
     const isRefresh = opts?.refresh === true;
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [a, b, c] = await Promise.all([
-      api.get<MatchDto[]>("/matches?status=completed"),
-      api.get<MatchDto[]>("/matches?status=cancelled"),
-      api.get<MatchDto[]>("/matches?status=abandoned"),
+      const [a, b, c, comps] = await Promise.all([
+        api.get<MatchDto[]>("/matches?status=completed"),
+        api.get<MatchDto[]>("/matches?status=cancelled"),
+        api.get<MatchDto[]>("/matches?status=abandoned"),
+        api.get<CompetitionDto[]>("/competitions"),
       ]);
-      const all = [...a, ...b, ...c].sort(
+
+      const myMatches = [...a, ...b, ...c]
+        .filter((m) => m.players.includes(USER_EMAIL) || (m as any).createdByEmail === USER_EMAIL)
+        .map((m) => ({
+          kind: "match" as const,
+          id: m.id,
+          title: m.title,
+          date: m.date,
+          subtitle: `${new Date(m.date).toLocaleDateString()} · ${m.timeLabel}`,
+          status: m.status,
+          score: m.scoreTeamA || m.scoreTeamB ? `${m.scoreTeamA || "-"} / ${m.scoreTeamB || "-"}` : undefined,
+        }));
+
+      const myCompetitions = comps
+        .filter((c) => c.status === "completed" || c.status === "cancelled")
+        .filter((c) => c.hostEmail === USER_EMAIL || c.participants.includes(USER_EMAIL))
+        .map((c) => ({
+          kind: "competition" as const,
+          id: c.id,
+          title: c.name,
+          date: c.endDate || c.startDate || c.createdAt,
+          subtitle: `${c.type === "league" ? "League" : "Tournament"} · ${c.locationName || "—"}`,
+          status: c.status,
+        }));
+
+      const all = [...myMatches, ...myCompetitions].sort(
         (x, y) => new Date(y.date).getTime() - new Date(x.date).getTime(),
       );
       setItems(all);
@@ -48,7 +79,7 @@ export function PastEventsScreen() {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
-  }, []);
+  }, [USER_EMAIL]);
 
   React.useEffect(() => {
     load();
@@ -73,15 +104,11 @@ export function PastEventsScreen() {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.meta}>{item.subtitle}</Text>
             <Text style={styles.meta}>
-              {new Date(item.date).toLocaleDateString()} · {item.timeLabel}
+              Type: {item.kind === "match" ? "Match" : "Competition"} · Status: {item.status}
             </Text>
-            <Text style={styles.meta}>Status: {item.status}</Text>
-            {(item.scoreTeamA || item.scoreTeamB) && (
-              <Text style={styles.meta}>
-                Score: {item.scoreTeamA || "-"} / {item.scoreTeamB || "-"}
-              </Text>
-            )}
+            {"score" in item && item.score ? <Text style={styles.meta}>Score: {item.score}</Text> : null}
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No past events yet.</Text>}

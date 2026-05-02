@@ -15,30 +15,40 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { isGoogleSignInConfigured, signInWithGoogleIdToken } from "../lib/googleAuth";
 import { useSnackbar } from "../components/Snackbar";
-import { RegisterResponseDto } from "../lib/types";
+import { AuthResponseDto, RegisterResponseDto } from "../lib/types";
 import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
+import { persistSession } from "../store";
 
 export function RegisterScreen({ navigation }: { navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
   const { showSnackbar } = useSnackbar();
-  const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const onRegister = async () => {
-    if (!fullName.trim() || !email.trim() || password.length < 8) {
-      showSnackbar("Name, valid email, and min 8 char password are required.", { type: "error" });
+    if (!email.trim()) {
+      showSnackbar("Please enter your email.", { type: "error" });
+      return;
+    }
+    if (password.length < 8) {
+      showSnackbar("Password must be at least 8 characters.", { type: "error" });
+      return;
+    }
+    if (password !== confirmPassword) {
+      showSnackbar("Passwords do not match.", { type: "error" });
       return;
     }
 
     try {
       setLoading(true);
       const res = await api.post<RegisterResponseDto>("/auth/register", {
-        fullName: fullName.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
@@ -51,6 +61,27 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
       showSnackbar("Please check details and try again.", { type: "error" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onGoogle = async () => {
+    if (!isGoogleSignInConfigured()) {
+      showSnackbar("Add your Google web client ID in src/config/googleSignIn.ts (see docs/google-sign-in-setup.md).", {
+        type: "info",
+      });
+      return;
+    }
+    try {
+      setGoogleLoading(true);
+      const idToken = await signInWithGoogleIdToken();
+      const res = await api.post<AuthResponseDto>("/auth/google", { idToken });
+      await persistSession({ token: res.token, user: res.user });
+    } catch (err: unknown) {
+      const msg = String((err as Error)?.message || "");
+      if (msg === "cancelled") return;
+      showSnackbar("Google sign-in failed. Check backend GOOGLE_OAUTH_CLIENT_IDS and try again.", { type: "error" });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -71,15 +102,10 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Register once and stay signed in.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Add your name later in onboarding. You will use email and password to sign in.
+          </Text>
 
-          <Field
-            label="Full Name"
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Your full name"
-            colors={colors}
-          />
           <Field
             label="Email"
             value={email}
@@ -93,7 +119,7 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            placeholder="Create a strong password"
+            placeholder="At least 8 characters"
             colors={colors}
             rightIcon={
               <Pressable onPress={() => setShowPassword((s) => !s)}>
@@ -101,9 +127,42 @@ export function RegisterScreen({ navigation }: { navigation: any }) {
               </Pressable>
             }
           />
+          <Field
+            label="Re-enter password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showPassword}
+            placeholder="Same as password"
+            colors={colors}
+          />
 
           <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onRegister} disabled={loading}>
             {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Register</Text>}
+          </Pressable>
+
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textMuted }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          <Pressable
+            style={[
+              styles.googleBtn,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              (googleLoading || loading) && styles.disabled,
+            ]}
+            onPress={onGoogle}
+            disabled={googleLoading || loading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color={colors.text} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={20} color={colors.text} />
+                <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+              </>
+            )}
           </Pressable>
 
           <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("Login")}>
@@ -189,6 +248,21 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: COLORS.card, fontSize: 15, fontWeight: "700" },
   disabled: { opacity: 0.6 },
+  dividerRow: { flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 14, gap: 10 },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: COLORS.border },
+  dividerText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted },
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  googleBtnText: { fontSize: 15, fontWeight: "700" },
   linkBtn: { marginTop: 12, alignItems: "center" },
   link: { color: COLORS.primaryDark, fontWeight: "600" },
 });

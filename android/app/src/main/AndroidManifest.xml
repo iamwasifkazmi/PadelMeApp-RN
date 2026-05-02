@@ -23,6 +23,25 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="mipadel" android:host="invite" />
+        </intent-filter>
+        <!-- HTTPS invite links; host must match src/config/deepLinks.ts INVITE_WEB_ORIGIN -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="mipadel.app" android:pathPrefix="/invite" />
+        </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" android:host="mipadel.app" android:pathPrefix="/invite" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>

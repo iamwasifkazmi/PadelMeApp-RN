@@ -1,8 +1,37 @@
 PODS:
+  - AppAuth (1.7.6):
+    - AppAuth/Core (= 1.7.6)
+    - AppAuth/ExternalUserAgent (= 1.7.6)
+  - AppAuth/Core (1.7.6)
+  - AppAuth/ExternalUserAgent (1.7.6):
+    - AppAuth/Core
+  - AppCheckCore (11.2.0):
+    - GoogleUtilities/Environment (~> 8.0)
+    - GoogleUtilities/UserDefaults (~> 8.0)
+    - PromisesObjC (~> 2.4)
   - FBLazyVector (0.85.2)
+  - GoogleSignIn (8.0.0):
+    - AppAuth (< 2.0, >= 1.7.3)
+    - AppCheckCore (~> 11.0)
+    - GTMAppAuth (< 5.0, >= 4.1.1)
+    - GTMSessionFetcher/Core (~> 3.3)
+  - GoogleUtilities/Environment (8.1.0):
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Logger (8.1.0):
+    - GoogleUtilities/Environment
+    - GoogleUtilities/Privacy
+  - GoogleUtilities/Privacy (8.1.0)
+  - GoogleUtilities/UserDefaults (8.1.0):
+    - GoogleUtilities/Logger
+    - GoogleUtilities/Privacy
+  - GTMAppAuth (4.1.1):
+    - AppAuth/Core (~> 1.7)
+    - GTMSessionFetcher/Core (< 4.0, >= 3.3)
+  - GTMSessionFetcher/Core (3.5.0)
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
   - hermes-engine/Pre-built (250829098.0.10)
+  - PromisesObjC (2.4.0)
   - RCTDeprecation (0.85.2)
   - RCTRequired (0.85.2)
   - RCTSwiftUI (0.85.2)
@@ -1882,6 +1911,29 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNGoogleSignin (15.0.0):
+    - GoogleSignIn (~> 8.0)
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNScreens (4.24.0):
     - hermes-engine
     - RCTRequired
@@ -2031,9 +2083,20 @@ DEPENDENCIES:
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
+  - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
+
+SPEC REPOS:
+  trunk:
+    - AppAuth
+    - AppCheckCore
+    - GoogleSignIn
+    - GoogleUtilities
+    - GTMAppAuth
+    - GTMSessionFetcher
+    - PromisesObjC
 
 EXTERNAL SOURCES:
   FBLazyVector:
@@ -2189,6 +2252,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNDateTimePicker:
     :path: "../node_modules/@react-native-community/datetimepicker"
+  RNGoogleSignin:
+    :path: "../node_modules/@react-native-google-signin/google-signin"
   RNScreens:
     :path: "../node_modules/react-native-screens"
   RNVectorIcons:
@@ -2197,8 +2262,15 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
+  AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   FBLazyVector: 26fd21c75314e101f280d401e97f27d54f3f7064
+  GoogleSignIn: ce8c89bb9b37fb624b92e7514cc67335d1e277e4
+  GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
+  GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
+  GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: bad7bc7ad2a0cfee4595ebd97cb648733635938f
+  PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCTDeprecation: c7a2768f905d76ca6d2cfefb26e4349eacbdfca3
   RCTRequired: 5e502c3553cfbed090a991c444448da452fb752e
   RCTSwiftUI: 5ce3ccbdc58b78cc4ebbaace01709ec22d58e131
@@ -2273,6 +2345,7 @@ SPEC CHECKSUMS:
   ReactNativeDependencies: 94f220a8d0725f680e971ca886b68aed6982b8e5
   RNCAsyncStorage: 2ad919e88b8bc2cd80e8697ce66d04d006743283
   RNDateTimePicker: 7b2738f1e595f83c14580a11c476872755c5befc
+  RNGoogleSignin: 7d9ab7d8942c350d2c6c08d2ac0e91589be6741e
   RNScreens: 01b065ded2dfe7987bcce770ff3a196be417ff41
   RNVectorIcons: 97f26211c07d69e45b189f9dd0dbbe5e2d2b0b92
   Yoga: 04bb4bfeb02c0000b940c1e6e89e856cd8de5a71

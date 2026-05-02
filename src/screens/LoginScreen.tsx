@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { isGoogleSignInConfigured, signInWithGoogleIdToken } from "../lib/googleAuth";
 import { useSnackbar } from "../components/Snackbar";
 import { AuthResponseDto } from "../lib/types";
 import { persistSession } from "../store";
@@ -28,6 +29,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const onLogin = async () => {
     if (!email.trim() || !password) {
@@ -52,6 +54,27 @@ export function LoginScreen({ navigation }: { navigation: any }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onGoogle = async () => {
+    if (!isGoogleSignInConfigured()) {
+      showSnackbar("Add your Google web client ID in src/config/googleSignIn.ts (see docs/google-sign-in-setup.md).", {
+        type: "info",
+      });
+      return;
+    }
+    try {
+      setGoogleLoading(true);
+      const idToken = await signInWithGoogleIdToken();
+      const res = await api.post<AuthResponseDto>("/auth/google", { idToken });
+      await persistSession({ token: res.token, user: res.user });
+    } catch (err: unknown) {
+      const msg = String((err as Error)?.message || "");
+      if (msg === "cancelled") return;
+      showSnackbar("Google sign-in failed. Check backend GOOGLE_OAUTH_CLIENT_IDS and try again.", { type: "error" });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -98,6 +121,31 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
           <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onLogin} disabled={loading}>
             {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Login</Text>}
+          </Pressable>
+
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textMuted }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          <Pressable
+            style={[
+              styles.googleBtn,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              (googleLoading || loading) && styles.disabled,
+            ]}
+            onPress={onGoogle}
+            disabled={googleLoading || loading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color={colors.text} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={20} color={colors.text} />
+                <Text style={[styles.googleBtnText, { color: colors.text }]}>Continue with Google</Text>
+              </>
+            )}
           </Pressable>
 
           <Pressable style={styles.linkBtn} onPress={() => navigation.navigate("ForgotPassword")}>
@@ -186,6 +234,21 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: COLORS.card, fontSize: 15, fontWeight: "700" },
   disabled: { opacity: 0.6 },
+  dividerRow: { flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 14, gap: 10 },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: COLORS.border },
+  dividerText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted },
+  googleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  googleBtnText: { fontSize: 15, fontWeight: "700" },
   linkBtn: { marginTop: 12, alignItems: "center" },
   link: { color: COLORS.primaryDark, fontWeight: "600" },
 });

@@ -5,7 +5,7 @@ import { clearSession, setHydrated, setSession, type AuthUser } from "./authSlic
 import type { AppDispatch, RootState } from "./store";
 import { store } from "./store";
 
-const SESSION_KEY = "padelme.auth.session.v1";
+const SESSION_KEY = "mipadel.auth.session.v1";
 
 type SessionPayload = {
   token: string;

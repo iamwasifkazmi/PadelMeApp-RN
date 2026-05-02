@@ -229,7 +229,17 @@ export function CompetitionDetailScreen({
           )}
 
           {(isParticipant || isHost) && (
-            <Pressable style={styles.secondaryAction} onPress={() => navigation.navigate("InvitePlayers", { eventId: item.id })}>
+            <Pressable
+              style={styles.secondaryAction}
+              onPress={() =>
+                navigation.navigate("InvitePlayers", {
+                  eventId: item.id,
+                  eventKind: "competition",
+                  eventTitle: item.name,
+                  eventSubtitle: item.locationName || undefined,
+                })
+              }
+            >
               <Ionicons name="mail-outline" size={15} color={COLORS.text} />
               <Text style={styles.secondaryActionText}>Invite Players</Text>
             </Pressable>

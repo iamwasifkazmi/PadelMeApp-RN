@@ -41,8 +41,8 @@ function ConversationSkeleton() {
         </View>
       </View>
       <View style={styles.conversationComposerSkeleton}>
-        <SkeletonBlock height={42} width="78%" rounded={12} />
-        <SkeletonBlock height={42} width={70} rounded={12} />
+        <SkeletonBlock height={36} width="78%" rounded={20} />
+        <SkeletonBlock height={36} width={36} rounded={18} />
       </View>
     </View>
   );
@@ -90,7 +90,7 @@ export function ConversationViewScreen({
   const [isPeerTyping, setIsPeerTyping] = React.useState(false);
   const [text, setText] = React.useState("");
   const [sending, setSending] = React.useState(false);
-  const [composerHeight, setComposerHeight] = React.useState(42);
+  const [composerHeight, setComposerHeight] = React.useState(36);
   const listRef = React.useRef<FlatList<MessageDto>>(null);
   const nearBottomRef = React.useRef(true);
   const typingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -340,20 +340,22 @@ export function ConversationViewScreen({
               })
             : "";
           return (
-            <View style={[styles.bubbleWrap, mine ? styles.bubbleWrapMine : styles.bubbleWrapOther]}>
-              <View style={styles.messageWrap}>
+            <View style={[styles.msgOuter, mine ? styles.msgOuterMine : styles.msgOuterOther]}>
+              <View style={styles.msgStack}>
                 <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
                   <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.text}</Text>
+                  {mine ? (
+                    <View style={[styles.meta, styles.metaInBubbleMine]}>
+                      <Text style={[styles.messageTime, styles.messageTimeInBubble]}>{sentAt}</Text>
+                      <MessageReceipt status={item.status} onOrangeBubble />
+                    </View>
+                  ) : null}
                 </View>
-                <View
-                  style={[
-                    styles.messageMetaRow,
-                    mine ? styles.messageMetaRowMine : styles.messageMetaRowOther,
-                  ]}
-                >
-                  <Text style={styles.messageTime}>{sentAt}</Text>
-                  {mine && <MessageReceipt status={item.status} />}
-                </View>
+                {!mine ? (
+                  <View style={[styles.meta, styles.metaOther]}>
+                    <Text style={styles.messageTime}>{sentAt}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           );
@@ -362,46 +364,52 @@ export function ConversationViewScreen({
       />
 
       <View style={styles.composerWrap}>
-        <View style={styles.liveMetaRow}>
-          {isPeerTyping ? <Text style={styles.typingText}>Typing...</Text> : null}
-        </View>
+        {isPeerTyping ? (
+          <View style={styles.liveMetaRow}>
+            <Text style={styles.typingText}>Typing...</Text>
+          </View>
+        ) : null}
         <View style={styles.inputRow}>
-        <TextInput
-          style={[styles.input, { height: Math.min(96, Math.max(42, composerHeight)) }]}
-          value={text}
-          onChangeText={setText}
-          placeholder="Type a message..."
-          placeholderTextColor={COLORS.iconMuted}
-          multiline
-          textAlignVertical="top"
-          onContentSizeChange={(e) => setComposerHeight(e.nativeEvent.contentSize.height + 12)}
-          onBlur={() => {
-            if (isTypingRef.current) {
-              emitTyping(false);
-              isTypingRef.current = false;
-            }
-          }}
-        />
-        <Pressable
-          style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
-          onPress={send}
-          disabled={sending}
-        >
-          <Text style={styles.sendBtnText}>Send</Text>
-        </Pressable>
-      </View>
+          <TextInput
+            style={[styles.input, { height: Math.min(88, Math.max(36, composerHeight)) }]}
+            value={text}
+            onChangeText={setText}
+            placeholder="Type a message..."
+            placeholderTextColor={COLORS.iconMuted}
+            multiline
+            textAlignVertical="top"
+            onContentSizeChange={(e) => setComposerHeight(e.nativeEvent.contentSize.height + 10)}
+            onBlur={() => {
+              if (isTypingRef.current) {
+                emitTyping(false);
+                isTypingRef.current = false;
+              }
+            }}
+          />
+          <Pressable
+            style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
+            onPress={send}
+            disabled={sending}
+            accessibilityLabel="Send message"
+          >
+            <Ionicons name="paper-plane" size={18} color={COLORS.card} />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-function MessageReceipt({ status }: { status?: "sent" | "delivered" | "read" }) {
+function MessageReceipt({ status, onOrangeBubble }: { status?: "sent" | "delivered" | "read"; onOrangeBubble?: boolean }) {
+  const tickColor = onOrangeBubble ? "rgba(255,255,255,0.78)" : COLORS.textMuted;
+  const readColor = onOrangeBubble ? "#E0F2FE" : COLORS.primary;
+  const iconSize = onOrangeBubble ? 14 : 12;
   if (status === "read") {
     return (
       <Ionicons
         name="checkmark-done"
-        size={12}
-        color={COLORS.primary}
+        size={iconSize}
+        color={readColor}
         style={styles.messageTick}
       />
     );
@@ -410,8 +418,8 @@ function MessageReceipt({ status }: { status?: "sent" | "delivered" | "read" }) 
     return (
       <Ionicons
         name="checkmark-done"
-        size={12}
-        color={COLORS.textMuted}
+        size={iconSize}
+        color={tickColor}
         style={styles.messageTick}
       />
     );
@@ -419,8 +427,8 @@ function MessageReceipt({ status }: { status?: "sent" | "delivered" | "read" }) 
   return (
     <Ionicons
       name="checkmark"
-      size={12}
-      color={COLORS.textMuted}
+      size={iconSize}
+      color={tickColor}
       style={styles.messageTick}
     />
   );
@@ -435,59 +443,75 @@ const styles = StyleSheet.create({
   presenceDot: { width: 9, height: 9, borderRadius: 5, marginLeft: 7 },
   presenceDotOnline: { backgroundColor: COLORS.success },
   presenceDotOffline: { backgroundColor: COLORS.textSoft },
-  bubbleWrap: { marginBottom: 8, flexDirection: "row" },
-  bubbleWrapMine: { justifyContent: "flex-end" },
-  bubbleWrapOther: { justifyContent: "flex-start" },
-  messageWrap: { maxWidth: "78%" },
-  bubble: { maxWidth: "78%", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
+  msgOuter: { marginBottom: 10, flexDirection: "row", width: "100%" },
+  msgOuterMine: { justifyContent: "flex-end" },
+  msgOuterOther: { justifyContent: "flex-start" },
+  msgStack: { maxWidth: "80%" },
+  bubble: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    alignSelf: "stretch",
+  },
   bubbleMine: { backgroundColor: COLORS.primary },
   bubbleOther: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
-  bubbleText: { color: COLORS.text, fontSize: 14 },
+  bubbleText: { color: COLORS.text, fontSize: 14, lineHeight: 20 },
   bubbleTextMine: { color: COLORS.card },
-  messageMetaRow: { marginTop: 3, flexDirection: "row", alignItems: "center", gap: 4 },
-  messageMetaRowMine: { justifyContent: "flex-end" },
-  messageMetaRowOther: { justifyContent: "flex-start" },
+  meta: {
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 2,
+  },
+  metaInBubbleMine: {
+    marginTop: 6,
+    justifyContent: "flex-end",
+    paddingHorizontal: 0,
+  },
+  metaOther: { justifyContent: "flex-start" },
   messageTime: { fontSize: 10, color: COLORS.textMuted },
-  messageTick: { marginTop: 0.5 },
+  messageTimeInBubble: { color: "rgba(255,255,255,0.88)" },
+  messageTick: { marginTop: 0 },
   composerWrap: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
-    paddingTop: 2,
-    paddingBottom: Platform.OS === "ios" ? 8 : 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
   },
-  liveMetaRow: { minHeight: 14, paddingHorizontal: 14, alignItems: "flex-start", justifyContent: "center" },
+  liveMetaRow: { paddingBottom: 2 },
   typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
   inputRow: {
-    paddingHorizontal: 12,
-    paddingTop: 3,
+    paddingTop: 0,
+    paddingBottom: 0,
     flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 9,
+    alignItems: "center",
+    gap: 8,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    paddingHorizontal: 13,
-    paddingTop: Platform.OS === "ios" ? 11 : 9,
-    paddingBottom: 9,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 8 : 6,
+    minHeight: 36,
     color: COLORS.text,
     backgroundColor: COLORS.bg,
     fontSize: 14,
   },
   sendBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    height: 44,
-    minWidth: 76,
-    paddingHorizontal: 18,
+    borderRadius: 18,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: -4,
   },
   sendBtnDisabled: { opacity: 0.65 },
-  sendBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
   empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
   conversationSkeletonWrap: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
   conversationBubbleLeft: {

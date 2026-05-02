@@ -22,7 +22,14 @@ export type RootStackParamList = {
   Competitions: undefined;
   CreateCompetition: { defaultType?: "tournament" | "league" } | undefined;
   CompetitionDetail: { id: string };
-  InvitePlayers: { eventId?: string } | undefined;
+  InvitePlayers:
+    | {
+        eventId?: string;
+        eventKind?: "match" | "competition";
+        eventTitle?: string;
+        eventSubtitle?: string;
+      }
+    | undefined;
   Verification: undefined;
   InstantPlay: undefined;
   Players: undefined;
@@ -32,4 +39,6 @@ export type RootStackParamList = {
   ConversationView: { id: string };
   MatchChat: { matchId: string };
   SubscriptionGate: undefined;
+  AdminIDReview: undefined;
+  AdminTestMode: undefined;
 };

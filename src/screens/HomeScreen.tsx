@@ -97,11 +97,13 @@ function SectionHeader({
   subtitle,
   action,
   onAction,
+  extra,
 }: {
   title: string;
   subtitle?: string;
   action?: string;
   onAction?: () => void;
+  extra?: React.ReactNode;
 }) {
   return (
     <View style={styles.sectionHeader}>
@@ -109,7 +111,9 @@ function SectionHeader({
         <Text style={styles.sectionTitle}>{title}</Text>
         {!!subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
       </View>
-      {action ? (
+      {extra ? (
+        extra
+      ) : action ? (
         <Pressable onPress={onAction}>
           <Text style={styles.sectionAction}>{action}</Text>
         </Pressable>
@@ -146,6 +150,7 @@ export function HomeScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const [playersTab, setPlayersTab] = React.useState<"nearby" | "friends">("nearby");
+  const [instantTime, setInstantTime] = React.useState<"Now" | "1 hour" | "2 hours">("Now");
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [me, setMe] = React.useState<UserDto | null>(null);
@@ -257,6 +262,22 @@ export function HomeScreen() {
   const goMessages = React.useCallback(() => navigateToTab("MessagesTab"), [navigateToTab]);
   const goProfile = React.useCallback(() => navigateToTab("ProfileTab"), [navigateToTab]);
 
+  const sendFriendRequest = React.useCallback(
+    async (recipientEmail: string) => {
+      await api.post("/friends/requests", { requesterEmail: USER_EMAIL, recipientEmail });
+      await load({ refresh: true });
+    },
+    [USER_EMAIL, load],
+  );
+
+  const acceptFriendRequest = React.useCallback(
+    async (requestId: string) => {
+      await api.patch(`/friends/requests/${requestId}`, { status: "accepted" });
+      await load({ refresh: true });
+    },
+    [load],
+  );
+
   if (loading) return <HomeSkeleton />;
 
   const meName = me?.fullName || getCurrentUserName();
@@ -274,9 +295,15 @@ export function HomeScreen() {
 
   const joinableOpenMatches = openMatches
     .filter((m) => !m.players.includes(USER_EMAIL))
+    .filter((m) => {
+      if (!m.visibility || m.visibility === "public") return true;
+      const invited = (m.invitedEmails || []).includes(USER_EMAIL);
+      return invited;
+    })
     .slice(0, 4);
 
   const friendEmails = new Set((friendsData?.friends || []).map((f) => f.email));
+  const friendRequests = friendsData?.requests || [];
   const otherUsers = allUsers.filter((u) => u.email !== USER_EMAIL);
   const nearbyUsers = otherUsers
     .filter((u) => !friendEmails.has(u.email) && (u.profileVisibility || "public") !== "private")
@@ -286,6 +313,12 @@ export function HomeScreen() {
 
   const registrationCompetitions = competitions
     .filter((c) => c.status === "registration")
+    .filter((c) => {
+      if (!c.visibility || c.visibility === "public") return true;
+      const host = c.hostEmail === USER_EMAIL;
+      const participant = c.participants.includes(USER_EMAIL);
+      return host || participant;
+    })
     .slice(0, 3);
 
   const unreadNotifications = notifications.filter((n) => !n.isRead).length;
@@ -359,48 +392,44 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {activeMatches.length > 0 ? (
-        <>
-          <SectionHeader title="🔴 In Progress" subtitle="Action required" />
-          {activeMatches.map((m) => (
-            <Pressable key={m.id} style={styles.matchCard} onPress={() => navigation.navigate("MatchDetail", { id: m.id })}>
-              <Text style={styles.matchTitle}>{m.title}</Text>
-              <Text style={styles.matchMeta}>
-                {new Date(m.date).toLocaleDateString()} · {m.timeLabel} · {m.locationName}
+      <View style={styles.instantCard}>
+        <Text style={styles.instantEyebrow}>Ready to play Padel?</Text>
+        <Text style={styles.instantTitle}>Find players instantly</Text>
+        <Text style={styles.instantSubtitle}>Get matched with nearby padel players now</Text>
+        <View style={styles.instantTimesRow}>
+          {(["Now", "1 hour", "2 hours"] as const).map((time) => (
+            <Pressable
+              key={time}
+              style={[styles.instantTimeChip, instantTime === time && styles.instantTimeChipActive]}
+              onPress={() => setInstantTime(time)}
+            >
+              <Text style={[styles.instantTimeChipText, instantTime === time && styles.instantTimeChipTextActive]}>
+                {time}
               </Text>
-              <Text style={styles.matchMetaSmall}>{m.status.replace("_", " ")}</Text>
             </Pressable>
           ))}
-        </>
-      ) : null}
-
-      <View style={styles.instantCard}>
-        <Text style={styles.instantTitle}>⚡ Instant Play</Text>
-        <Text style={styles.instantSubtitle}>Find players near you right now</Text>
+        </View>
         <Pressable style={styles.instantBtn} onPress={() => navigation.navigate("InstantPlay")}>
-          <Text style={styles.instantBtnText}>Start now</Text>
+          <Ionicons name="flash" size={15} color="#4A3500" />
+          <Text style={styles.instantBtnText}>Play Now</Text>
         </Pressable>
       </View>
 
       <View style={styles.quickActionsRow}>
-        <QuickAction icon="search" label="Find Game" onPress={goDiscover} />
-        <QuickAction icon="add" label="Create" accent onPress={() => navigation.navigate("CreateMatch")} />
-        <QuickAction icon="trophy-outline" label="Compete" onPress={() => navigation.navigate("Competitions")} />
-        <QuickAction icon="people-outline" label="Players" onPress={() => navigation.navigate("Players")} />
+        <QuickAction icon="🔍" label="Find Game" onPress={goDiscover} />
+        <QuickAction icon="➕" label="Create" accent onPress={() => navigation.navigate("CreateMatch")} />
+        <QuickAction icon="🏆" label="Compete" onPress={() => navigation.navigate("Competitions")} />
+        <QuickAction icon="👥" label="Players" onPress={() => navigation.navigate("Players")} />
       </View>
 
       <SectionHeader title="📅 Your Matches" subtitle="Matches you're in" action="See all →" onAction={goDiscover} />
       {myUpcomingMatches.length > 0 ? (
         myUpcomingMatches.map((m) => (
-          <Pressable key={m.id} style={styles.matchCard} onPress={() => navigation.navigate("MatchDetail", { id: m.id })}>
-            <Text style={styles.matchTitle}>{m.title}</Text>
-            <Text style={styles.matchMeta}>
-              {new Date(m.date).toLocaleDateString()} · {m.timeLabel} · {m.locationName}
-            </Text>
-            <Text style={styles.matchMetaSmall}>
-              {m.players.length}/{m.maxPlayers} players
-            </Text>
-          </Pressable>
+          <UserMatchCardLike
+            key={m.id}
+            match={m}
+            onPress={() => navigation.navigate("MatchDetail", { id: m.id })}
+          />
         ))
       ) : (
         <EmptyState
@@ -411,52 +440,89 @@ export function HomeScreen() {
         />
       )}
 
-      {activeMatches.length === 0 ? (
-        <>
-          <SectionHeader title="🔴 In Progress" subtitle="Active matches" />
-          <EmptyState icon="🟢" message="No active matches right now" />
-        </>
-      ) : null}
+      <SectionHeader
+        title="🔴 In Progress"
+        subtitle={activeMatches.length > 0 ? "Action required" : "Active matches"}
+      />
+      {activeMatches.length > 0 ? (
+        activeMatches.map((m) => (
+          <InProgressCardLike
+            key={m.id}
+            match={m}
+            onPress={() => navigation.navigate("MatchDetail", { id: m.id })}
+          />
+        ))
+      ) : (
+        <EmptyState icon="🟢" message="No active matches right now" />
+      )}
 
       <SectionHeader
         title="👥 Players"
         subtitle={playersTab === "friends" ? `${friends.length} friends` : "Suggested for you"}
-        action="All →"
-        onAction={() => navigation.navigate("Players")}
+        extra={
+          <View style={styles.playersHeaderRight}>
+            <View style={styles.playersSwitch}>
+              <Pressable
+                style={[styles.switchBtn, playersTab === "nearby" && styles.switchBtnActive]}
+                onPress={() => setPlayersTab("nearby")}
+              >
+                <Text style={[styles.switchBtnText, playersTab === "nearby" && styles.switchBtnTextActive]}>Nearby</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.switchBtn, playersTab === "friends" && styles.switchBtnActive]}
+                onPress={() => setPlayersTab("friends")}
+              >
+                <Text style={[styles.switchBtnText, playersTab === "friends" && styles.switchBtnTextActive]}>
+                  Friends{friends.length > 0 ? ` (${friends.length})` : ""}
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={() => navigation.navigate("Players")}>
+              <Text style={styles.sectionAction}>All →</Text>
+            </Pressable>
+          </View>
+        }
       />
-      <View style={styles.playersSwitch}>
-        <Pressable
-          style={[styles.switchBtn, playersTab === "nearby" && styles.switchBtnActive]}
-          onPress={() => setPlayersTab("nearby")}
-        >
-          <Text style={[styles.switchBtnText, playersTab === "nearby" && styles.switchBtnTextActive]}>Nearby</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.switchBtn, playersTab === "friends" && styles.switchBtnActive]}
-          onPress={() => setPlayersTab("friends")}
-        >
-          <Text style={[styles.switchBtnText, playersTab === "friends" && styles.switchBtnTextActive]}>
-            Friends{friends.length > 0 ? ` (${friends.length})` : ""}
-          </Text>
-        </Pressable>
-      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersRow}>
         {displayedPlayers.length > 0 ? (
           displayedPlayers.map((p) => (
             <Pressable key={p.id} style={styles.playerMini} onPress={() => navigation.navigate("PlayerProfile", { id: p.id })}>
-              {p.photoUrl ? (
-                <Image source={{ uri: p.photoUrl }} style={styles.playerAvatarImage} />
-              ) : (
-                <View style={styles.playerAvatar}>
-                  <Text style={styles.playerAvatarText}>
-                    {(p.fullName || p.email).slice(0, 1).toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.playerAvatarWrap}>
+                {p.photoUrl ? (
+                  <Image source={{ uri: p.photoUrl }} style={styles.playerAvatarImage} />
+                ) : (
+                  <View style={styles.playerAvatar}>
+                    <Text style={styles.playerAvatarText}>
+                      {(p.fullName || p.email).slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                {(p.photoVerified || p.idVerified) ? <View style={styles.playerVerifiedDot}><Text style={styles.playerVerifiedDotText}>✓</Text></View> : null}
+              </View>
               <Text style={styles.playerName} numberOfLines={1}>
                 {p.fullName || p.email.split("@")[0]}
               </Text>
-              <Text style={styles.playerLevel}>{p.skillLabel || "intermediate"}</Text>
+              {!!p.location && (
+                <Text style={styles.playerLocation} numberOfLines={1}>
+                  📍 {p.location}
+                </Text>
+              )}
+              <View style={styles.playerMetaRow}>
+                <Text style={styles.playerLevel}>{p.skillLabel || "intermediate"}</Text>
+                {(p.averageRating || 0) > 0 ? (
+                  <Text style={styles.playerRating}>⭐ {(p.averageRating || 0).toFixed(1)}</Text>
+                ) : null}
+              </View>
+              <View style={styles.playerCardFooter}>
+                <FriendCta
+                  playerEmail={p.email}
+                  currentUserEmail={USER_EMAIL}
+                  friendEmails={friendEmails}
+                  requests={friendRequests}
+                  onAdd={sendFriendRequest}
+                  onAccept={acceptFriendRequest}
+                />
+              </View>
             </Pressable>
           ))
         ) : (
@@ -475,18 +541,21 @@ export function HomeScreen() {
           <SectionHeader title="🤝 Friends" subtitle="Your network" action="All →" onAction={() => navigation.navigate("Friends")} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.playersRow}>
             {friends.map((f) => (
-              <Pressable key={f.id} style={styles.playerMini} onPress={() => navigation.navigate("PlayerProfile", { id: f.id })}>
-                {f.photoUrl ? (
-                  <Image source={{ uri: f.photoUrl }} style={styles.playerAvatarImage} />
-                ) : (
-                  <View style={styles.playerAvatar}>
-                    <Text style={styles.playerAvatarText}>
-                      {(f.fullName || f.email).slice(0, 1).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.playerName} numberOfLines={1}>
-                  {f.fullName || f.email.split("@")[0]}
+              <Pressable key={f.id} style={styles.friendMini} onPress={() => navigation.navigate("PlayerProfile", { id: f.id })}>
+                <View style={styles.friendAvatarWrap}>
+                  {f.photoUrl ? (
+                    <Image source={{ uri: f.photoUrl }} style={styles.friendAvatarImage} />
+                  ) : (
+                    <View style={styles.friendAvatar}>
+                      <Text style={styles.friendAvatarText}>
+                        {(f.fullName || f.email).slice(0, 1).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.friendOnlineDot} />
+                </View>
+                <Text style={styles.friendName} numberOfLines={1}>
+                  {(f.fullName || f.email.split("@")[0]).split(" ")[0]}
                 </Text>
               </Pressable>
             ))}
@@ -497,15 +566,11 @@ export function HomeScreen() {
       <SectionHeader title="🔍 Open Matches" subtitle="Find a game to join" action="See all →" onAction={goDiscover} />
       {joinableOpenMatches.length > 0 ? (
         joinableOpenMatches.map((m) => (
-          <Pressable key={m.id} style={styles.matchCard} onPress={() => navigation.navigate("MatchDetail", { id: m.id })}>
-            <Text style={styles.matchTitle}>{m.title}</Text>
-            <Text style={styles.matchMeta}>
-              {new Date(m.date).toLocaleDateString()} · {m.timeLabel} · {m.locationName}
-            </Text>
-            <Text style={styles.matchMetaSmall}>
-              {m.players.length}/{m.maxPlayers} players
-            </Text>
-          </Pressable>
+          <OpenMatchCardLike
+            key={m.id}
+            match={m}
+            onPress={() => navigation.navigate("MatchDetail", { id: m.id })}
+          />
         ))
       ) : (
         <EmptyState icon="🔍" message="No open matches nearby" action="Create the first one" onAction={() => navigation.navigate("CreateMatch")} />
@@ -514,17 +579,11 @@ export function HomeScreen() {
       <SectionHeader title="🏆 Competitions" subtitle="Tournaments & leagues" action="See all →" onAction={() => navigation.navigate("Competitions")} />
       {registrationCompetitions.length > 0 ? (
         registrationCompetitions.map((c) => (
-          <Pressable key={c.id} style={styles.competitionCard} onPress={() => navigation.navigate("CompetitionDetail", { id: c.id })}>
-            <View style={styles.competitionIconWrap}>
-              <Ionicons name="trophy-outline" size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.flexOne}>
-              <Text style={styles.competitionName}>{c.name}</Text>
-              <Text style={styles.competitionMeta}>
-                {c.type} · {c.participants.length}/{c.maxPlayers || 16}
-              </Text>
-            </View>
-          </Pressable>
+          <CompetitionMiniCardLike
+            key={c.id}
+            competition={c}
+            onPress={() => navigation.navigate("CompetitionDetail", { id: c.id })}
+          />
         ))
       ) : (
         <EmptyState icon="🏆" message="No competitions open right now" action="Browse competitions" onAction={() => navigation.navigate("Competitions")} />
@@ -532,22 +591,24 @@ export function HomeScreen() {
 
       {recentResults.length > 0 ? (
         <>
-          <SectionHeader title="Recent Results" subtitle={`ELO ${eloSum >= 0 ? `+${eloSum}` : eloSum}`} action="All History →" onAction={() => navigation.navigate("PastEvents")} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsRow}>
-            {recentResults.map((r) => (
-              <View key={r.id} style={styles.resultDotWrap}>
-                <View style={[styles.resultDot, r.result === "W" ? styles.resultDotWin : styles.resultDotLoss]}>
-                  <Text style={[styles.resultDotText, r.result === "W" ? styles.resultDotTextWin : styles.resultDotTextLoss]}>
-                    {r.result}
+          <View style={styles.resultsCard}>
+            <SectionHeader title="Recent Results" subtitle={`ELO ${eloSum >= 0 ? `+${eloSum}` : eloSum}`} action="All History →" onAction={() => navigation.navigate("PastEvents")} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsRow}>
+              {recentResults.map((r) => (
+                <View key={r.id} style={styles.resultDotWrap}>
+                  <View style={[styles.resultDot, r.result === "W" ? styles.resultDotWin : styles.resultDotLoss]}>
+                    <Text style={[styles.resultDotText, r.result === "W" ? styles.resultDotTextWin : styles.resultDotTextLoss]}>
+                      {r.result}
+                    </Text>
+                  </View>
+                  <Text style={styles.resultElo}>{r.elo > 0 ? `+${r.elo}` : r.elo}</Text>
+                  <Text style={styles.resultDate}>
+                    {new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </Text>
                 </View>
-                <Text style={styles.resultElo}>{r.elo > 0 ? `+${r.elo}` : r.elo}</Text>
-                <Text style={styles.resultDate}>
-                  {new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          </View>
         </>
       ) : null}
 
@@ -583,7 +644,7 @@ function QuickAction({
 }) {
   return (
     <Pressable style={[styles.quickAction, accent && styles.quickActionAccent]} onPress={onPress}>
-      <Ionicons name={icon} size={20} color={accent ? COLORS.card : COLORS.text} />
+      <Text style={styles.quickActionIcon}>{icon}</Text>
       <Text style={[styles.quickActionText, accent && styles.quickActionTextAccent]}>{label}</Text>
     </Pressable>
   );
@@ -598,15 +659,216 @@ function StatItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function UserMatchCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
+  const status = match.status?.replaceAll("_", " ") || "open";
+  return (
+    <Pressable style={styles.matchCard} onPress={onPress}>
+      <View style={styles.cardTopRow}>
+        <Text style={styles.matchTitle}>{match.title}</Text>
+        <View style={styles.statusTagSoft}>
+          <Text style={styles.statusTagSoftText}>{status}</Text>
+        </View>
+      </View>
+      <View style={styles.metaRows}>
+        <Text style={styles.matchMeta}>📅 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}</Text>
+        <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
+        <Text style={styles.matchMetaSmall}>👥 {match.players.length}/{match.maxPlayers} players</Text>
+      </View>
+      <View style={styles.cardEndChevron}>
+        <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
+      </View>
+    </Pressable>
+  );
+}
+
+function OpenMatchCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
+  const spots = Math.max(0, match.maxPlayers - match.players.length);
+  return (
+    <Pressable style={styles.matchCard} onPress={onPress}>
+      <View style={styles.cardTopRow}>
+        <View style={styles.topTagsRow}>
+          <View style={styles.levelPill}>
+            <Text style={styles.levelPillText}>{match.skillLevel || "any"}</Text>
+          </View>
+          {match.visibility === "invite_only" ? (
+            <View style={styles.inviteOnlyTag}>
+              <Text style={styles.inviteOnlyText}>Invite only</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.playersCountMini}>
+          <Ionicons name="people-outline" size={12} color={COLORS.textMuted} />
+          <Text style={styles.playersCountMiniText}>
+            {match.players.length}/{match.maxPlayers}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.matchTitle}>{match.title}</Text>
+      <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
+      <Text style={styles.matchMeta}>
+        🕒 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}
+      </Text>
+      <View style={styles.cardEndChevron}>
+        <Ionicons name="chevron-forward" size={14} color={COLORS.iconMuted} />
+      </View>
+      <Text style={styles.openSpotsText}>{spots} spot{spots === 1 ? "" : "s"} left</Text>
+    </Pressable>
+  );
+}
+
+function CompetitionMiniCardLike({
+  competition,
+  onPress,
+}: {
+  competition: CompetitionDto;
+  onPress: () => void;
+}) {
+  const joined = competition.participants.length;
+  const total = competition.maxPlayers || 16;
+  const pct = Math.max(0, Math.min(100, Math.round((joined / total) * 100)));
+  return (
+    <Pressable style={styles.competitionCard} onPress={onPress}>
+      <View style={styles.competitionIconWrap}>
+        <Ionicons name="trophy-outline" size={16} color={COLORS.primaryDark} />
+      </View>
+      <View style={styles.flexOne}>
+        <Text numberOfLines={1} style={styles.competitionName}>
+          {competition.name}
+        </Text>
+        <Text style={styles.competitionMeta}>
+          {competition.type === "league" ? "League" : "Tournament"} · {competition.skillLevel || "any"}
+        </Text>
+        <View style={styles.compProgressRow}>
+          <View style={styles.compProgressTrack}>
+            <View style={[styles.compProgressBar, { width: `${pct}%` }]} />
+          </View>
+          <Text style={styles.competitionMetaSmall}>
+            {joined}/{total}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.viewMiniBtn}>
+        <Text style={styles.viewMiniBtnText}>View</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function InProgressCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
+  const status = match.status === "in_progress" ? "In Progress" : match.status === "awaiting_score" ? "Awaiting score" : "Pending validation";
+  return (
+    <Pressable style={styles.matchCard} onPress={onPress}>
+      <View style={styles.cardTopRow}>
+        <Text style={styles.matchTitle}>{match.title}</Text>
+        <View style={styles.progressTag}>
+          <Text style={styles.progressTagText}>{status}</Text>
+        </View>
+      </View>
+      <View style={styles.metaRows}>
+        <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
+        <Text style={styles.matchMeta}>🕒 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}</Text>
+        <Text style={styles.matchMetaSmall}>Tap to continue</Text>
+      </View>
+      <View style={styles.progressActionsRow}>
+        <View style={styles.viewMiniBtn}>
+          <Text style={styles.viewMiniBtnText}>View Match</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function FriendCta({
+  playerEmail,
+  currentUserEmail,
+  friendEmails,
+  requests,
+  onAdd,
+  onAccept,
+}: {
+  playerEmail: string;
+  currentUserEmail: string;
+  friendEmails: Set<string>;
+  requests: FriendRequestDto[];
+  onAdd: (recipientEmail: string) => Promise<void>;
+  onAccept: (requestId: string) => Promise<void>;
+}) {
+  const [busy, setBusy] = React.useState(false);
+
+  if (friendEmails.has(playerEmail)) {
+    return (
+      <View style={[styles.friendCtaBtn, styles.friendCtaBtnDone]}>
+        <Text style={styles.friendCtaDone}>✓ Friend</Text>
+      </View>
+    );
+  }
+
+  const outgoing = requests.find(
+    (r) =>
+      r.status === "pending" &&
+      r.requesterEmail === currentUserEmail &&
+      r.recipientEmail === playerEmail,
+  );
+  if (outgoing) {
+    return (
+      <View style={[styles.friendCtaBtn, styles.friendCtaBtnPending]}>
+        <Text style={styles.friendCtaPending}>Requested</Text>
+      </View>
+    );
+  }
+
+  const incoming = requests.find(
+    (r) =>
+      r.status === "pending" &&
+      r.recipientEmail === currentUserEmail &&
+      r.requesterEmail === playerEmail,
+  );
+  if (incoming) {
+    return (
+      <Pressable
+        style={styles.friendCtaBtn}
+        disabled={busy}
+        onPress={async () => {
+          try {
+            setBusy(true);
+            await onAccept(incoming.id);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <Text style={styles.friendCtaBtnText}>{busy ? "..." : "Accept"}</Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      style={styles.friendCtaBtn}
+      disabled={busy}
+      onPress={async () => {
+        try {
+          setBusy(true);
+          await onAdd(playerEmail);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Text style={styles.friendCtaBtnText}>{busy ? "..." : "Add Friend"}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 110 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14, alignItems: "center" },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  userAvatar: { width: 42, height: 42, borderRadius: 12, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
-  userAvatarImage: { width: 42, height: 42, borderRadius: 12 },
+  userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
+  userAvatarImage: { width: 42, height: 42, borderRadius: 21 },
   userAvatarText: { color: COLORS.card, fontWeight: "700" },
-  greeting: { fontSize: 20, fontWeight: "800", color: COLORS.text },
+  greeting: { fontSize: 18, fontWeight: "800", color: COLORS.text },
   greetingSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   greetingAction: { fontSize: 11, color: COLORS.primary, marginTop: 2, fontWeight: "600" },
   headerActions: { flexDirection: "row", gap: 8 },
@@ -624,29 +886,115 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   badgeDotText: { color: COLORS.card, fontSize: 9, fontWeight: "800" },
-  instantCard: { backgroundColor: COLORS.text, borderRadius: 16, padding: 16, marginBottom: 12 },
-  instantTitle: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
-  instantSubtitle: { color: COLORS.borderMuted, marginTop: 4, fontSize: 12 },
-  instantBtn: { marginTop: 10, alignSelf: "flex-start", backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
-  instantBtnText: { color: COLORS.card, fontWeight: "700", fontSize: 12 },
+  instantCard: {
+    backgroundColor: "#FFF8DB",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#F6E6A7",
+  },
+  instantEyebrow: { color: "#7A5B00", opacity: 0.95, fontWeight: "600", fontSize: 11 },
+  instantTitle: { color: "#3B2A00", fontWeight: "800", fontSize: 23, marginTop: 1 },
+  instantSubtitle: { color: "#6A5200", opacity: 0.95, marginTop: 2, fontSize: 11 },
+  instantTimesRow: { flexDirection: "row", gap: 6, marginTop: 11, marginBottom: 11 },
+  instantTimeChip: {
+    borderRadius: 999,
+    backgroundColor: "#FFF3C4",
+    borderWidth: 1,
+    borderColor: "#EED27D",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  instantTimeChipActive: { backgroundColor: "#FFE68A", borderColor: "#DDAE2A" },
+  instantTimeChipText: { color: "#6A5200", opacity: 0.9, fontSize: 10, fontWeight: "700" },
+  instantTimeChipTextActive: { opacity: 1 },
+  instantBtn: {
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "#FFD66B",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#E2B84D",
+  },
+  instantBtnText: { color: "#4A3500", fontWeight: "800", fontSize: 13 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8, marginTop: 6 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text },
-  sectionSubtitle: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  sectionSubtitle: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   sectionAction: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
   quickActionsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  quickAction: { flex: 1, borderRadius: 14, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
+  quickAction: {
+    flex: 1,
+    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+    gap: 3,
+  },
   quickActionAccent: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  quickActionIcon: { fontSize: 19, marginBottom: 1 },
   quickActionText: { fontSize: 11, fontWeight: "700", color: COLORS.text },
   quickActionTextAccent: { color: COLORS.card },
-  matchCard: { backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
+  matchCard: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
+  cardTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 },
+  topTagsRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statusTagSoft: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+    backgroundColor: COLORS.successSoft,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  statusTagSoftText: { color: COLORS.successText, fontSize: 9, fontWeight: "700" },
+  progressTag: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  progressTagText: { color: COLORS.primaryDark, fontSize: 9, fontWeight: "700" },
+  metaRows: { marginTop: 2, gap: 1 },
+  cardEndChevron: { position: "absolute", right: 10, top: 11 },
+  levelPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  levelPillText: { color: COLORS.primaryDark, fontSize: 9, fontWeight: "700", textTransform: "capitalize" },
+  inviteOnlyTag: {
+    borderRadius: 999,
+    backgroundColor: COLORS.borderMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  inviteOnlyText: { color: COLORS.textMuted, fontSize: 9, fontWeight: "700" },
+  playersCountMini: { flexDirection: "row", alignItems: "center", gap: 3 },
+  playersCountMiniText: { fontSize: 10, color: COLORS.textMuted, fontWeight: "600" },
   matchTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 2 },
   matchMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   matchMetaSmall: { fontSize: 10, color: COLORS.textSubtle, marginTop: 3, textTransform: "capitalize" },
+  openSpotsText: { marginTop: 6, color: COLORS.successText, fontSize: 11, fontWeight: "700" },
+  progressActionsRow: { marginTop: 9, flexDirection: "row", justifyContent: "flex-start" },
   emptyCard: { backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, borderStyle: "dashed", padding: 14, alignItems: "center", marginBottom: 8 },
   emptyIcon: { fontSize: 22, marginBottom: 2 },
   emptyText: { color: COLORS.textMuted, fontSize: 12, textAlign: "center" },
   emptyAction: { marginTop: 4, color: COLORS.primary, fontSize: 11, fontWeight: "700" },
-  playersSwitch: { flexDirection: "row", backgroundColor: COLORS.border, borderRadius: 12, padding: 3, alignSelf: "flex-start", marginBottom: 10 },
+  playersHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  playersSwitch: { flexDirection: "row", backgroundColor: COLORS.border, borderRadius: 12, padding: 3, alignSelf: "flex-start" },
   switchBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9 },
   switchBtnActive: { backgroundColor: COLORS.card },
   switchBtnText: { fontSize: 11, color: COLORS.textSoft, fontWeight: "600" },
@@ -654,18 +1002,91 @@ const styles = StyleSheet.create({
   playersRow: { marginBottom: 14 },
   playersEmptyWrap: { paddingVertical: 10, paddingHorizontal: 2 },
   playersEmptyText: { fontSize: 12, color: COLORS.textMuted },
-  playerMini: { width: 90, alignItems: "center", marginRight: 10 },
-  playerAvatar: { width: 52, height: 52, borderRadius: 14, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center", marginBottom: 6 },
-  playerAvatarImage: { width: 52, height: 52, borderRadius: 14, marginBottom: 6 },
+  playerMini: {
+    width: 132,
+    alignItems: "center",
+    marginRight: 10,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  playerAvatarWrap: { position: "relative", marginBottom: 6 },
+  playerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
+  playerAvatarImage: { width: 52, height: 52, borderRadius: 26 },
+  playerVerifiedDot: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playerVerifiedDotText: { color: COLORS.card, fontSize: 9, fontWeight: "800" },
   playerAvatarText: { color: COLORS.primaryDark, fontWeight: "800" },
-  playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text, maxWidth: 80 },
-  playerLevel: { fontSize: 10, color: COLORS.textMuted, marginTop: 2, textTransform: "capitalize" },
+  playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text, maxWidth: 110 },
+  playerLocation: { fontSize: 10, color: COLORS.textMuted, marginTop: 1, maxWidth: 112 },
+  playerMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  playerLevel: { fontSize: 10, color: COLORS.textMuted, textTransform: "capitalize" },
+  playerRating: { fontSize: 10, color: COLORS.text, fontWeight: "600" },
+  playerCardFooter: { marginTop: 7, minHeight: 24, alignItems: "center", justifyContent: "center", width: "100%" },
+  friendCtaBtn: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 86,
+    alignItems: "center",
+  },
+  friendCtaBtnDone: { backgroundColor: COLORS.successSoft, borderColor: COLORS.success },
+  friendCtaBtnPending: { backgroundColor: COLORS.borderMuted, borderColor: COLORS.border },
+  friendCtaBtnText: { color: COLORS.primaryDark, fontSize: 10, fontWeight: "700" },
+  friendCtaDone: { color: COLORS.successText, fontSize: 10, fontWeight: "700" },
+  friendCtaPending: { color: COLORS.textMuted, fontSize: 10, fontWeight: "700" },
+  friendMini: { width: 62, alignItems: "center", marginRight: 10 },
+  friendAvatarWrap: { position: "relative", marginBottom: 4 },
+  friendAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
+  friendAvatarImage: { width: 44, height: 44, borderRadius: 22 },
+  friendAvatarText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 14 },
+  friendOnlineDot: {
+    position: "absolute",
+    right: -1,
+    bottom: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.card,
+    backgroundColor: COLORS.success,
+  },
+  friendName: { fontSize: 10, color: COLORS.text, fontWeight: "600", textAlign: "center", width: "100%" },
   flexOne: { flex: 1 },
-  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.card, padding: 12, marginBottom: 8 },
-  competitionIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
+  competitionCard: { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.card, padding: 12, marginBottom: 8 },
+  competitionIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.primarySoftAlt, alignItems: "center", justifyContent: "center" },
   competitionName: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   competitionMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-  resultsRow: { marginBottom: 10 },
+  compProgressRow: { marginTop: 5, flexDirection: "row", alignItems: "center", gap: 7 },
+  compProgressTrack: { flex: 1, height: 6, borderRadius: 999, backgroundColor: COLORS.borderMuted, overflow: "hidden" },
+  compProgressBar: { height: 6, borderRadius: 999, backgroundColor: COLORS.primary },
+  competitionMetaSmall: { fontSize: 10, color: COLORS.textSubtle, marginTop: 2 },
+  viewMiniBtn: {
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  viewMiniBtnText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
+  resultsCard: { marginTop: 2, marginBottom: 4, backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10 },
+  resultsRow: { marginBottom: 6 },
   resultDotWrap: { width: 56, alignItems: "center", marginRight: 8 },
   resultDot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   resultDotWin: { backgroundColor: COLORS.successSoft },

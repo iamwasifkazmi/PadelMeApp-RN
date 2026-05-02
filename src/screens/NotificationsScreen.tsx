@@ -33,7 +33,6 @@ export function NotificationsScreen() {
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<NotificationDto[]>([]);
-  const [tab, setTab] = React.useState<"all" | "unread">("all");
 
   const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
     const isRefresh = opts?.refresh === true;
@@ -71,69 +70,111 @@ export function NotificationsScreen() {
   }, [load]);
 
   if (loading) return <NotificationsSkeleton />;
-  const filtered = tab === "all" ? items : items.filter((i) => !i.isRead);
   const unreadCount = items.filter((i) => !i.isRead).length;
+  const grouped = groupByDate(items);
 
   return (
     <View style={styles.container}>
-      <View style={styles.headRow}>
-        <View>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>Updates for matches and invites</Text>
-        </View>
-        {unreadCount > 0 && (
+      <Text style={styles.subtitle}>{unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up 🎉"}</Text>
+      {unreadCount > 0 && (
+        <View style={styles.headRow}>
           <Pressable style={styles.markAllBtn} onPress={markAllRead}>
             <Text style={styles.markAllText}>Mark all read</Text>
           </Pressable>
-        )}
-      </View>
-      <View style={styles.tabs}>
-        <Pressable style={[styles.tabBtn, tab === "all" && styles.tabBtnActive]} onPress={() => setTab("all")}>
-          <Text style={[styles.tabText, tab === "all" && styles.tabTextActive]}>All</Text>
-        </Pressable>
-        <Pressable style={[styles.tabBtn, tab === "unread" && styles.tabBtnActive]} onPress={() => setTab("unread")}>
-          <Text style={[styles.tabText, tab === "unread" && styles.tabTextActive]}>
-            Unread ({unreadCount})
-          </Text>
-        </Pressable>
-      </View>
+        </View>
+      )}
 
       <FlatList
-        data={filtered}
-        keyExtractor={(i) => i.id}
+        data={grouped}
+        keyExtractor={(section) => section.label}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => markRead(item.id)}>
-            <View style={styles.iconWrap}>
-              <Ionicons
-                name={item.isRead ? "notifications-outline" : "notifications"}
-                size={18}
-                color={item.isRead ? COLORS.textMuted : COLORS.primary}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              {!!item.body && (
-                <Text style={styles.cardBody} numberOfLines={2}>
-                  {item.body}
-                </Text>
-              )}
-            </View>
-          </Pressable>
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item: section }) => (
+          <View style={styles.groupWrap}>
+            <Text style={styles.groupLabel}>{section.label}</Text>
+            {section.items.map((item) => (
+              <Pressable key={item.id} style={styles.card} onPress={() => markRead(item.id)}>
+                <View style={styles.iconWrap}>
+                  <Ionicons
+                    name={item.isRead ? "notifications-outline" : "notifications"}
+                    size={18}
+                    color={item.isRead ? COLORS.textMuted : COLORS.primary}
+                  />
+                </View>
+                <View style={styles.cardMain}>
+                  <View style={styles.cardTitleRow}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    {!item.isRead ? <View style={styles.newPill}><Text style={styles.newPillText}>NEW</Text></View> : null}
+                  </View>
+                  {!!item.body && (
+                    <Text style={styles.cardBody} numberOfLines={2}>
+                      {item.body}
+                    </Text>
+                  )}
+                  <Text style={styles.cardTime}>{fromNow(item.createdAt)}</Text>
+                </View>
+                <View style={styles.trailingWrap}>
+                  {!item.isRead ? <View style={styles.unreadDot} /> : null}
+                  <Ionicons name="chevron-forward" size={14} color={COLORS.iconMuted} />
+                </View>
+              </Pressable>
+            ))}
+          </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No notifications yet.</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="notifications-outline" size={24} color={COLORS.textMuted} />
+            </View>
+            <Text style={styles.emptyTitle}>No notifications yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Friend requests, match invites, scores, and more will appear here
+            </Text>
+          </View>
+        }
+        ListFooterComponent={items.length > 0 ? <Text style={styles.footerText}>Showing last {items.length} notifications</Text> : null}
       />
     </View>
   );
 }
 
+function groupByDate(items: NotificationDto[]) {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  const map = new Map<string, NotificationDto[]>();
+
+  for (const n of items) {
+    const d = new Date(n.createdAt).toDateString();
+    const label =
+      d === today
+        ? "Today"
+        : d === yesterday
+          ? "Yesterday"
+          : new Date(n.createdAt).toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" });
+    const list = map.get(label) || [];
+    list.push(n);
+    map.set(label, list);
+  }
+
+  return Array.from(map.entries()).map(([label, grouped]) => ({ label, items: grouped }));
+}
+
+function fromNow(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
-  headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
-  subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 14, paddingTop: 8 },
+  headRow: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginBottom: 8 },
+  subtitle: { marginTop: 2, marginBottom: 8, color: COLORS.textMuted, fontSize: 12 },
   markAllBtn: {
     backgroundColor: COLORS.primarySoft,
     borderWidth: 1,
@@ -142,41 +183,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  markAllText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 12 },
-  tabs: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  tabBtn: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    alignItems: "center",
-    paddingVertical: 8,
+  markAllText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 11 },
+  listContent: { paddingBottom: 110 },
+  groupWrap: { marginBottom: 10 },
+  groupLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.textMuted,
+    textTransform: "uppercase",
+    marginBottom: 5,
+    paddingHorizontal: 2,
   },
-  tabBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabText: { color: COLORS.textSoft, fontWeight: "700", fontSize: 12 },
-  tabTextActive: { color: COLORS.card },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 12,
-    marginBottom: 8,
+    padding: 11,
+    marginBottom: 6,
     flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
+    gap: 9,
+    alignItems: "flex-start",
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: COLORS.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  cardTitle: { fontSize: 14, color: COLORS.text, fontWeight: "700" },
-  cardBody: { marginTop: 3, fontSize: 12, color: COLORS.textMuted },
-  empty: { textAlign: "center", marginTop: 24, color: COLORS.textMuted },
+  cardMain: { flex: 1 },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 1 },
+  cardTitle: { fontSize: 13, color: COLORS.text, fontWeight: "700", flexShrink: 1 },
+  newPill: {
+    borderRadius: 999,
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.primaryPale,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  newPillText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 9 },
+  cardBody: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
+  cardTime: { marginTop: 4, fontSize: 10, color: COLORS.textMuted },
+  trailingWrap: { alignItems: "center", justifyContent: "space-between", minHeight: 34 },
+  unreadDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.primary },
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingHorizontal: 26, marginTop: 70 },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.borderMuted,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text, marginBottom: 4 },
+  emptySubtitle: { textAlign: "center", color: COLORS.textMuted, fontSize: 12, lineHeight: 18 },
+  footerText: { textAlign: "center", fontSize: 10, color: COLORS.textMuted, marginTop: 6 },
 });
 

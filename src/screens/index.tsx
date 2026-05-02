@@ -26,6 +26,8 @@ import { ForgotPasswordScreen as ActualForgotPasswordScreen } from "./ForgotPass
 import { ResetPasswordScreen as ActualResetPasswordScreen } from "./ResetPasswordScreen";
 import { VerifyEmailOtpScreen as ActualVerifyEmailOtpScreen } from "./VerifyEmailOtpScreen";
 import { SubscriptionGateScreen as ActualSubscriptionGateScreen } from "./SubscriptionGateScreen";
+import { AdminIDReviewScreen as ActualAdminIDReviewScreen } from "./AdminIDReviewScreen";
+import { AdminTestModeScreen as ActualAdminTestModeScreen } from "./AdminTestModeScreen";
 
 export const HomeScreen = ActualHomeScreen;
 export const DiscoverScreen = FindMatchScreen;
@@ -56,3 +58,5 @@ export const ForgotPasswordScreen = ActualForgotPasswordScreen;
 export const ResetPasswordScreen = ActualResetPasswordScreen;
 export const VerifyEmailOtpScreen = ActualVerifyEmailOtpScreen;
 export const SubscriptionGateScreen = ActualSubscriptionGateScreen;
+export const AdminIDReviewScreen = ActualAdminIDReviewScreen;
+export const AdminTestModeScreen = ActualAdminTestModeScreen;

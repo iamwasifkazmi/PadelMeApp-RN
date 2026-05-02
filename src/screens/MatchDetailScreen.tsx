@@ -229,7 +229,14 @@ export function MatchDetailScreen({
           <Pressable
             style={[styles.secondaryBtn, busy && styles.disabled]}
             disabled={busy}
-            onPress={() => navigation.navigate("InvitePlayers", { eventId: match.id })}
+            onPress={() =>
+              navigation.navigate("InvitePlayers", {
+                eventId: match.id,
+                eventKind: "match",
+                eventTitle: match.title,
+                eventSubtitle: `${match.locationName} · ${match.timeLabel}`,
+              })
+            }
           >
             <Text style={styles.secondaryBtnText}>Invite Players</Text>
           </Pressable>
