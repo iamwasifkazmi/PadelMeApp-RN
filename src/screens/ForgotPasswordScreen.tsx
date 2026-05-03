@@ -19,6 +19,7 @@ import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
 import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { APP_DISPLAY_NAME } from "../constants/appBranding";
 
 export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
@@ -66,7 +67,9 @@ export function ForgotPasswordScreen({ navigation }: { navigation: any }) {
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Forgot Password</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter your email to receive OTP reset code.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Enter your email to receive an OTP reset code for {APP_DISPLAY_NAME}.
+          </Text>
 
           <View style={styles.fieldBlock}>
             <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>Email</Text>

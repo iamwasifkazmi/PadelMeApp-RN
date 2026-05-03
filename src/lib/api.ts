@@ -4,6 +4,19 @@ export const API_BASE_URL =  "https://padelme-backend-775252415773.europe-west2.
 
 //  "http://localhost:4000/api";
 
+function parseErrorBody(text: string, status: number): string {
+  const trimmed = text.trim();
+  if (!trimmed) return `API error ${status}`;
+  try {
+    const j = JSON.parse(trimmed) as { error?: string; message?: string };
+    if (typeof j.error === "string" && j.error.length) return j.error;
+    if (typeof j.message === "string" && j.message.length) return j.message;
+  } catch {
+    // not JSON
+  }
+  return trimmed.length > 300 ? `${trimmed.slice(0, 297)}...` : trimmed;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = store.getState().auth.token;
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -17,7 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `API error ${response.status}`);
+    throw new Error(parseErrorBody(text, response.status));
   }
 
   return response.json() as Promise<T>;

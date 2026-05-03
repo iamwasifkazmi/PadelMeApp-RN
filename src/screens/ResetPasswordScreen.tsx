@@ -20,6 +20,7 @@ import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
 import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { APP_DISPLAY_NAME } from "../constants/appBranding";
 
 export function ResetPasswordScreen({ navigation, route }: { navigation: any; route?: any }) {
   const { colors, logoSource } = useAuthTheme();
@@ -81,7 +82,9 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter email, OTP code, and new password.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Enter email, OTP code, and new password for your {APP_DISPLAY_NAME} account.
+          </Text>
 
           <Field
             label="Email"

@@ -7,6 +7,7 @@ import { ProfileSummaryDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "../store";
 import { signOutGoogleSilently } from "../lib/googleAuth";
+import { signOutAppleSilently } from "../lib/appleAuth";
 import { COLORS } from "../theme/colors";
 
 const TAG_EMOJI: Record<string, string> = {
@@ -435,6 +436,7 @@ export function ProfileScreen() {
                 onPress={async () => {
                   setLogoutOpen(false);
                   await signOutGoogleSilently();
+                  await signOutAppleSilently();
                   await clearPersistedSession();
                 }}
               >

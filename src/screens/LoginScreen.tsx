@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
+import { isAppleAuthSupported, isAppleUserCancelled, signInWithAppleForBackend } from "../lib/appleAuth";
 import { isGoogleSignInConfigured, signInWithGoogleIdToken } from "../lib/googleAuth";
 import { useSnackbar } from "../components/Snackbar";
 import { AuthResponseDto } from "../lib/types";
@@ -23,6 +24,7 @@ import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
 import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { APP_DISPLAY_NAME } from "../constants/appBranding";
 
 export function LoginScreen({ navigation }: { navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
@@ -34,6 +36,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
+  const [appleLoading, setAppleLoading] = React.useState(false);
 
   const onLogin = async () => {
     if (!email.trim() || !password) {
@@ -82,9 +85,34 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     } catch (err: unknown) {
       const msg = String((err as Error)?.message || "");
       if (msg === "cancelled") return;
-      showSnackbar("Google sign-in failed. Check backend GOOGLE_OAUTH_CLIENT_IDS and try again.", { type: "error" });
+      const display = msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
+      showSnackbar(display || "Google sign-in failed.", { type: "error" });
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const onApple = async () => {
+    if (!isAppleAuthSupported()) return;
+    try {
+      setAppleLoading(true);
+      const { identityToken, email, fullName } = await signInWithAppleForBackend();
+      const res = await api.post<AuthResponseDto>("/auth/apple", {
+        identityToken,
+        ...(email ? { email } : {}),
+        ...(fullName ? { fullName } : {}),
+      });
+      await persistSession({
+        token: res.token,
+        user: { ...res.user, isNewUser: res.isNewUser },
+      });
+    } catch (err: unknown) {
+      if (isAppleUserCancelled(err)) return;
+      const msg = String((err as Error)?.message || "");
+      const display = msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
+      showSnackbar(display || "Apple sign-in failed.", { type: "error" });
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -109,7 +137,9 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Login to continue your PadelMe journey.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Login to continue your {APP_DISPLAY_NAME} journey.
+          </Text>
 
           <Field
             label="Email"
@@ -153,10 +183,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             style={[
               styles.googleBtn,
               { backgroundColor: colors.card, borderColor: colors.border },
-              (googleLoading || loading) && styles.disabled,
+              (googleLoading || appleLoading || loading) && styles.disabled,
             ]}
             onPress={onGoogle}
-            disabled={googleLoading || loading}
+            disabled={googleLoading || appleLoading || loading}
           >
             {googleLoading ? (
               <ActivityIndicator color={colors.text} />
@@ -167,6 +197,23 @@ export function LoginScreen({ navigation }: { navigation: any }) {
               </>
             )}
           </Pressable>
+
+          {isAppleAuthSupported() ? (
+            <Pressable
+              style={[styles.appleBtn, (googleLoading || appleLoading || loading) && styles.disabled]}
+              onPress={onApple}
+              disabled={googleLoading || appleLoading || loading}
+            >
+              {appleLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
+                  <Text style={styles.appleBtnText}>Continue with Apple</Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
 
           <Pressable style={styles.footerLinkRow} onPress={() => navigation.navigate("Register")}>
             <Text style={[styles.footerMuted, { color: colors.textMuted }]}>No account? </Text>
@@ -267,6 +314,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
   },
   googleBtnText: { fontSize: 15, fontWeight: "700" },
+  appleBtn: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderRadius: 14,
+    paddingVertical: 12,
+    backgroundColor: "#000000",
+  },
+  appleBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   forgotRow: { alignItems: "flex-end", marginTop: 4, marginBottom: 4 },
   forgotLink: { fontSize: 14, fontWeight: "600" },
   footerLinkRow: {

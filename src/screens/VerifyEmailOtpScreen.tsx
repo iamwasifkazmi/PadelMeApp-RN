@@ -21,6 +21,7 @@ import { COLORS } from "../theme/colors";
 import { useAuthTheme } from "../theme/authTheme";
 import { useKeyboardBottomInset } from "../hooks/useKeyboardBottomInset";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { APP_DISPLAY_NAME } from "../constants/appBranding";
 
 export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navigation: any }) {
   const { colors, logoSource } = useAuthTheme();
@@ -98,7 +99,9 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
             <Image source={logoSource} style={[styles.logo, { borderColor: colors.border }]} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Verify Email</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Enter the 6-digit OTP sent to your email.</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+            Enter the 6-digit OTP sent to your email to verify your {APP_DISPLAY_NAME} account.
+          </Text>
 
           <View style={styles.fieldBlock}>
             <Text style={[styles.fieldLabel, { color: colors.textSubtle }]}>Email</Text>

@@ -7,6 +7,7 @@
  */
 export const INVITE_WEB_ORIGIN = "https://mipadel.app";
 
+/** Hostname only — must match each `applinks:` entry in ios entitlements (e.g. applinks:mipadel.app). */
 export function inviteWebHostname(): string {
   try {
     return new URL(INVITE_WEB_ORIGIN).hostname;
