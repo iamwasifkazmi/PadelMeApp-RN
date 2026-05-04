@@ -7,8 +7,19 @@ function parseErrorBody(text: string, status: number): string {
   const trimmed = text.trim();
   if (!trimmed) return `API error ${status}`;
   try {
-    const j = JSON.parse(trimmed) as { error?: string; message?: string };
-    if (typeof j.error === "string" && j.error.length) return j.error;
+    const j = JSON.parse(trimmed) as {
+      error?: string;
+      message?: string;
+      code?: string;
+      detail?: string;
+    };
+    if (typeof j.error === "string" && j.error.length) {
+      const suffix =
+        typeof j.code === "string" && j.code.length
+          ? ` (${j.code}${typeof j.detail === "string" && j.detail.length ? `: ${j.detail}` : ""})`
+          : "";
+      return j.error + suffix;
+    }
     if (typeof j.message === "string" && j.message.length) return j.message;
   } catch {
     // not JSON

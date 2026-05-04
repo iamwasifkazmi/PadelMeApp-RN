@@ -133,6 +133,9 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
         return;
       }
       if (res.requestId) setRequestId(res.requestId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not start instant play";
+      showSnackbar(msg, { type: "error" });
     } finally {
       setBusy(false);
     }
