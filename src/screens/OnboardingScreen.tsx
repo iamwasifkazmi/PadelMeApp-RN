@@ -378,6 +378,8 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
+  pickLocationBtnText: { color: OB.orange, fontWeight: "700", fontSize: 14 },
+  cta: {
     marginTop: 10,
     backgroundColor: OB.orange,
     borderRadius: 16,
