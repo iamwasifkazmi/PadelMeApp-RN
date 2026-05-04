@@ -17,6 +17,7 @@ import { MatchDto, PlayerRecentFormDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { userLocationLabel } from "../lib/userLocation";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
 
 type MatchStatusValue =
