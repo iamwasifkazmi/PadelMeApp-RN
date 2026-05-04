@@ -8,6 +8,9 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { PadelLevelRow } from "../components/PadelLevelRow";
+import { formatDistanceAway } from "../lib/padelSkill";
+import { userLocationLabel } from "../lib/userLocation";
 
 type FriendRequestDto = {
   id: string;
@@ -65,7 +68,9 @@ export function PlayerProfileScreen({
     setLoading(true);
     try {
       const [userRes, friendRes] = await Promise.all([
-        api.get<UserDto>(`/users/${route.params.id}`),
+        api.get<UserDto>(
+          `/users/${route.params.id}?viewerEmail=${encodeURIComponent(USER_EMAIL)}`,
+        ),
         api.get<FriendsResponseDto>(`/friends?email=${encodeURIComponent(USER_EMAIL)}`),
       ]);
       setUser(userRes);
@@ -219,13 +224,22 @@ export function PlayerProfileScreen({
                 <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
               ) : null}
             </View>
-            {user.location ? <Text style={styles.location}>📍 {user.location}</Text> : null}
+            {userLocationLabel(user) ? (
+              <Text style={styles.location}>📍 {userLocationLabel(user)}</Text>
+            ) : null}
+            {(() => {
+              const profileUser = user as UserDto & { distanceKm?: number | null };
+              const dist = !isOwn ? formatDistanceAway(profileUser.distanceKm) : null;
+              return dist ? <Text style={styles.distanceAway}>{dist}</Text> : null;
+            })()}
             <View style={styles.badgesRow}>
-              {user.skillLabel ? <Badge label={user.skillLabel} /> : null}
-              <Badge label={`ELO ${user.eloRating || 1000}`} />
-              {typeof user.averageRating === "number" && user.averageRating > 0 ? (
-                <Badge label={`⭐ ${user.averageRating.toFixed(1)}`} />
-              ) : null}
+              <View style={styles.levelWrap}>
+                <PadelLevelRow skillLevel={user.skillLevel} fallbackLabel={user.skillLabel} />
+              </View>
+              <Badge label={`ELO ${user.eloRating || 1000}`} variant="primary" />
+              <Badge
+                label={`⭐ ${typeof user.averageRating === "number" && user.averageRating > 0 ? user.averageRating.toFixed(1) : "—"}`}
+              />
             </View>
           </View>
         </View>
@@ -320,10 +334,11 @@ export function PlayerProfileScreen({
   );
 }
 
-function Badge({ label }: { label: string }) {
+function Badge({ label, variant }: { label: string; variant?: "default" | "primary" }) {
+  const isPrimary = variant === "primary";
   return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>{label}</Text>
+    <View style={[styles.badge, isPrimary && styles.badgePrimary]}>
+      <Text style={[styles.badgeText, isPrimary && styles.badgeTextPrimary]}>{label}</Text>
     </View>
   );
 }
@@ -374,9 +389,13 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   name: { color: COLORS.text, fontSize: 22, fontWeight: "800", lineHeight: 25 },
   location: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },
-  badgesRow: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  distanceAway: { marginTop: 2, color: COLORS.textSoft, fontSize: 11, fontWeight: "600" },
+  badgesRow: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
+  levelWrap: { width: "100%", marginBottom: 2 },
   badge: { borderRadius: 999, backgroundColor: COLORS.border, paddingHorizontal: 10, paddingVertical: 5 },
+  badgePrimary: { backgroundColor: COLORS.primarySoftAlt },
   badgeText: { color: COLORS.textSubtle, fontSize: 11, fontWeight: "700", textTransform: "capitalize" },
+  badgeTextPrimary: { color: COLORS.primary, textTransform: "none" },
   privateBox: {
     marginTop: 10,
     borderRadius: 12,

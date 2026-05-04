@@ -21,6 +21,9 @@ import {
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
+import { PadelLevelRow } from "../components/PadelLevelRow";
+import { formatDistanceAway } from "../lib/padelSkill";
+import { userLocationLabel } from "../lib/userLocation";
 
 type FriendRequestDto = {
   id: string;
@@ -193,7 +196,7 @@ export function HomeScreen() {
           api.get<MatchDto[]>("/matches?status=in_progress"),
           api.get<MatchDto[]>("/matches?status=awaiting_score"),
           api.get<MatchDto[]>("/matches?status=pending_validation"),
-          api.get<UserDto[]>("/users"),
+          api.get<UserDto[]>(`/users?viewerEmail=${encodeURIComponent(USER_EMAIL)}`),
           api.get<FriendsResponseDto>(`/friends?email=${encodeURIComponent(USER_EMAIL)}`),
           api.get<CompetitionDto[]>("/competitions"),
           api.get<NotificationDto[]>(`/notifications?email=${encodeURIComponent(USER_EMAIL)}`),
@@ -282,7 +285,7 @@ export function HomeScreen() {
 
   const meName = me?.fullName || getCurrentUserName();
   const firstName = meName.split(" ")[0] || "Player";
-  const meLocation = me?.location || "";
+  const meLocation = userLocationLabel(me ?? {});
   const meAvatarInitial = meName.slice(0, 1).toUpperCase() || "P";
 
   const activeMatches = [...inProgressMatches, ...awaitingMatches, ...pendingValidationMatches]
@@ -307,8 +310,16 @@ export function HomeScreen() {
   const otherUsers = allUsers.filter((u) => u.email !== USER_EMAIL);
   const nearbyUsers = otherUsers
     .filter((u) => !friendEmails.has(u.email) && (u.profileVisibility || "public") !== "private")
+    .sort((a, b) => {
+      const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
+      const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
+      if (da !== db) return da - db;
+      return (b.eloRating || 0) - (a.eloRating || 0);
+    })
     .slice(0, 10);
-  const friends = (friendsData?.friends || []).slice(0, 12);
+  const friends = [...(friendsData?.friends || [])]
+    .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+    .slice(0, 12);
   const displayedPlayers = playersTab === "friends" ? friends : nearbyUsers;
 
   const registrationCompetitions = competitions
@@ -502,13 +513,25 @@ export function HomeScreen() {
               <Text style={styles.playerName} numberOfLines={1}>
                 {p.fullName || p.email.split("@")[0]}
               </Text>
-              {!!p.location && (
+              {!!userLocationLabel(p) && (
                 <Text style={styles.playerLocation} numberOfLines={1}>
-                  📍 {p.location}
+                  📍 {userLocationLabel(p)}
                 </Text>
               )}
+              {typeof p.distanceKm === "number" ? (
+                <Text style={styles.playerDistance} numberOfLines={1}>
+                  {formatDistanceAway(p.distanceKm)}
+                </Text>
+              ) : null}
+              <View style={styles.playerSkillBlock}>
+                <PadelLevelRow
+                  skillLevel={p.skillLevel}
+                  fallbackLabel={p.skillLabel}
+                  compact
+                />
+              </View>
               <View style={styles.playerMetaRow}>
-                <Text style={styles.playerLevel}>{p.skillLabel || "intermediate"}</Text>
+                <Text style={styles.playerElo}>ELO {p.eloRating ?? 1000}</Text>
                 {(p.averageRating || 0) > 0 ? (
                   <Text style={styles.playerRating}>⭐ {(p.averageRating || 0).toFixed(1)}</Text>
                 ) : null}
@@ -593,9 +616,14 @@ export function HomeScreen() {
         <>
           <View style={styles.resultsCard}>
             <SectionHeader title="Recent Results" subtitle={`ELO ${eloSum >= 0 ? `+${eloSum}` : eloSum}`} action="All History →" onAction={() => navigation.navigate("PastEvents")} />
+            <Text style={styles.resultsHint}>Tap a result for match details · Past Events for full history</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsRow}>
               {recentResults.map((r) => (
-                <View key={r.id} style={styles.resultDotWrap}>
+                <Pressable
+                  key={r.id}
+                  style={styles.resultDotWrap}
+                  onPress={() => navigation.navigate("MatchDetail", { id: r.id })}
+                >
                   <View style={[styles.resultDot, r.result === "W" ? styles.resultDotWin : styles.resultDotLoss]}>
                     <Text style={[styles.resultDotText, r.result === "W" ? styles.resultDotTextWin : styles.resultDotTextLoss]}>
                       {r.result}
@@ -605,7 +633,7 @@ export function HomeScreen() {
                   <Text style={styles.resultDate}>
                     {new Date(r.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </Text>
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
           </View>
@@ -1003,7 +1031,7 @@ const styles = StyleSheet.create({
   playersEmptyWrap: { paddingVertical: 10, paddingHorizontal: 2 },
   playersEmptyText: { fontSize: 12, color: COLORS.textMuted },
   playerMini: {
-    width: 132,
+    width: 154,
     alignItems: "center",
     marginRight: 10,
     backgroundColor: COLORS.card,
@@ -1029,10 +1057,12 @@ const styles = StyleSheet.create({
   },
   playerVerifiedDotText: { color: COLORS.card, fontSize: 9, fontWeight: "800" },
   playerAvatarText: { color: COLORS.primaryDark, fontWeight: "800" },
-  playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text, maxWidth: 110 },
-  playerLocation: { fontSize: 10, color: COLORS.textMuted, marginTop: 1, maxWidth: 112 },
-  playerMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  playerLevel: { fontSize: 10, color: COLORS.textMuted, textTransform: "capitalize" },
+  playerName: { fontSize: 12, fontWeight: "700", color: COLORS.text, maxWidth: 132 },
+  playerLocation: { fontSize: 10, color: COLORS.textMuted, marginTop: 1, maxWidth: 136 },
+  playerDistance: { fontSize: 9, color: COLORS.textSoft, marginTop: 1, maxWidth: 136 },
+  playerSkillBlock: { marginTop: 6, width: "100%", alignItems: "center" },
+  playerMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  playerElo: { fontSize: 10, color: COLORS.primary, fontWeight: "700" },
   playerRating: { fontSize: 10, color: COLORS.text, fontWeight: "600" },
   playerCardFooter: { marginTop: 7, minHeight: 24, alignItems: "center", justifyContent: "center", width: "100%" },
   friendCtaBtn: {
@@ -1086,6 +1116,7 @@ const styles = StyleSheet.create({
   },
   viewMiniBtnText: { color: COLORS.primaryDark, fontSize: 11, fontWeight: "700" },
   resultsCard: { marginTop: 2, marginBottom: 4, backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10 },
+  resultsHint: { fontSize: 11, color: COLORS.textMuted, marginBottom: 8, marginTop: -4 },
   resultsRow: { marginBottom: 6 },
   resultDotWrap: { width: 56, alignItems: "center", marginRight: 8 },
   resultDot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },

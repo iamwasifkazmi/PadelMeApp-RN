@@ -1,5 +1,6 @@
 import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { CompetitionDto, MatchDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
@@ -25,6 +26,7 @@ function PastEventsSkeleton() {
 }
 
 export function PastEventsScreen() {
+  const navigation = useNavigation<any>();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -102,14 +104,23 @@ export function PastEventsScreen() {
         onRefresh={onRefresh}
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Pressable
+            style={styles.card}
+            onPress={() => {
+              if (item.kind === "match") {
+                navigation.navigate("MatchDetail", { id: item.id });
+              } else {
+                navigation.navigate("CompetitionDetail", { id: item.id });
+              }
+            }}
+          >
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.meta}>{item.subtitle}</Text>
             <Text style={styles.meta}>
               Type: {item.kind === "match" ? "Match" : "Competition"} · Status: {item.status}
             </Text>
             {"score" in item && item.score ? <Text style={styles.meta}>Score: {item.score}</Text> : null}
-          </View>
+          </Pressable>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No past events yet.</Text>}
       />
@@ -121,7 +132,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
   subtitle: { marginTop: 2, marginBottom: 12, color: COLORS.textMuted },
-  card: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, borderRadius: 14, padding: 12, marginBottom: 8 },
+  card: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+  },
   cardTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   meta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted, textTransform: "capitalize" },
   empty: { textAlign: "center", marginTop: 24, color: COLORS.textMuted },

@@ -38,6 +38,7 @@ export type RootStackParamList = {
   PastEvents: undefined;
   ConversationView: { id: string };
   MatchChat: { matchId: string };
+  MatchRatePlayers: { matchId: string };
   SubscriptionGate: undefined;
   AdminIDReview: undefined;
   AdminTestMode: undefined;

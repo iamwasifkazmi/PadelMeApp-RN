@@ -28,6 +28,7 @@ import { VerifyEmailOtpScreen as ActualVerifyEmailOtpScreen } from "./VerifyEmai
 import { SubscriptionGateScreen as ActualSubscriptionGateScreen } from "./SubscriptionGateScreen";
 import { AdminIDReviewScreen as ActualAdminIDReviewScreen } from "./AdminIDReviewScreen";
 import { AdminTestModeScreen as ActualAdminTestModeScreen } from "./AdminTestModeScreen";
+import { MatchRatePlayersScreen as ActualMatchRatePlayersScreen } from "./MatchRatePlayersScreen";
 
 export const HomeScreen = ActualHomeScreen;
 export const DiscoverScreen = FindMatchScreen;
@@ -60,3 +61,4 @@ export const VerifyEmailOtpScreen = ActualVerifyEmailOtpScreen;
 export const SubscriptionGateScreen = ActualSubscriptionGateScreen;
 export const AdminIDReviewScreen = ActualAdminIDReviewScreen;
 export const AdminTestModeScreen = ActualAdminTestModeScreen;
+export const MatchRatePlayersScreen = ActualMatchRatePlayersScreen;

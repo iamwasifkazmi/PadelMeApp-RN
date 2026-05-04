@@ -18,6 +18,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
@@ -104,7 +105,9 @@ export function EditProfileScreen() {
     fullName: "",
     age: "",
     gender: "",
-    location: "",
+    locationName: "",
+    locationLat: null as number | null,
+    locationLng: null as number | null,
     photoUrl: "",
     photoVerified: false,
     bio: "",
@@ -137,7 +140,9 @@ export function EditProfileScreen() {
           fullName: u.fullName || "",
           age: u.age ? String(u.age) : "",
           gender: u.gender || "",
-          location: u.location || "",
+          locationName: (u.locationName || u.location || "").trim(),
+          locationLat: u.locationLat ?? null,
+          locationLng: u.locationLng ?? null,
           photoUrl: u.photoUrl || "",
           photoVerified: Boolean(u.photoVerified),
           bio: nextBio,
@@ -173,8 +178,8 @@ export function EditProfileScreen() {
       showSnackbar("Name is required", { type: "error" });
       return;
     }
-    if (!form.location.trim()) {
-      showSnackbar("Location is required", { type: "error" });
+    if (!hasUserGeo(form)) {
+      showSnackbar("Pick a location with Search so we can save exact coordinates.", { type: "error" });
       return;
     }
     try {
@@ -184,7 +189,10 @@ export function EditProfileScreen() {
         fullName: form.fullName.trim(),
         age: form.age ? Number(form.age) : null,
         gender: form.gender || null,
-        location: form.location.trim(),
+        location: form.locationName.trim() || null,
+        locationName: form.locationName.trim() || null,
+        locationLat: form.locationLat,
+        locationLng: form.locationLng,
         bio: form.bio.trim(),
         photoUrl: form.photoUrl.trim() || null,
         photoVerified: form.photoVerified,
@@ -347,7 +355,15 @@ export function EditProfileScreen() {
             onChangeText={(v) => setForm((p) => ({ ...p, age: v.replace(/\D/g, "").slice(0, 2) }))}
             keyboardType="number-pad"
           />
-          <Field label="Location *" value={form.location} onChangeText={(v) => setForm((p) => ({ ...p, location: v }))} />
+          <Text style={styles.fieldLabel}>Home location *</Text>
+          <Text style={styles.locationHint}>
+            {userLocationLabel(form) || "No place selected yet — use search for a map pin (exact coordinates)."}
+          </Text>
+          {hasUserGeo(form) ? (
+            <Text style={styles.coordsHint}>
+              {form.locationLat?.toFixed(5)}, {form.locationLng?.toFixed(5)}
+            </Text>
+          ) : null}
           <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
             <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
             <Text style={styles.pickLocationBtnText}>Search & select location</Text>
@@ -562,9 +578,22 @@ export function EditProfileScreen() {
       <LocationSearchModal
         visible={locationPickerOpen}
         title="Pick your location"
-        initialQuery={form.location}
+        initialQuery={form.locationName}
         onClose={() => setLocationPickerOpen(false)}
-        onPick={(loc) => setForm((p) => ({ ...p, location: loc.city || loc.label }))}
+        onPick={(loc) => {
+          const lat = loc.lat;
+          const lon = loc.lon;
+          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return;
+          }
+          const label = (loc.label || loc.city || loc.address || "").trim();
+          setForm((p) => ({
+            ...p,
+            locationName: label,
+            locationLat: lat,
+            locationLng: lon,
+          }));
+        }}
       />
     </View>
   );
@@ -758,6 +787,14 @@ const styles = StyleSheet.create({
   photoInlineBtnText: { color: COLORS.card, fontSize: 11, fontWeight: "700" },
   fieldWrap: { marginBottom: 10 },
   fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 11, fontWeight: "600" },
+  locationHint: {
+    marginBottom: 6,
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  coordsHint: { marginBottom: 8, color: COLORS.textMuted, fontSize: 11 },
   pickLocationBtn: {
     marginTop: -1,
     marginBottom: 10,

@@ -9,6 +9,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 type CompetitionTypeValue = "tournament" | "league";
 type CompetitionFormatValue = "knockout" | "round_robin" | "group_knockout";
@@ -21,6 +22,8 @@ type FormState = {
   visibility: "public" | "private";
   locationName: string;
   locationAddress: string;
+  locationLat: number | null;
+  locationLng: number | null;
   startDate: string;
   endDate: string;
   skillLevel: "any" | "beginner" | "intermediate" | "advanced";
@@ -93,8 +96,10 @@ export function CreateCompetitionScreen({
     type: defaultType,
     format: defaultType === "league" ? "round_robin" : "knockout",
     visibility: "public",
-    locationName: "Padel Arena",
-    locationAddress: "Al Quoz, Dubai",
+    locationName: "",
+    locationAddress: "",
+    locationLat: null,
+    locationLng: null,
     startDate: new Date().toISOString().slice(0, 10),
     endDate: "",
     skillLevel: "any",
@@ -131,8 +136,15 @@ export function CreateCompetitionScreen({
   const estimatedPool = Math.max(0, gross - platformFee);
 
   const create = async () => {
-    if (!form.name.trim() || !form.startDate || !form.locationName.trim()) {
-      showSnackbar("Please fill required fields (name, start date, venue).", { type: "error" });
+    if (
+      !form.name.trim() ||
+      !form.startDate ||
+      !form.locationName.trim() ||
+      !hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng })
+    ) {
+      showSnackbar("Please fill name, start date, and pick a venue with Search (coordinates required).", {
+        type: "error",
+      });
       return;
     }
 
@@ -147,6 +159,8 @@ export function CreateCompetitionScreen({
         hostEmail: USER_EMAIL,
         locationName: form.locationName.trim(),
         locationAddress: form.locationAddress.trim(),
+        locationLat: form.locationLat!,
+        locationLng: form.locationLng!,
         startDate: form.startDate ? new Date(form.startDate).toISOString() : undefined,
         endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
         skillLevel: form.skillLevel,
@@ -242,18 +256,15 @@ export function CreateCompetitionScreen({
       </SectionCard>
 
       <SectionCard icon="location-outline" title="Venue & Dates">
-        <Field
-          label="Venue Name *"
-          value={form.locationName}
-          placeholder="Padel Arena"
-          onChangeText={(v) => update("locationName", v)}
-        />
-        <Field
-          label="Venue Address"
-          value={form.locationAddress}
-          placeholder="Al Quoz, Dubai"
-          onChangeText={(v) => update("locationAddress", v)}
-        />
+        <Text style={styles.fieldLabel}>Venue (exact map pin) *</Text>
+        <Text style={styles.venueHint}>
+          {userLocationLabel(form) || "Search for the venue — coordinates are required."}
+        </Text>
+        {hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }) ? (
+          <Text style={styles.coordsHint}>
+            {form.locationLat?.toFixed(5)}, {form.locationLng?.toFixed(5)}
+          </Text>
+        ) : null}
         <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
           <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
           <Text style={styles.pickLocationBtnText}>Search & select location</Text>
@@ -675,8 +686,18 @@ export function CreateCompetitionScreen({
         initialQuery={form.locationName || form.locationAddress}
         onClose={() => setLocationPickerOpen(false)}
         onPick={(loc) => {
-          update("locationName", loc.city || loc.label);
-          update("locationAddress", loc.address);
+          const lat = loc.lat;
+          const lon = loc.lon;
+          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return;
+          }
+          setForm((p) => ({
+            ...p,
+            locationName: (loc.label || loc.city || loc.address || "").trim(),
+            locationAddress: loc.address,
+            locationLat: lat,
+            locationLng: lon,
+          }));
         }}
       />
     </ScrollView>
@@ -883,6 +904,14 @@ const styles = StyleSheet.create({
   },
   dateFieldText: { color: COLORS.text, fontSize: 12 },
   dateFieldPlaceholder: { color: COLORS.textMuted },
+  venueHint: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  coordsHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 8 },
   pickLocationBtn: {
     marginTop: 2,
     marginBottom: 8,

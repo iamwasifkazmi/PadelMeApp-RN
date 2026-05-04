@@ -5,6 +5,8 @@ export type MatchDto = {
   timeLabel: string;
   locationName: string;
   locationAddress?: string | null;
+  locationLat?: number | null;
+  locationLng?: number | null;
   durationMinutes?: number | null;
   skillLevel?: string | null;
   matchType?: "singles" | "doubles" | "mixed_doubles";
@@ -22,7 +24,26 @@ export type MatchDto = {
   status: string;
   scoreTeamA?: string | null;
   scoreTeamB?: string | null;
-  winnerTeam?: string | null;
+  hostEmail?: string | null;
+  confirmedPlayerEmails?: string[];
+  teamsLocked?: boolean;
+  pendingScoreTeamA?: string | null;
+  pendingScoreTeamB?: string | null;
+  pendingWinnerTeam?: string | null;
+  scoreSubmittedBy?: string | null;
+  scoreConfirmedBy?: string | null;
+  genderRequirement?: string | null;
+  ageMin?: number | null;
+  ageMax?: number | null;
+  skillRangeMin?: number | null;
+  skillRangeMax?: number | null;
+  minRatingThreshold?: number | null;
+  verificationRequirement?: string | null;
+  replacementNeeded?: boolean;
+  cancelledBy?: string | null;
+  cancelledAt?: string | null;
+  teamACaptainEmail?: string | null;
+  teamBCaptainEmail?: string | null;
 };
 
 export type UserDto = {
@@ -30,6 +51,11 @@ export type UserDto = {
   email: string;
   fullName?: string | null;
   location?: string | null;
+  locationLat?: number | null;
+  locationLng?: number | null;
+  locationName?: string | null;
+  /** Kilometres from viewer when API called with viewerEmail / friends?email */
+  distanceKm?: number | null;
   age?: number | null;
   gender?: string | null;
   bio?: string | null;
@@ -63,6 +89,9 @@ export type ProfileSummaryDto = {
     email: string;
     fullName: string;
     location?: string | null;
+    locationName?: string | null;
+    locationLat?: number | null;
+    locationLng?: number | null;
     bio?: string | null;
     photoUrl?: string | null;
     age?: number | null;
@@ -181,6 +210,8 @@ export type CompetitionDto = {
   visibility?: string;
   locationName?: string | null;
   locationAddress?: string | null;
+  locationLat?: number | null;
+  locationLng?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   skillLevel?: string | null;

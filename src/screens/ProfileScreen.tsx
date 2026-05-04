@@ -9,6 +9,7 @@ import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "
 import { signOutGoogleSilently } from "../lib/googleAuth";
 import { signOutAppleSilently } from "../lib/appleAuth";
 import { COLORS } from "../theme/colors";
+import { userLocationLabel } from "../lib/userLocation";
 
 const TAG_EMOJI: Record<string, string> = {
   Competitive: "🎯",
@@ -180,11 +181,16 @@ export function ProfileScreen() {
           </View>
           <View style={styles.heroInfo}>
             <Text style={styles.name}>{fullName}</Text>
-            <Text style={styles.location}>{summary?.user.location || user?.location || "Set your location"}</Text>
+            <Text style={styles.location}>
+              {userLocationLabel({
+                ...summary?.user,
+                ...user,
+              }) || "Set your location"}
+            </Text>
             <Text style={styles.statusLine}>{summary?.user.statusLine || "🎾 Looking for games"}</Text>
             <View style={styles.heroBadges}>
               <Badge label={skill} />
-              {rating > 0 ? <Badge label={`⭐ ${rating.toFixed(1)}`} /> : null}
+              <Badge label={rating > 0 ? `⭐ ${rating.toFixed(1)}` : "⭐ —"} />
               <Badge label={`ELO ${elo}`} />
             </View>
           </View>

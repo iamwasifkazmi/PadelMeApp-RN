@@ -20,6 +20,7 @@ import { getSocket } from "../lib/socket";
 import { ConversationDto, MessageDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
+import { conversationTitleForViewer } from "../lib/conversationDisplay";
 import { COLORS } from "../theme/colors";
 
 function ConversationSkeleton() {
@@ -188,7 +189,8 @@ export function ConversationViewScreen({
     };
     const onTyping = (payload: { conversationId?: string; senderEmail?: string; isTyping?: boolean }) => {
       if (payload?.conversationId !== id) return;
-      if (!payload?.senderEmail || payload.senderEmail === USER_EMAIL) return;
+      if (!payload?.senderEmail || payload.senderEmail.trim().toLowerCase() === USER_EMAIL.trim().toLowerCase())
+        return;
       setIsPeerTyping(Boolean(payload.isTyping));
       if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current);
       if (payload.isTyping) {
@@ -259,12 +261,13 @@ export function ConversationViewScreen({
     };
   }, [USER_EMAIL, id, emitTyping]);
 
+  const viewerNorm = USER_EMAIL.trim().toLowerCase();
   const otherParticipantEmail =
-    conversation?.participantEmails?.find((email) => email !== USER_EMAIL) || "";
-  const peerOnline = !!otherParticipantEmail && onlineEmails.includes(otherParticipantEmail.toLowerCase());
-  const peerTitle =
-    conversation?.entityName ||
-    (otherParticipantEmail ? otherParticipantEmail.split("@")[0] : "Conversation");
+    conversation?.participantEmails
+      ?.map((e) => e.trim().toLowerCase())
+      .find((email) => email !== viewerNorm) || "";
+  const peerOnline = !!otherParticipantEmail && onlineEmails.includes(otherParticipantEmail);
+  const peerTitle = conversation ? conversationTitleForViewer(conversation, USER_EMAIL) : "Conversation";
 
   const headerTitleRenderer = React.useCallback(
     () => (
@@ -341,7 +344,7 @@ export function ConversationViewScreen({
           if (nearBottomRef.current) listRef.current?.scrollToEnd({ animated: true });
         }}
         renderItem={({ item }) => {
-          const mine = item.senderEmail === USER_EMAIL;
+          const mine = item.senderEmail.trim().toLowerCase() === USER_EMAIL.trim().toLowerCase();
           const sentAt = item.createdAt
             ? new Date(item.createdAt).toLocaleTimeString([], {
                 hour: "2-digit",

@@ -7,6 +7,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
+import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 type NearbyMatch = {
   id: string;
@@ -45,6 +46,8 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
   const [matchType, setMatchType] = React.useState<"singles" | "doubles">("doubles");
   const [skillLevel, setSkillLevel] = React.useState("intermediate");
   const [locationName, setLocationName] = React.useState("");
+  const [locationLat, setLocationLat] = React.useState<number | null>(null);
+  const [locationLng, setLocationLng] = React.useState<number | null>(null);
   const [locOpen, setLocOpen] = React.useState(false);
 
   const [requestId, setRequestId] = React.useState<string | null>(null);
@@ -60,11 +63,16 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
         setProfileLoading(true);
         const me = await api.get<{
           location?: string | null;
+          locationName?: string | null;
+          locationLat?: number | null;
+          locationLng?: number | null;
           skillLabel?: string | null;
           matchTypePreference?: string | null;
         }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`);
         if (cancelled) return;
-        if (me.location) setLocationName(me.location);
+        setLocationName(userLocationLabel(me));
+        setLocationLat(me.locationLat ?? null);
+        setLocationLng(me.locationLng ?? null);
         if (me.skillLabel) setSkillLevel(me.skillLabel);
         if (me.matchTypePreference === "singles") setMatchType("singles");
       } catch {
@@ -98,6 +106,10 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
   }, [requestId, navigation]);
 
   const join = async () => {
+    if (!hasUserGeo({ locationLat, locationLng })) {
+      showSnackbar("Choose a playing area with search so we have exact coordinates.", { type: "error" });
+      return;
+    }
     try {
       setBusy(true);
       const res = await api.post<{
@@ -111,6 +123,8 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
         matchType,
         skillLevel,
         locationName: locationName.trim() || "Nearby court",
+        locationLat: locationLat!,
+        locationLng: locationLng!,
       });
       setStatus(res.status);
       setNearby(Array.isArray(res.nearbyMatches) ? res.nearbyMatches : []);
@@ -253,7 +267,14 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
         initialQuery={locationName}
         onClose={() => setLocOpen(false)}
         onPick={(loc) => {
-          setLocationName(loc.label || loc.address || loc.city);
+          const lat = loc.lat;
+          const lon = loc.lon;
+          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return;
+          }
+          setLocationName((loc.label || loc.address || loc.city || "").trim());
+          setLocationLat(lat);
+          setLocationLng(lon);
           setLocOpen(false);
         }}
       />

@@ -16,11 +16,14 @@ import { MatchDto } from "../lib/types";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 type Mode = "instant" | "scheduled" | "recurring";
 type MatchTypeValue = "singles" | "doubles" | "mixed_doubles";
 type SkillValue = "any" | "beginner" | "intermediate" | "advanced";
 type VisibilityValue = "public" | "invite_only";
+type GenderRequirementValue = "any" | "male" | "female" | "mixed";
+type VerificationValue = "none" | "photo" | "id";
 
 type FormState = {
   mode: Mode;
@@ -31,10 +34,19 @@ type FormState = {
   durationMinutes: 60 | 90 | 120;
   locationName: string;
   locationAddress: string;
+  locationLat: number | null;
+  locationLng: number | null;
   skillLevel: SkillValue;
   visibility: VisibilityValue;
   tags: string[];
   notes: string;
+  genderRequirement: GenderRequirementValue;
+  ageMinText: string;
+  ageMaxText: string;
+  skillRangeMinText: string;
+  skillRangeMaxText: string;
+  minRatingThresholdText: string;
+  verificationRequirement: VerificationValue;
 };
 
 const MATCH_TYPES: Array<{
@@ -85,12 +97,21 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     date: formatDate(new Date()),
     timeLabel: "19:30",
     durationMinutes: 90,
-    locationName: "Padel Club Downtown",
+    locationName: "",
     locationAddress: "",
+    locationLat: null,
+    locationLng: null,
     skillLevel: "any",
     visibility: "public",
     tags: [],
     notes: "",
+    genderRequirement: "any",
+    ageMinText: "",
+    ageMaxText: "",
+    skillRangeMinText: "",
+    skillRangeMaxText: "",
+    minRatingThresholdText: "",
+    verificationRequirement: "none",
   });
 
   const steps = getSteps(form.mode);
@@ -113,7 +134,11 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     currentStep === "mode"
       ? Boolean(form.mode)
       : currentStep === "setup"
-        ? Boolean(form.matchType)
+        ? Boolean(
+            form.matchType &&
+              form.title.trim().length >= 1 &&
+              hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }),
+          )
         : currentStep === "when"
           ? Boolean(form.date && form.timeLabel)
           : true;
@@ -136,19 +161,26 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       showSnackbar("Match title is required.", { type: "error" });
       return;
     }
-    if (!form.locationName.trim()) {
-      showSnackbar("Location is required.", { type: "error" });
+    if (!hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng })) {
+      showSnackbar("Pick a venue with Search so we save exact coordinates.", { type: "error" });
       return;
     }
 
     try {
       setSaving(true);
+      const ageMin = Number.parseInt(form.ageMinText.trim(), 10);
+      const ageMax = Number.parseInt(form.ageMaxText.trim(), 10);
+      const skillRangeMin = Number.parseInt(form.skillRangeMinText.trim(), 10);
+      const skillRangeMax = Number.parseInt(form.skillRangeMaxText.trim(), 10);
+      const minRatingThreshold = Number.parseFloat(form.minRatingThresholdText.trim());
       const created = await api.post<MatchDto>("/matches", {
         title: form.title.trim(),
         date: form.date,
         timeLabel: form.timeLabel,
         locationName: form.locationName.trim(),
         locationAddress: form.locationAddress.trim(),
+        locationLat: form.locationLat!,
+        locationLng: form.locationLng!,
         durationMinutes: form.durationMinutes,
         skillLevel: form.skillLevel,
         visibility: form.visibility,
@@ -159,6 +191,19 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         matchType: form.matchType,
         createdByEmail: USER_EMAIL,
         teamA: form.matchType !== "singles" && USER_EMAIL ? [USER_EMAIL] : [],
+        genderRequirement: form.genderRequirement,
+        verificationRequirement: form.verificationRequirement,
+        ...(form.ageMinText.trim() && Number.isFinite(ageMin) ? { ageMin } : {}),
+        ...(form.ageMaxText.trim() && Number.isFinite(ageMax) ? { ageMax } : {}),
+        ...(form.skillRangeMinText.trim() && Number.isFinite(skillRangeMin)
+          ? { skillRangeMin }
+          : {}),
+        ...(form.skillRangeMaxText.trim() && Number.isFinite(skillRangeMax)
+          ? { skillRangeMax }
+          : {}),
+        ...(form.minRatingThresholdText.trim() && Number.isFinite(minRatingThreshold)
+          ? { minRatingThreshold }
+          : {}),
       });
       showSnackbar(form.mode === "instant" ? "Looking for players ⚡" : "Match created! 🎾", {
         type: "success",
@@ -280,6 +325,25 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               ))}
             </View>
+
+            <SectionLabel text="Venue (exact map pin) *" />
+            <Text style={styles.venueHint}>
+              {userLocationLabel({
+                locationName: form.locationName,
+                locationAddress: form.locationAddress,
+                locationLat: form.locationLat,
+                locationLng: form.locationLng,
+              }) || "Search for a club or court — coordinates are required."}
+            </Text>
+            {hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }) ? (
+              <Text style={styles.coordsHint}>
+                {form.locationLat?.toFixed(5)}, {form.locationLng?.toFixed(5)}
+              </Text>
+            ) : null}
+            <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
+              <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
+              <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+            </Pressable>
           </>
         ) : null}
 
@@ -302,22 +366,6 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               </View>
             </View>
-            <Field
-              label="Venue Name"
-              value={form.locationName}
-              onChangeText={(v) => update("locationName", v)}
-              placeholder="Padel Club Downtown"
-            />
-            <Field
-              label="Venue Address"
-              value={form.locationAddress}
-              onChangeText={(v) => update("locationAddress", v)}
-              placeholder="Street, city"
-            />
-            <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
-              <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
-              <Text style={styles.pickLocationBtnText}>Search & select location</Text>
-            </Pressable>
           </>
         ) : null}
 
@@ -370,6 +418,99 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               ))}
             </View>
 
+            <SectionLabel text="Player requirements (optional, Base44-style)" />
+            <Text style={styles.venueHint}>
+              Stricter joins: gender, age, skill band (1 = elite, 10 = beginner), min star rating, ID/photo.
+            </Text>
+            <View style={[styles.row, styles.rowWrap]}>
+              {(
+                [
+                  ["any", "Any gender"],
+                  ["male", "Male"],
+                  ["female", "Female"],
+                  ["mixed", "Mixed pairs"],
+                ] as const
+              ).map(([value, label]) => (
+                <Pressable
+                  key={value}
+                  style={[styles.chip, form.genderRequirement === value && styles.chipActive]}
+                  onPress={() => update("genderRequirement", value)}
+                >
+                  <Text style={[styles.chipText, form.genderRequirement === value && styles.chipTextActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.row}>
+              <View style={styles.flexOne}>
+                <Field
+                  label="Min age"
+                  value={form.ageMinText}
+                  onChangeText={(v) => update("ageMinText", v.replace(/[^\d]/g, ""))}
+                  placeholder="—"
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.flexOne}>
+                <Field
+                  label="Max age"
+                  value={form.ageMaxText}
+                  onChangeText={(v) => update("ageMaxText", v.replace(/[^\d]/g, ""))}
+                  placeholder="—"
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+            <View style={styles.row}>
+              <View style={styles.flexOne}>
+                <Field
+                  label="Skill min (1–10)"
+                  value={form.skillRangeMinText}
+                  onChangeText={(v) => update("skillRangeMinText", v.replace(/[^\d]/g, ""))}
+                  placeholder="—"
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={styles.flexOne}>
+                <Field
+                  label="Skill max (1–10)"
+                  value={form.skillRangeMaxText}
+                  onChangeText={(v) => update("skillRangeMaxText", v.replace(/[^\d]/g, ""))}
+                  placeholder="—"
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+            <Field
+              label="Min average player rating (stars)"
+              value={form.minRatingThresholdText}
+              onChangeText={(v) => update("minRatingThresholdText", v.replace(/[^\d.]/g, ""))}
+              placeholder="e.g. 4"
+              keyboardType="decimal-pad"
+            />
+            <View style={styles.row}>
+              {(
+                [
+                  ["none", "No verify"],
+                  ["photo", "Photo ✓"],
+                  ["id", "ID ✓"],
+                ] as const
+              ).map(([value, label]) => (
+                <Pressable
+                  key={value}
+                  style={[styles.chip, form.verificationRequirement === value && styles.chipActive]}
+                  onPress={() => update("verificationRequirement", value)}
+                >
+                  <Text
+                    style={[styles.chipText, form.verificationRequirement === value && styles.chipTextActive]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <Field
               label="Notes (optional)"
               value={form.notes}
@@ -387,7 +528,9 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                   : `📅 ${form.date} · ${form.timeLabel}`}
               </Text>
               <Text style={styles.previewMeta}>
-                📍 {form.locationName} · {form.matchType === "singles" ? "Singles" : form.matchType === "mixed_doubles" ? "Mixed Doubles" : "Doubles"} · {form.durationMinutes}min
+                📍 {userLocationLabel(form) || "Venue"} ·{" "}
+                {form.matchType === "singles" ? "Singles" : form.matchType === "mixed_doubles" ? "Mixed Doubles" : "Doubles"} ·{" "}
+                {form.durationMinutes}min
               </Text>
             </View>
           </>
@@ -433,8 +576,18 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         initialQuery={form.locationName || form.locationAddress}
         onClose={() => setLocationPickerOpen(false)}
         onPick={(loc) => {
-          update("locationName", loc.city || loc.label);
-          update("locationAddress", loc.address);
+          const lat = loc.lat;
+          const lon = loc.lon;
+          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return;
+          }
+          setForm((p) => ({
+            ...p,
+            locationName: (loc.label || loc.city || loc.address || "").trim(),
+            locationAddress: loc.address,
+            locationLat: lat,
+            locationLng: lon,
+          }));
         }}
       />
     </View>
@@ -473,12 +626,14 @@ function Field({
   onChangeText,
   placeholder,
   multiline,
+  keyboardType,
 }: {
   label: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  keyboardType?: "default" | "number-pad" | "decimal-pad";
 }) {
   return (
     <View style={styles.fieldWrap}>
@@ -490,6 +645,7 @@ function Field({
         placeholder={placeholder}
         placeholderTextColor={COLORS.textMuted}
         multiline={multiline}
+        keyboardType={keyboardType ?? "default"}
       />
     </View>
   );
@@ -561,6 +717,7 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   row: { flexDirection: "row", gap: 8 },
+  rowWrap: { flexWrap: "wrap" },
   flexOne: { flex: 1 },
   chip: {
     flex: 1,
@@ -587,6 +744,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dateText: { color: COLORS.text, fontSize: 13, fontWeight: "600" },
+  venueHint: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  coordsHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 6 },
   pickLocationBtn: {
     marginTop: 3,
     marginBottom: 8,

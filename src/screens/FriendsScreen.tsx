@@ -16,6 +16,8 @@ import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import type { RootStackParamList } from "../navigation/types";
+import { PadelLevelRow } from "../components/PadelLevelRow";
+import { formatDistanceAway } from "../lib/padelSkill";
 
 type Tab = "friends" | "requests" | "sent" | "discover";
 
@@ -83,7 +85,9 @@ export function FriendsScreen() {
         const data = await api.get<{ friends: UserDto[]; requests: FriendRequestDto[] }>(
           `/friends?email=${encodeURIComponent(USER_EMAIL)}`,
         );
-        const allUsers = await api.get<UserDto[]>("/users");
+        const allUsers = await api.get<UserDto[]>(
+          `/users?viewerEmail=${encodeURIComponent(USER_EMAIL)}`,
+        );
         setFriends(data.friends);
         setAllRequests(data.requests);
         setUsers(
@@ -253,7 +257,9 @@ export function FriendsScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const dist = formatDistanceAway(item.distanceKm);
+          return (
           <View style={styles.card}>
             <View style={styles.cardTop}>
               <View style={styles.avatar}>
@@ -263,8 +269,12 @@ export function FriendsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{item.fullName || item.email}</Text>
+                <View style={styles.friendSkillWrap}>
+                  <PadelLevelRow skillLevel={item.skillLevel} fallbackLabel={item.skillLabel} compact />
+                </View>
                 <Text style={styles.cardMeta}>
-                  {item.skillLabel || "Player"} · ELO {item.eloRating}
+                  ELO {item.eloRating ?? 1000}
+                  {dist ? ` · ${dist}` : ""}
                 </Text>
               </View>
             </View>
@@ -288,7 +298,8 @@ export function FriendsScreen() {
               </Pressable>
             ) : null}
           </View>
-        )}
+          );
+        }}
         ListEmptyComponent={
           tab === "friends" || tab === "discover" ? (
             <Text style={styles.empty}>No items in this section.</Text>
@@ -347,7 +358,8 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontWeight: "800", color: COLORS.primaryDark, fontSize: 13 },
   cardTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
-  cardMeta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted },
+  friendSkillWrap: { marginTop: 6, alignSelf: "flex-start" },
+  cardMeta: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   actions: { flexDirection: "row", gap: 8, marginTop: 8 },
   acceptBtn: { backgroundColor: COLORS.success, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   acceptText: { color: COLORS.card, fontWeight: "700", fontSize: 12 },

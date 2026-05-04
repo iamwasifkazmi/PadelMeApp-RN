@@ -18,6 +18,8 @@ import { UserDto } from "../lib/types";
 import { buildWebInviteUrl } from "../config/deepLinks";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { PadelLevelRow } from "../components/PadelLevelRow";
+import { formatDistanceAway } from "../lib/padelSkill";
 
 type InviteItem = {
   id: string;
@@ -84,7 +86,7 @@ export function InvitePlayersScreen() {
     try {
       setLoading(true);
       const [usersResp, invitesResp] = await Promise.all([
-        api.get<UserDto[]>("/users"),
+        api.get<UserDto[]>(`/users?viewerEmail=${encodeURIComponent(USER_EMAIL)}`),
         eventId ? api.get<InviteItem[]>(`/invites/event/${eventId}`) : Promise.resolve([]),
       ]);
       setUsers(usersResp);
@@ -302,10 +304,18 @@ export function InvitePlayersScreen() {
         contentContainerStyle={{ paddingBottom: 80 }}
         renderItem={({ item }) => {
           const checked = !!selected[item.email];
+          const dist = formatDistanceAway(item.distanceKm);
           return (
             <Pressable style={[styles.rowCard, checked && styles.rowCardSelected]} onPress={() => toggle(item.email)}>
               <Text style={styles.userName}>{item.fullName || item.email.split("@")[0]}</Text>
               <Text style={styles.userMeta}>{item.email}</Text>
+              <View style={styles.inviteSkillWrap}>
+                <PadelLevelRow skillLevel={item.skillLevel} fallbackLabel={item.skillLabel} compact />
+              </View>
+              <Text style={styles.inviteMetaLine}>
+                ELO {item.eloRating ?? 1000}
+                {dist ? ` · ${dist}` : ""}
+              </Text>
             </Pressable>
           );
         }}
@@ -402,5 +412,7 @@ const styles = StyleSheet.create({
   rowCardSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
   userName: { color: COLORS.text, fontWeight: "700", fontSize: 14 },
   userMeta: { color: COLORS.textMuted, marginTop: 2, fontSize: 12 },
+  inviteSkillWrap: { marginTop: 8, alignSelf: "flex-start" },
+  inviteMetaLine: { marginTop: 6, fontSize: 12, color: COLORS.textSubtle, fontWeight: "600" },
   emptyText: { textAlign: "center", color: COLORS.textMuted, marginTop: 20 },
 });

@@ -7,6 +7,7 @@ import { ConversationDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { useNavigation } from "@react-navigation/native";
 import { getCurrentUserEmail } from "../store";
+import { conversationTitleForViewer } from "../lib/conversationDisplay";
 import { COLORS } from "../theme/colors";
 
 export function MessagesScreen() {
@@ -66,7 +67,7 @@ export function MessagesScreen() {
     if (tab === "groups" && c.type === "direct") return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return (c.entityName || "conversation").toLowerCase().includes(q);
+    return conversationTitleForViewer(c, USER_EMAIL).toLowerCase().includes(q);
   });
   const unreadCount = filtered.reduce(
     (sum, c) => sum + (c.unreadCounts?.[USER_EMAIL] || 0),
@@ -129,7 +130,7 @@ export function MessagesScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>{item.entityName || "Conversation"}</Text>
+                <Text style={styles.name}>{conversationTitleForViewer(item, USER_EMAIL)}</Text>
                 {!!item.lastMessageAt && (
                   <Text style={styles.timeText}>
                     {new Date(item.lastMessageAt).toLocaleDateString(undefined, {

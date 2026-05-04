@@ -9,6 +9,7 @@ import { getCurrentUserEmail, persistSession } from "../store";
 import { store } from "../store/store";
 import { COLORS } from "../theme/colors";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 /** Onboarding uses MiPadel brand: black / navy surfaces + orange accents (not default light gray shell). */
 const OB = {
@@ -48,19 +49,29 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
   const [step, setStep] = React.useState<1 | 2 | 3>(1);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [fullName, setFullName] = React.useState("");
-  const [location, setLocation] = React.useState("");
+  const [locationName, setLocationName] = React.useState("");
+  const [locationLat, setLocationLat] = React.useState<number | null>(null);
+  const [locationLng, setLocationLng] = React.useState<number | null>(null);
   const [skillLabel, setSkillLabel] = React.useState("intermediate");
 
   React.useEffect(() => {
     let mounted = true;
     api
-      .get<{ fullName?: string | null; location?: string | null; skillLabel?: string | null; bio?: string | null }>(
-        `/users/me?email=${encodeURIComponent(USER_EMAIL)}`,
-      )
+      .get<{
+        fullName?: string | null;
+        location?: string | null;
+        locationName?: string | null;
+        locationLat?: number | null;
+        locationLng?: number | null;
+        skillLabel?: string | null;
+        bio?: string | null;
+      }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`)
       .then((u) => {
         if (!mounted) return;
         setFullName(u.fullName || "");
-        setLocation(u.location || "");
+        setLocationName((u.locationName || u.location || "").trim());
+        setLocationLat(u.locationLat ?? null);
+        setLocationLng(u.locationLng ?? null);
         setSkillLabel(u.skillLabel || "intermediate");
       })
       .finally(() => {
@@ -79,7 +90,10 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       await api.patch("/users/me", {
         email: USER_EMAIL,
         fullName: fullName.trim(),
-        location: location.trim(),
+        location: locationName.trim() || null,
+        locationName: locationName.trim() || null,
+        locationLat,
+        locationLng,
         skillLevel: skillNumeric,
         skillLabel,
         profileComplete: true,
@@ -125,7 +139,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       ? fullName.trim().length >= 2
       : step === 2
         ? Boolean(skillLabel)
-        : location.trim().length >= 2;
+        : hasUserGeo({ locationLat, locationLng });
 
   const next = () => {
     if (step < 3) {
@@ -201,23 +215,21 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
         <View style={styles.stepWrap}>
           <Text style={styles.stepEmoji}>📍</Text>
           <Text style={styles.title}>Where are you based?</Text>
-          <Text style={styles.subtitle}>Find matches near you</Text>
-          <Field
-            label="City or town"
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Enter your location"
-            leftIcon={<Ionicons name="location-outline" size={18} color={OB.orange} />}
-          />
+          <Text style={styles.subtitle}>We need exact map coordinates — search for your city or club</Text>
+          <Text style={styles.locationChosen}>
+            {userLocationLabel({ locationName, locationLat, locationLng }) || "No place selected yet"}
+          </Text>
+          {hasUserGeo({ locationLat, locationLng }) ? (
+            <Text style={styles.coordsMini}>
+              {locationLat?.toFixed(5)}, {locationLng?.toFixed(5)}
+            </Text>
+          ) : null}
           <Pressable
             style={styles.pickLocationBtn}
             onPress={() => setLocationPickerOpen(true)}
           >
             <Ionicons name="search-outline" size={14} color={OB.orange} />
             <Text style={styles.pickLocationBtnText}>Search & select location</Text>
-          </Pressable>
-          <Pressable onPress={() => setLocation("TBD")}>
-            <Text style={styles.skipText}>Skip for now</Text>
           </Pressable>
         </View>
       ) : null}
@@ -235,9 +247,18 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       <LocationSearchModal
         visible={locationPickerOpen}
         title="Pick your location"
-        initialQuery={location}
+        initialQuery={locationName}
         onClose={() => setLocationPickerOpen(false)}
-        onPick={(loc) => setLocation(loc.city || loc.label)}
+        onPick={(loc) => {
+          const lat = loc.lat;
+          const lon = loc.lon;
+          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            return;
+          }
+          setLocationName((loc.label || loc.city || loc.address || "").trim());
+          setLocationLat(lat);
+          setLocationLng(lon);
+        }}
       />
     </View>
   );
@@ -335,6 +356,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   skillTickInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.card },
+  locationChosen: {
+    textAlign: "center",
+    color: OB.text,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 6,
+    paddingHorizontal: 8,
+  },
+  coordsMini: { textAlign: "center", color: OB.muted, fontSize: 12, marginBottom: 12 },
   pickLocationBtn: {
     borderWidth: 1,
     borderColor: OB.orange,
@@ -348,9 +378,6 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
-  pickLocationBtnText: { color: OB.text, fontSize: 12, fontWeight: "700" },
-  skipText: { marginTop: 2, color: OB.muted, textAlign: "center", fontSize: 12 },
-  cta: {
     marginTop: 10,
     backgroundColor: OB.orange,
     borderRadius: 16,

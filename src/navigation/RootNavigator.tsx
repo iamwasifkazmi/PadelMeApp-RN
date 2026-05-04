@@ -13,6 +13,7 @@ import {
   InvitePlayersScreen,
   MatchChatScreen,
   MatchDetailScreen,
+  MatchRatePlayersScreen,
   NotificationsScreen,
   OnboardingScreen,
   PastEventsScreen,
@@ -152,6 +153,7 @@ export function RootNavigator() {
       <Stack.Screen name="PastEvents" component={PastEventsScreen} />
       <Stack.Screen name="ConversationView" component={ConversationViewScreen} />
       <Stack.Screen name="MatchChat" component={MatchChatScreen} />
+      <Stack.Screen name="MatchRatePlayers" component={MatchRatePlayersScreen} options={{ title: "Rate players" }} />
       <Stack.Screen name="SubscriptionGate" component={SubscriptionGateScreen} />
       <Stack.Screen name="AdminIDReview" component={AdminIDReviewScreen} options={{ title: "Admin ID Review" }} />
       <Stack.Screen name="AdminTestMode" component={AdminTestModeScreen} options={{ title: "Admin Test Mode" }} />

@@ -97,6 +97,9 @@ export function LocationSearchModal({
   }, [query, visible]);
 
   const pickNominatim = (item: NominatimItem) => {
+    const lat = Number(item.lat);
+    const lon = Number(item.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
     const city =
       item.address?.city ||
       item.address?.town ||
@@ -110,8 +113,8 @@ export function LocationSearchModal({
       city: label,
       address: item.display_name,
       label,
-      lat: Number(item.lat),
-      lon: Number(item.lon),
+      lat,
+      lon,
     });
     onClose();
   };
@@ -129,12 +132,17 @@ export function LocationSearchModal({
       };
       const city = [data.city, data.region, data.country_name].filter(Boolean).join(", ");
       const label = city || "Current location";
+      const lat = data.latitude;
+      const lon = data.longitude;
+      if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return;
+      }
       onPick({
         city: label,
         address: label,
         label,
-        lat: data.latitude,
-        lon: data.longitude,
+        lat,
+        lon,
       });
       onClose();
     } catch {
@@ -218,7 +226,7 @@ export function LocationSearchModal({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "center", paddingHorizontal: 18 },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.35)" },
   sheet: {
     backgroundColor: COLORS.card,
     borderRadius: 14,
