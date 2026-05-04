@@ -1,7 +1,7 @@
 import React from "react";
 import { Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { ProfileSummaryDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
@@ -12,11 +12,23 @@ import { COLORS } from "../theme/colors";
 import { userLocationLabel } from "../lib/userLocation";
 
 const TAG_EMOJI: Record<string, string> = {
-  Competitive: "🎯",
+  Competitive: "🔥",
   Casual: "😎",
   "Beginner-friendly": "🌱",
   Social: "🤝",
-  "Training partner": "💪",
+  "Training partner": "🎯",
+};
+
+/** Mirrors EditProfileScreen MATCH_TYPES / MATCH_FORMATS display values */
+const MATCH_TYPE_LABEL: Record<string, string> = {
+  casual: "Social 😎",
+  competitive: "Competitive 🔥",
+  training: "Training 🎯",
+};
+const MATCH_FORMAT_LABEL: Record<string, string> = {
+  singles: "Singles 1v1",
+  doubles: "Doubles 2v2",
+  both: "Both ✌️",
 };
 
 function ProfileSkeleton() {
@@ -83,6 +95,7 @@ export function ProfileScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [tab, setTab] = React.useState<"overview" | "performance">("overview");
   const [logoutOpen, setLogoutOpen] = React.useState(false);
+  const skipFocusRefreshRef = React.useRef(true);
 
   const load = React.useCallback(
     async (opts?: { refresh?: boolean }) => {
@@ -111,6 +124,16 @@ export function ProfileScreen() {
     load();
   }, [load]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (skipFocusRefreshRef.current) {
+        skipFocusRefreshRef.current = false;
+        return;
+      }
+      load({ refresh: true });
+    }, [load]),
+  );
+
   const onRefresh = React.useCallback(() => {
     load({ refresh: true });
   }, [load]);
@@ -126,7 +149,12 @@ export function ProfileScreen() {
   const earnedAchievements = achievements.filter((a) => a.earned);
   const lockedAchievements = achievements.filter((a) => !a.earned).slice(0, 3);
   const recentFormDots = summary?.recentFormDots || [];
-  const userTags = summary?.user.tags || [];
+  const userTags = summary?.user.tags || user?.tags || [];
+  const matchTypePref = (summary?.user.matchTypePreference || user?.matchTypePreference || "").trim().toLowerCase();
+  const matchFormatPref = (summary?.user.matchFormatPreference || user?.matchFormatPreference || "").trim().toLowerCase();
+  const playTypeLabel = matchTypePref ? MATCH_TYPE_LABEL[matchTypePref] : "";
+  const playFormatLabel = matchFormatPref ? MATCH_FORMAT_LABEL[matchFormatPref] : "";
+  const hasPlayPrefs = Boolean(playTypeLabel || playFormatLabel || userTags.length > 0);
 
   return (
     <ScrollView
@@ -181,6 +209,30 @@ export function ProfileScreen() {
           </View>
           <View style={styles.heroInfo}>
             <Text style={styles.name}>{fullName}</Text>
+            {hasPlayPrefs ? (
+              <View style={styles.playPrefsSection}>
+                <Text style={styles.playPrefsEyebrow}>How you play</Text>
+                <View style={styles.tagRow}>
+                  {playTypeLabel ? (
+                    <View key="mt" style={styles.tagChip}>
+                      <Text style={styles.tagChipText}>{playTypeLabel}</Text>
+                    </View>
+                  ) : null}
+                  {playFormatLabel ? (
+                    <View key="mf" style={styles.tagChip}>
+                      <Text style={styles.tagChipText}>{playFormatLabel}</Text>
+                    </View>
+                  ) : null}
+                  {userTags.map((tag) => (
+                    <View key={tag} style={styles.tagChip}>
+                      <Text style={styles.tagChipText}>
+                        {TAG_EMOJI[tag] || "✨"} {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
             <Text style={styles.location}>
               {userLocationLabel({
                 ...summary?.user,
@@ -196,17 +248,6 @@ export function ProfileScreen() {
           </View>
         </View>
         {!!summary?.user.bio && <Text style={styles.bioText}>{summary.user.bio}</Text>}
-        {userTags.length > 0 ? (
-          <View style={styles.tagRow}>
-            {userTags.map((tag) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagChipText}>
-                  {TAG_EMOJI[tag] || "🎾"} {tag}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
         <View style={styles.heroButtons}>
           <Pressable style={styles.heroCta} onPress={() => navigation.navigate("InstantPlay")}>
             <Ionicons name="flash-outline" size={14} color={COLORS.card} />
@@ -564,7 +605,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
-  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  playPrefsSection: { marginTop: 8, alignSelf: "stretch" },
+  playPrefsEyebrow: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: COLORS.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 0 },
   tagChip: {
     borderWidth: 1,
     borderColor: COLORS.primaryPale,
