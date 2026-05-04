@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,7 +12,8 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
-import { MatchDto, UserDto } from "../lib/types";
+import { MatchResultPanel } from "../components/MatchResultPanel";
+import { MatchDto, PlayerRecentFormDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
@@ -25,6 +27,7 @@ type MatchStatusValue =
   | "pending_validation"
   | "completed"
   | "cancelled"
+  | "disputed"
   | string;
 
 function emailsMatch(a: string, b: string) {
@@ -153,8 +156,11 @@ export function MatchDetailScreen({
   const [busy, setBusy] = React.useState(false);
   const [scoreA, setScoreA] = React.useState("");
   const [scoreB, setScoreB] = React.useState("");
+  const [evidenceUrlDraft, setEvidenceUrlDraft] = React.useState("");
   const [winnerPick, setWinnerPick] = React.useState<"team_a" | "team_b" | "">("");
   const [teamDraft, setTeamDraft] = React.useState<Record<string, "a" | "b" | null>>({});
+  const [recentForm, setRecentForm] = React.useState<PlayerRecentFormDto | null>(null);
+  const [disputeReason, setDisputeReason] = React.useState("");
 
   const teamsSyncKey = match
     ? `${match.id}:${match.teamsLocked}:${match.players.join("|")}:${(match.teamA || []).join(",")}:${(match.teamB || []).join(",")}`
@@ -213,6 +219,28 @@ export function MatchDetailScreen({
   React.useEffect(() => {
     load(false);
   }, [load]);
+
+  React.useEffect(() => {
+    if (!match || match.status !== "completed" || !USER_EMAIL) {
+      setRecentForm(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const row = await api.get<PlayerRecentFormDto | null>(
+          `/matches/${match.id}/recent-form?email=${encodeURIComponent(USER_EMAIL)}`,
+        );
+        if (!cancelled) setRecentForm(row);
+      } catch {
+        if (!cancelled) setRecentForm(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- match identity + completed gate only
+  }, [match?.id, match?.status, USER_EMAIL]);
 
   const postJson = async (path: string, body: Record<string, unknown>, okMsg: string) => {
     if (!match) return;
@@ -287,6 +315,8 @@ export function MatchDetailScreen({
       submittedBy: USER_EMAIL,
     };
     if (winnerPick) body.winnerTeam = winnerPick;
+    const ev = evidenceUrlDraft.trim();
+    if (ev) body.evidenceUrl = ev;
     return postJson(`/matches/${match.id}/submit-score`, body, "Score saved");
   };
 
@@ -295,6 +325,46 @@ export function MatchDetailScreen({
 
   const onRejectPendingScore = () =>
     postJson(`/matches/${match!.id}/reject-score`, { email: USER_EMAIL }, "Proposed score rejected");
+
+  const onReopenDispute = () =>
+    postJson(`/matches/${match!.id}/reopen-dispute`, { email: USER_EMAIL }, "Match reopened — you can enter a new score.");
+
+  const onDisputeScore = async () => {
+    if (!match) return;
+    const reason = disputeReason.trim();
+    if (!reason) {
+      showSnackbar("Add a short reason for the dispute", { type: "error" });
+      return;
+    }
+    try {
+      setBusy(true);
+      await api.post<MatchDto>(`/matches/${match.id}/dispute-score`, {
+        email: USER_EMAIL,
+        reason,
+      });
+      setDisputeReason("");
+      await load(true);
+      showSnackbar("Score disputed. The organiser can reopen when ready.", { type: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Request failed";
+      showSnackbar(msg, { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openEvidenceLink = async (url: string) => {
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (!ok) {
+        showSnackbar("Could not open this link", { type: "error" });
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      showSnackbar("Could not open this link", { type: "error" });
+    }
+  };
 
   if (loading) return <ScreenSkeleton rows={6} topGap={12} />;
 
@@ -459,6 +529,32 @@ export function MatchDetailScreen({
         </View>
       ) : null}
 
+      {status === "disputed" ? (
+        <View style={styles.disputeBanner}>
+          <Text style={styles.disputeBannerTitle}>Score disputed</Text>
+          {match.scoreDisputeReason ? (
+            <Text style={styles.disputeBannerText}>Reason: {match.scoreDisputeReason}</Text>
+          ) : null}
+          {match.disputedBy ? (
+            <Text style={styles.disputeBannerMeta}>
+              Raised by {usersMap[match.disputedBy]?.fullName || match.disputedBy.split("@")[0]}
+            </Text>
+          ) : null}
+          <Text style={styles.disputeBannerHint}>
+            No new scores can be entered until the organiser reopens this match.
+          </Text>
+          {isOrganizer ? (
+            <Pressable
+              style={[styles.primaryBtn, styles.disputeReopenBtn, busy && styles.disabled]}
+              disabled={busy}
+              onPress={() => onReopenDispute()}
+            >
+              <Text style={styles.primaryBtnText}>{busy ? "…" : "Reopen match"}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
       {isOrganizer && match.replacementNeeded && ["open", "full"].includes(status) ? (
         <View style={styles.replaceBanner}>
           <Text style={styles.replaceBannerTitle}>Replacement needed</Text>
@@ -477,6 +573,11 @@ export function MatchDetailScreen({
           <Text style={styles.pendingMeta}>
             Submitted by {match.scoreSubmittedBy || "—"} · confirm as organiser or another player (Base44-style)
           </Text>
+          {match.evidenceUrl ? (
+            <Pressable onPress={() => openEvidenceLink(match.evidenceUrl!)} style={styles.evidenceLinkWrap}>
+              <Text style={styles.evidenceLinkText}>Evidence / photo link</Text>
+            </Pressable>
+          ) : null}
           {isOrganizer ||
           (joined &&
             match.scoreSubmittedBy &&
@@ -495,6 +596,21 @@ export function MatchDetailScreen({
                 onPress={() => onRejectPendingScore()}
               >
                 <Text style={styles.secondaryBtnText}>Reject & keep playing</Text>
+              </Pressable>
+              <Text style={styles.inputLabel}>Dispute — reason required</Text>
+              <TextInput
+                style={styles.input}
+                value={disputeReason}
+                onChangeText={setDisputeReason}
+                placeholder="e.g. Wrong set scores — I have proof"
+                placeholderTextColor={COLORS.iconMuted}
+              />
+              <Pressable
+                style={[styles.secondaryBtn, busy && styles.disabled]}
+                disabled={busy}
+                onPress={() => onDisputeScore()}
+              >
+                <Text style={[styles.secondaryBtnText, styles.destructiveText]}>Dispute (locks scoring)</Text>
               </Pressable>
             </View>
           ) : null}
@@ -535,21 +651,12 @@ export function MatchDetailScreen({
             </View>
           </View>
           {status === "completed" && (match.scoreTeamA || match.scoreTeamB || match.winnerTeam) ? (
-            <View style={styles.teamResultBox}>
-              <Text style={styles.teamScoreMain}>
-                {match.scoreTeamA || "—"} <Text style={styles.teamScoreVs}>vs</Text> {match.scoreTeamB || "—"}
-              </Text>
-              {match.winnerTeam ? (
-                <Text style={styles.teamWinnerText}>
-                  Winner:{" "}
-                  {match.winnerTeam === "team_a"
-                    ? "Team A"
-                    : match.winnerTeam === "team_b"
-                      ? "Team B"
-                      : match.winnerTeam}
-                </Text>
-              ) : null}
-            </View>
+            <MatchResultPanel
+              match={match}
+              viewerEmail={USER_EMAIL}
+              usersMap={usersMap}
+              recentForm={recentForm}
+            />
           ) : status !== "completed" ? (
             <Text style={styles.teamPendingText}>Scores appear here once the match is completed.</Text>
           ) : null}
@@ -742,11 +849,12 @@ export function MatchDetailScreen({
           <View style={styles.scoreForm}>
             <Text style={styles.sectionTitle}>Submit score</Text>
             <Text style={styles.scoreHelp}>
+              Use commas between sets (e.g. 6-4, 6-3 vs 4-6, 3-6). Optional: link to a photo or sheet.{" "}
               {!hostEmail || isOrganizer
                 ? "Submitting finalises the match and updates Elo."
                 : "Your proposal goes to the organiser to confirm."}
             </Text>
-            <Text style={styles.inputLabel}>Team A (sets e.g. 6,4 or summary)</Text>
+            <Text style={styles.inputLabel}>Team A (sets e.g. 6-4, 6-3)</Text>
             <TextInput
               style={styles.input}
               value={scoreA}
@@ -761,6 +869,16 @@ export function MatchDetailScreen({
               onChangeText={setScoreB}
               placeholder="e.g. 4-6, 3-6"
               placeholderTextColor={COLORS.iconMuted}
+            />
+            <Text style={styles.inputLabel}>Evidence URL (optional)</Text>
+            <TextInput
+              style={styles.input}
+              value={evidenceUrlDraft}
+              onChangeText={setEvidenceUrlDraft}
+              placeholder="https://… photo or score sheet"
+              placeholderTextColor={COLORS.iconMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
             />
             <Text style={styles.inputLabel}>Winner (optional if scores show it)</Text>
             <View style={styles.winnerRow}>
@@ -799,7 +917,7 @@ export function MatchDetailScreen({
           </Pressable>
         ) : null}
 
-        {(joined || isOrganizer) && status !== "completed" && status !== "cancelled" ? (
+        {(joined || isOrganizer) && status !== "completed" && status !== "cancelled" && status !== "disputed" ? (
           <Pressable
             style={[styles.secondaryBtn, busy && styles.disabled]}
             disabled={busy}
@@ -817,12 +935,12 @@ export function MatchDetailScreen({
         ) : null}
 
         {status === "completed" && (match.scoreTeamA || match.scoreTeamB) && !hasTeams ? (
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreTitle}>Result</Text>
-            <Text style={styles.scoreLine}>Team A: {match.scoreTeamA || "-"}</Text>
-            <Text style={styles.scoreLine}>Team B: {match.scoreTeamB || "-"}</Text>
-            <Text style={styles.scoreLine}>Winner: {match.winnerTeam || "-"}</Text>
-          </View>
+          <MatchResultPanel
+            match={match}
+            viewerEmail={USER_EMAIL}
+            usersMap={usersMap}
+            recentForm={recentForm}
+          />
         ) : null}
       </View>
     </ScrollView>
@@ -844,6 +962,7 @@ function statusLabel(status: MatchStatusValue) {
   if (status === "pending_validation") return "Pending Validation";
   if (status === "completed") return "Completed";
   if (status === "cancelled") return "Cancelled";
+  if (status === "disputed") return "Disputed";
   if (status === "full") return "Full";
   return "Open";
 }
@@ -853,6 +972,7 @@ function getStatusStyle(status: MatchStatusValue) {
   if (status === "in_progress") return styles.statusProgress;
   if (status === "awaiting_score" || status === "pending_validation") return styles.statusProgress;
   if (status === "cancelled") return styles.statusCancelled;
+  if (status === "disputed") return styles.statusDisputed;
   if (status === "full") return styles.statusFull;
   return styles.statusOpen;
 }
@@ -926,6 +1046,7 @@ const styles = StyleSheet.create({
   statusFull: { backgroundColor: COLORS.warningSoft, color: COLORS.warningText },
   statusProgress: { backgroundColor: COLORS.infoSoft, color: COLORS.infoText },
   statusCompleted: { backgroundColor: COLORS.border, color: COLORS.textSubtle },
+  statusDisputed: { backgroundColor: COLORS.warningSoft, color: COLORS.warningText },
   statusCancelled: { backgroundColor: COLORS.dangerSoft, color: COLORS.dangerText },
   inviteLockEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
   cancelBanner: {
@@ -938,6 +1059,22 @@ const styles = StyleSheet.create({
   },
   cancelBannerTitle: { fontSize: 15, fontWeight: "800", color: COLORS.dangerText },
   cancelBannerText: { fontSize: 12, color: COLORS.textSubtle, marginTop: 4 },
+  disputeBanner: {
+    backgroundColor: COLORS.warningSoft,
+    borderWidth: 1,
+    borderColor: COLORS.warningText,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    gap: 6,
+  },
+  disputeBannerTitle: { fontSize: 15, fontWeight: "800", color: COLORS.warningText },
+  disputeBannerText: { fontSize: 13, color: COLORS.text, marginTop: 2 },
+  disputeBannerMeta: { fontSize: 11, color: COLORS.textMuted },
+  disputeBannerHint: { fontSize: 11, color: COLORS.textSubtle, marginTop: 4, lineHeight: 15 },
+  disputeReopenBtn: { marginTop: 8 },
+  evidenceLinkWrap: { marginTop: 8, alignSelf: "flex-start" },
+  evidenceLinkText: { fontSize: 13, fontWeight: "700", color: COLORS.primary, textDecorationLine: "underline" },
   replaceBanner: {
     backgroundColor: COLORS.warningSoft,
     borderWidth: 1,
@@ -985,15 +1122,6 @@ const styles = StyleSheet.create({
   },
   teamPlayerLine: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginBottom: 4 },
   teamPlayerMuted: { fontSize: 13, color: COLORS.textSoft },
-  teamResultBox: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  teamScoreMain: { fontSize: 15, fontWeight: "800", color: COLORS.text, textAlign: "center" },
-  teamScoreVs: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted },
-  teamWinnerText: { marginTop: 8, fontSize: 13, fontWeight: "700", color: COLORS.primary, textAlign: "center" },
   teamPendingText: { marginTop: 10, fontSize: 12, color: COLORS.textMuted, fontStyle: "italic" },
   playersCard: {
     backgroundColor: COLORS.card,
@@ -1127,16 +1255,6 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: COLORS.text, fontSize: 13, fontWeight: "700" },
   disabled: { opacity: 0.65 },
-  scoreCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
-    padding: 12,
-    marginTop: 2,
-  },
-  scoreTitle: { color: COLORS.text, fontSize: 13, fontWeight: "800", marginBottom: 6 },
-  scoreLine: { color: COLORS.textSubtle, fontSize: 12, marginBottom: 3 },
   emptyText: { marginTop: 24, color: COLORS.textMuted, textAlign: "center" },
   pendingActions: { gap: 8, marginTop: 10 },
 });

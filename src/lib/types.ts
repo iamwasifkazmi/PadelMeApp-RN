@@ -24,6 +24,11 @@ export type MatchDto = {
   status: string;
   scoreTeamA?: string | null;
   scoreTeamB?: string | null;
+  winnerTeam?: string | null;
+  evidenceUrl?: string | null;
+  scoreDisputeReason?: string | null;
+  disputedBy?: string | null;
+  disputedAt?: string | null;
   hostEmail?: string | null;
   confirmedPlayerEmails?: string[];
   teamsLocked?: boolean;
@@ -44,6 +49,23 @@ export type MatchDto = {
   cancelledAt?: string | null;
   teamACaptainEmail?: string | null;
   teamBCaptainEmail?: string | null;
+};
+
+/** Row from GET /matches/:id/recent-form for the viewer */
+export type PlayerRecentFormDto = {
+  id: string;
+  userEmail: string;
+  matchId: string;
+  matchTitle?: string | null;
+  matchDate?: string | null;
+  eventType?: string | null;
+  matchFormat?: string | null;
+  result: string;
+  opponentEmails?: string[];
+  scoreSummary?: string | null;
+  eloChange?: number | null;
+  eloAfter?: number | null;
+  createdAt: string;
 };
 
 export type UserDto = {
