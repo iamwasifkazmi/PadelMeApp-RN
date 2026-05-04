@@ -528,6 +528,7 @@ export function HomeScreen() {
                   skillLevel={p.skillLevel}
                   fallbackLabel={p.skillLabel}
                   compact
+                  compactAlign="center"
                 />
               </View>
               <View style={styles.playerMetaRow}>
