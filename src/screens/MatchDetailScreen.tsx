@@ -19,6 +19,7 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { userLocationLabel } from "../lib/userLocation";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
+import { isDoublesFormat } from "../lib/matchFormat";
 
 type MatchStatusValue =
   | "open"
@@ -40,7 +41,7 @@ function emailListed(list: string[] | undefined, e: string) {
 }
 
 function doublesNeedsLock(m: MatchDto) {
-  return m.matchType !== "singles" && m.maxPlayers >= 4 && m.players.length >= 4;
+  return isDoublesFormat(m) && m.maxPlayers >= 4 && m.players.length >= 4;
 }
 
 function matchEligibilitySummary(m: MatchDto): string | null {
@@ -62,10 +63,6 @@ function matchEligibilitySummary(m: MatchDto): string | null {
   return `Requirements: ${parts.join(" · ")}`;
 }
 
-function doublesStyleMatch(m: MatchDto) {
-  return m.matchType !== "singles" && m.maxPlayers >= 4;
-}
-
 function teamsPartitionPlayers(teamA: string[], teamB: string[], players: string[]): boolean {
   if (!players.length) return false;
   const u = new Set([...teamA, ...teamB]);
@@ -80,9 +77,16 @@ function teamsPartitionPlayers(teamA: string[], teamB: string[], players: string
 /** Base44-style start validation (structure + roster eligibility). */
 function validateMatchStartForUi(m: MatchDto, usersMap: Record<string, UserDto>): { valid: boolean; reason: string } {
   const players = m.players || [];
+  const maxP = m.maxPlayers;
+  if (maxP > 0 && players.length < maxP) {
+    return {
+      valid: false,
+      reason: `Fill the roster before starting (${players.length}/${maxP} players)`,
+    };
+  }
   const teamA = m.teamA || [];
   const teamB = m.teamB || [];
-  const doublesStyle = doublesStyleMatch(m);
+  const doublesStyle = isDoublesFormat(m);
   let effA = [...teamA];
   let effB = [...teamB];
   if (players.length === 2 && !doublesStyle && (effA.length === 0 || effB.length === 0)) {
@@ -393,7 +397,7 @@ export function MatchDetailScreen({
 
   const canJoin = !joined && status === "open" && !isFull;
   const joinNeedsTeamPick =
-    canJoin && doublesStyleMatch(match) && !teamsLocked && match.maxPlayers >= 4;
+    canJoin && isDoublesFormat(match) && !teamsLocked && match.maxPlayers >= 4;
   const canLeave = joined && ["open", "full"].includes(status);
   const startValidation = validateMatchStartForUi(match, usersMap);
   const showOrganizerStart =

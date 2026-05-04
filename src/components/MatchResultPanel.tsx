@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { MatchDto, PlayerRecentFormDto, UserDto } from "../lib/types";
+import { isDoublesFormat } from "../lib/matchFormat";
 import { COLORS } from "../theme/colors";
 
 function parseSetScores(scoreA: string | null | undefined, scoreB: string | null | undefined) {
@@ -22,10 +23,6 @@ function firstLabel(usersMap: Record<string, UserDto>, email: string) {
   return email.split("@")[0] || "?";
 }
 
-function doublesStyleMatch(m: MatchDto) {
-  return m.matchType !== "singles" && m.maxPlayers >= 4;
-}
-
 function emailOnTeam(list: string[] | undefined, viewer: string) {
   return (list || []).some((e) => e.trim().toLowerCase() === viewer.trim().toLowerCase());
 }
@@ -42,7 +39,7 @@ export function MatchResultPanel({
   usersMap: Record<string, UserDto>;
   recentForm: PlayerRecentFormDto | null;
 }) {
-  const isDoubles = doublesStyleMatch(match);
+  const isDoubles = isDoublesFormat(match);
   const myTeam = emailOnTeam(match.teamA, viewerEmail)
     ? "team_a"
     : emailOnTeam(match.teamB, viewerEmail)

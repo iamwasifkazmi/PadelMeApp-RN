@@ -1,4 +1,5 @@
 import type { MatchDto, UserDto } from "./types";
+import { isDoublesFormat } from "./matchFormat";
 
 function emailEq(a: string, b: string) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -20,7 +21,7 @@ function normVerification(raw: string | null | undefined): string {
 export function effectiveTeamsAtStartUi(m: MatchDto): { teamA: string[]; teamB: string[] } {
   let teamA = [...(m.teamA || [])];
   let teamB = [...(m.teamB || [])];
-  const doublesStyle = m.matchType !== "singles" && m.maxPlayers >= 4;
+  const doublesStyle = isDoublesFormat(m);
   const players = m.players || [];
   if (players.length === 2 && !doublesStyle && (teamA.length === 0 || teamB.length === 0)) {
     teamA = [players[0]];
