@@ -79,12 +79,21 @@ export function RootNavigator() {
 
     setAuthRouteReady(false);
     api
-      .get<{ profileComplete?: boolean; bio?: string | null; location?: string | null }>(
-        `/users/me?email=${encodeURIComponent(email)}`,
-      )
+      .get<{
+        profileComplete?: boolean;
+        bio?: string | null;
+        locationLat?: number | null;
+        locationLng?: number | null;
+      }>(`/users/me?email=${encodeURIComponent(email)}`)
       .then((me) => {
         if (!mounted) return;
-        const done = Boolean(me.profileComplete || (me.bio && me.location));
+        const hasLegacyProfile =
+          String(me.bio || "").trim().length > 0 &&
+          me.locationLat != null &&
+          me.locationLng != null &&
+          !Number.isNaN(me.locationLat) &&
+          !Number.isNaN(me.locationLng);
+        const done = Boolean(me.profileComplete || hasLegacyProfile);
         setAuthedInitialRoute(done ? "MainTabs" : "Onboarding");
       })
       .catch(() => {
@@ -142,7 +151,14 @@ export function RootNavigator() {
         }}
       />
       <Stack.Screen name="Competitions" component={CompetitionsScreen} />
-      <Stack.Screen name="CreateCompetition" component={CreateCompetitionScreen} />
+      <Stack.Screen
+        name="CreateCompetition"
+        component={CreateCompetitionScreen}
+        options={{
+          title: "Create competition",
+          contentStyle: { paddingTop: 14 },
+        }}
+      />
       <Stack.Screen name="CompetitionDetail" component={CompetitionDetailScreen} />
       <Stack.Screen name="InvitePlayers" component={InvitePlayersScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} options={{ title: "Verification" }} />

@@ -1,8 +1,7 @@
 import { store } from "../store/store";
 
-export const API_BASE_URL =   "http://localhost:4000/api";
-// "https://padelme-backend-775252415773.europe-west2.run.app/api";
-
+export const API_BASE_URL =   "https://padelme-backend-775252415773.europe-west2.run.app/api";
+// "http://localhost:4000/api";
 function parseErrorBody(text: string, status: number): string {
   const trimmed = text.trim();
   if (!trimmed) return `API error ${status}`;

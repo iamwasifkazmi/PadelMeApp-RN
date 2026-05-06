@@ -119,7 +119,10 @@ export function PlayersScreen() {
       if (gender !== "all") params.set("gender", gender);
       if (ability !== "all") params.set("skillTier", ability);
       const res = await api.get<UserDto[]>(`/users?${params.toString()}`);
-      setPlayers(res);
+      const selfNorm = USER_EMAIL.trim().toLowerCase();
+      setPlayers(
+        selfNorm ? res.filter((u) => u.email.trim().toLowerCase() !== selfNorm) : res,
+      );
     } catch {
       setPlayers([]);
     } finally {

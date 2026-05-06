@@ -307,7 +307,7 @@ export type AuthUserDto = {
 export type AuthResponseDto = {
   token: string;
   user: AuthUserDto;
-  /** True when account was just created (registration OTP or first Google sign-in). False for returning password login. */
+  /** True when the user should see onboarding (e.g. profile not completed). OAuth uses this, not only “first DB insert”. */
   isNewUser?: boolean;
 };
 

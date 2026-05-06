@@ -1,5 +1,14 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
@@ -7,23 +16,95 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
+const PICK_OPTIONS = {
+  mediaType: "photo" as const,
+  includeBase64: true,
+  maxWidth: 1600,
+  maxHeight: 1600,
+  quality: 0.5,
+  selectionLimit: 1,
+};
+
+const CAMERA_OPTIONS = {
+  mediaType: "photo" as const,
+  includeBase64: true,
+  maxWidth: 1600,
+  maxHeight: 1600,
+  quality: 0.5,
+};
+
+/** Data URLs can get large; keep under typical Postgres driver limits. */
+const MAX_DATA_URL_LENGTH = 1_200_000;
+
 function VerificationSkeleton() {
   return (
     <View style={styles.container}>
-      <SkeletonBlock height={28} width="48%" rounded={8} />
-      <View style={{ height: 10 }} />
-      <SkeletonBlock height={14} width="76%" rounded={8} />
-      <View style={{ height: 14 }} />
+      <SkeletonBlock height={20} width="42%" rounded={8} />
+      <View style={{ height: 8 }} />
+      <SkeletonBlock height={12} width="70%" rounded={8} />
+      <View style={{ height: 12 }} />
       <View style={styles.card}>
-        <SkeletonBlock height={14} width="35%" />
+        <SkeletonBlock height={12} width="35%" />
         <View style={{ height: 8 }} />
-        <SkeletonBlock height={42} width="100%" rounded={10} />
-        <View style={{ height: 12 }} />
-        <SkeletonBlock height={14} width="35%" />
+        <SkeletonBlock height={38} width="100%" rounded={10} />
+        <View style={{ height: 10 }} />
+        <SkeletonBlock height={12} width="35%" />
         <View style={{ height: 8 }} />
-        <SkeletonBlock height={42} width="100%" rounded={10} />
-        <View style={{ height: 12 }} />
-        <SkeletonBlock height={44} width="100%" rounded={12} />
+        <SkeletonBlock height={38} width="100%" rounded={10} />
+      </View>
+    </View>
+  );
+}
+
+function PhotoPickRow({
+  label,
+  sublabel,
+  uri,
+  busy,
+  onCamera,
+  onLibrary,
+}: {
+  label: string;
+  sublabel: string;
+  uri: string;
+  busy: boolean;
+  onCamera: () => void;
+  onLibrary: () => void;
+}) {
+  const hasPhoto = Boolean(uri?.trim());
+
+  return (
+    <View style={styles.pickRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldHint}>{sublabel}</Text>
+      <View style={styles.pickRowInner}>
+        <View style={styles.thumb}>
+          {busy ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : hasPhoto ? (
+            <Image source={{ uri }} style={styles.thumbImage} />
+          ) : (
+            <Ionicons name="image-outline" size={22} color={COLORS.iconMuted} />
+          )}
+        </View>
+        <View style={styles.pickActions}>
+          <Pressable
+            style={[styles.pickBtn, busy && styles.pickBtnDisabled]}
+            onPress={onCamera}
+            disabled={busy}
+          >
+            <Ionicons name="camera-outline" size={16} color={COLORS.text} />
+            <Text style={styles.pickBtnText}>Camera</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.pickBtn, busy && styles.pickBtnDisabled]}
+            onPress={onLibrary}
+            disabled={busy}
+          >
+            <Ionicons name="images-outline" size={16} color={COLORS.text} />
+            <Text style={styles.pickBtnText}>Photos</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -38,9 +119,11 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
   const [idVerified, setIdVerified] = React.useState(false);
   const [photoVerified, setPhotoVerified] = React.useState(false);
   const [fullName, setFullName] = React.useState("");
+  const [profilePhotoUri, setProfilePhotoUri] = React.useState<string | null>(null);
   const [idPhotoUrl, setIdPhotoUrl] = React.useState("");
   const [selfieUrl, setSelfieUrl] = React.useState("");
   const [showIdForm, setShowIdForm] = React.useState(false);
+  const [pickingSlot, setPickingSlot] = React.useState<null | "id" | "selfie">(null);
 
   const load = React.useCallback(async () => {
     try {
@@ -49,14 +132,18 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
         api.get<{ status: string; idPhotoUrl?: string | null; selfieUrl?: string | null }>(
           `/verification/status?email=${encodeURIComponent(USER_EMAIL)}`,
         ),
-        api.get<{ fullName?: string | null; idVerified?: boolean; photoVerified?: boolean }>(
-          `/users/me?email=${encodeURIComponent(USER_EMAIL)}`,
-        ),
+        api.get<{
+          fullName?: string | null;
+          idVerified?: boolean;
+          photoVerified?: boolean;
+          photoUrl?: string | null;
+        }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`),
       ]);
       setStatus(verifyRes.status || "not_submitted");
       setIdPhotoUrl(verifyRes.idPhotoUrl || "");
       setSelfieUrl(verifyRes.selfieUrl || "");
       setFullName(me.fullName || USER_EMAIL.split("@")[0] || "Player");
+      setProfilePhotoUri(me.photoUrl?.trim() ? me.photoUrl : null);
       setIdVerified(Boolean(me.idVerified));
       setPhotoVerified(Boolean(me.photoVerified));
     } catch {
@@ -70,7 +157,41 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
     load();
   }, [load]);
 
+  const pickForSlot = async (slot: "id" | "selfie", source: "camera" | "library") => {
+    if (pickingSlot) return;
+    setPickingSlot(slot);
+    try {
+      const launcher = source === "camera" ? launchCamera : launchImageLibrary;
+      const opts = source === "camera" ? CAMERA_OPTIONS : PICK_OPTIONS;
+      const result = await launcher(opts);
+      if (result.didCancel) return;
+      const asset = result.assets?.[0];
+      if (!asset?.base64) {
+        showSnackbar("Could not read this image. Try another photo.", { type: "error" });
+        return;
+      }
+      const mime = asset.type || "image/jpeg";
+      const dataUrl = `data:${mime};base64,${asset.base64}`;
+      if (dataUrl.length > MAX_DATA_URL_LENGTH) {
+        showSnackbar("Image is too large. Try a closer photo or slightly darker scene.", {
+          type: "error",
+        });
+        return;
+      }
+      if (slot === "id") setIdPhotoUrl(dataUrl);
+      else setSelfieUrl(dataUrl);
+    } catch {
+      showSnackbar("Could not access camera or photos.", { type: "error" });
+    } finally {
+      setPickingSlot(null);
+    }
+  };
+
   const submit = async () => {
+    if (!idPhotoUrl.trim() || !selfieUrl.trim()) {
+      showSnackbar("Add both ID photo and selfie before submitting.", { type: "error" });
+      return;
+    }
     try {
       setSubmitting(true);
       const res = await api.post<{ status: string }>("/verification/submit", {
@@ -90,76 +211,92 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
   if (loading) return <VerificationSkeleton />;
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Verification</Text>
       <Text style={styles.subtitle}>Build trust with other players</Text>
 
       <View style={styles.profileCard}>
-        <View style={styles.profileAvatar}>
-          <Text style={styles.profileAvatarText}>{initials(fullName)}</Text>
-        </View>
+        {profilePhotoUri ? (
+          <Image source={{ uri: profilePhotoUri }} style={styles.profileAvatarImg} />
+        ) : (
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileAvatarText}>{initials(fullName)}</Text>
+          </View>
+        )}
         <View style={styles.flexOne}>
-          <Text style={styles.profileName}>{fullName}</Text>
+          <Text style={styles.profileName} numberOfLines={1}>
+            {fullName}
+          </Text>
           <View style={styles.statusPill}>
-            <Text style={styles.statusPillText}>{idVerified || photoVerified ? "Verified" : "Unverified"}</Text>
+            <Text style={styles.statusPillText}>
+              {idVerified || photoVerified ? "Verified" : "Unverified"}
+            </Text>
           </View>
         </View>
       </View>
 
       <View style={styles.card}>
         <View style={styles.levelIconBgGreen}>
-          <Ionicons name="camera-outline" size={20} color="#16A34A" />
+          <Ionicons name="camera-outline" size={18} color="#16A34A" />
         </View>
         <View style={styles.flexOne}>
-          <Text style={styles.cardTitle}>Level 1 · Photo Verified</Text>
-          <Text style={styles.cardBody}>Upload a profile photo to get a green badge</Text>
+          <Text style={styles.cardTitle}>Level 1 · Photo verified</Text>
+          <Text style={styles.cardBody}>Add a profile photo for a green badge.</Text>
           <Pressable style={styles.secondaryBtn} onPress={() => navigation.navigate("EditProfile")}>
-            <Text style={styles.secondaryBtnText}>{photoVerified ? "Update Photo" : "Upload Photo"}</Text>
-            <Ionicons name="chevron-forward" size={15} color={COLORS.text} />
+            <Text style={styles.secondaryBtnText}>{photoVerified ? "Update photo" : "Upload photo"}</Text>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
           </Pressable>
         </View>
       </View>
 
       <View style={styles.card}>
         <View style={styles.levelIconBgBlue}>
-          <Ionicons name="shield-checkmark-outline" size={20} color="#2563EB" />
+          <Ionicons name="shield-checkmark-outline" size={18} color="#2563EB" />
         </View>
         <View style={styles.flexOne}>
-          <Text style={styles.cardTitle}>Level 2 · ID Verified (Blue Tick)</Text>
-          <Text style={styles.cardBody}>Submit a government ID for admin review. Unlocks priority matchmaking.</Text>
+          <Text style={styles.cardTitle}>Level 2 · ID verified</Text>
+          <Text style={styles.cardBody}>
+            Photograph your government ID and a live selfie. An admin reviews before the blue tick is
+            granted.
+          </Text>
           <Pressable style={styles.secondaryBtn} onPress={() => setShowIdForm((s) => !s)}>
             <Text style={styles.secondaryBtnText}>{idVerified ? "Re-submit ID" : "Submit ID"}</Text>
-            <Ionicons name="chevron-forward" size={15} color={COLORS.text} />
+            <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
           </Pressable>
 
           {showIdForm ? (
             <View style={styles.idFormWrap}>
-              <Text style={styles.fieldLabel}>ID Photo URL</Text>
-              <TextInput
-                value={idPhotoUrl}
-                onChangeText={setIdPhotoUrl}
-                placeholder="https://..."
-                placeholderTextColor={COLORS.iconMuted}
-                style={styles.input}
+              <PhotoPickRow
+                label="Government ID"
+                sublabel="Legible photo of ID card or passport (not a link)."
+                uri={idPhotoUrl}
+                busy={pickingSlot === "id"}
+                onCamera={() => pickForSlot("id", "camera")}
+                onLibrary={() => pickForSlot("id", "library")}
               />
-              <Text style={styles.fieldLabel}>Selfie URL</Text>
-              <TextInput
-                value={selfieUrl}
-                onChangeText={setSelfieUrl}
-                placeholder="https://..."
-                placeholderTextColor={COLORS.iconMuted}
-                style={styles.input}
+              <PhotoPickRow
+                label="Selfie"
+                sublabel="Your face, good lighting — we match it to your ID."
+                uri={selfieUrl}
+                busy={pickingSlot === "selfie"}
+                onCamera={() => pickForSlot("selfie", "camera")}
+                onLibrary={() => pickForSlot("selfie", "library")}
               />
               <Pressable
-                style={[styles.btn, submitting && { opacity: 0.65 }]}
+                style={[styles.btn, (submitting || pickingSlot !== null) && styles.btnDisabled]}
                 onPress={submit}
-                disabled={submitting}
+                disabled={submitting || pickingSlot !== null}
               >
                 <Text style={styles.btnText}>
-                  {submitting ? "Submitting..." : "Submit for Review"}
+                  {submitting ? "Submitting…" : "Submit for review"}
                 </Text>
               </Pressable>
-              <Text style={styles.helperText}>Current status: {prettyStatus(status)}</Text>
+              <Text style={styles.helperText}>Status: {prettyStatus(status)}</Text>
             </View>
           ) : null}
         </View>
@@ -167,12 +304,12 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
 
       <View style={styles.whyCard}>
         <Text style={styles.whyTitle}>Why verify?</Text>
-        <Text style={styles.whyItem}>✓ Verified players are shown first in match discovery</Text>
-        <Text style={styles.whyItem}>✓ Some leagues & tournaments require ID verification</Text>
-        <Text style={styles.whyItem}>✓ Green badge = profile photo uploaded</Text>
-        <Text style={styles.whyItem}>✓ Blue tick = government ID approved by admin</Text>
+        <Text style={styles.whyItem}>✓ Verified players surface first in discovery</Text>
+        <Text style={styles.whyItem}>✓ Some leagues require ID verification</Text>
+        <Text style={styles.whyItem}>✓ Green badge = profile photo</Text>
+        <Text style={styles.whyItem}>✓ Blue tick = ID approved by admin</Text>
         <Text style={styles.whyNote}>
-          Your ID documents are stored securely and only reviewed by admins.
+          Images are sent securely for review only. No URLs or file links to paste.
         </Text>
       </View>
 
@@ -184,7 +321,7 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
           <Text style={styles.adminLinkText}>Open Admin Test Mode</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -201,116 +338,147 @@ function prettyStatus(status: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
-  title: { fontSize: 34, fontWeight: "800", color: COLORS.text },
-  subtitle: { marginTop: 2, marginBottom: 14, color: COLORS.textMuted, fontSize: 14 },
+  scroll: { flex: 1, backgroundColor: COLORS.bg },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28 },
+  title: { fontSize: 22, fontWeight: "700", color: COLORS.text },
+  subtitle: { marginTop: 4, marginBottom: 12, color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
   profileCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
   profileAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.primarySoftAlt,
     alignItems: "center",
     justifyContent: "center",
   },
-  profileAvatarText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 24 },
-  profileName: { fontSize: 30, fontWeight: "700", color: COLORS.text },
+  profileAvatarImg: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.borderMuted },
+  profileAvatarText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 16 },
+  profileName: { fontSize: 17, fontWeight: "700", color: COLORS.text },
   statusPill: {
     alignSelf: "flex-start",
-    marginTop: 5,
+    marginTop: 4,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.bgMuted,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
-  statusPillText: { color: COLORS.textMuted, fontWeight: "700", fontSize: 12 },
+  statusPillText: { color: COLORS.textMuted, fontWeight: "600", fontSize: 11 },
   card: {
     backgroundColor: COLORS.card,
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
     flexDirection: "row",
-    gap: 12,
+    gap: 10,
   },
   levelIconBgGreen: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
   },
   levelIconBgBlue: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: "#DBEAFE",
     alignItems: "center",
     justifyContent: "center",
   },
-  flexOne: { flex: 1 },
-  cardTitle: { fontSize: 20, color: COLORS.text, fontWeight: "700" },
-  cardBody: { marginTop: 4, marginBottom: 10, color: COLORS.textMuted, fontSize: 15, lineHeight: 21 },
+  flexOne: { flex: 1, minWidth: 0 },
+  cardTitle: { fontSize: 15, color: COLORS.text, fontWeight: "700" },
+  cardBody: { marginTop: 4, marginBottom: 8, color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
   secondaryBtn: {
     alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  secondaryBtnText: { color: COLORS.text, fontSize: 16, fontWeight: "700" },
-  idFormWrap: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
-  fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "600" },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: COLORS.text,
-    marginBottom: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  btn: { backgroundColor: COLORS.primary, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingVertical: 12, marginTop: 2 },
-  btnText: { color: COLORS.card, fontWeight: "700" },
-  helperText: { marginTop: 8, color: COLORS.textMuted, fontSize: 12, textTransform: "capitalize" },
+  secondaryBtnText: { color: COLORS.text, fontSize: 13, fontWeight: "600" },
+  idFormWrap: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border },
+  fieldLabel: { color: COLORS.text, fontSize: 12, fontWeight: "700" },
+  fieldHint: { marginTop: 2, marginBottom: 8, color: COLORS.textMuted, fontSize: 11, lineHeight: 15 },
+  pickRow: { marginBottom: 12 },
+  pickRowInner: { flexDirection: "row", alignItems: "center", gap: 10 },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.bgMuted,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  thumbImage: { width: "100%", height: "100%" },
+  pickActions: { flex: 1, flexDirection: "row", gap: 8 },
+  pickBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.bgMuted,
+  },
+  pickBtnDisabled: { opacity: 0.55 },
+  pickBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.text },
+  btn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  btnDisabled: { opacity: 0.65 },
+  btnText: { color: COLORS.card, fontWeight: "700", fontSize: 14 },
+  helperText: { marginTop: 8, color: COLORS.textMuted, fontSize: 11 },
   whyCard: {
     backgroundColor: COLORS.bgMuted,
-    borderRadius: 24,
-    padding: 16,
-    marginTop: 6,
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 4,
   },
-  whyTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text, marginBottom: 8 },
-  whyItem: { color: COLORS.textMuted, fontSize: 15, lineHeight: 24 },
-  whyNote: { marginTop: 8, color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
-  adminLinks: { marginTop: 10, gap: 8 },
+  whyTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 6 },
+  whyItem: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18 },
+  whyNote: { marginTop: 8, color: COLORS.textMuted, fontSize: 11, lineHeight: 16 },
+  adminLinks: { marginTop: 12, gap: 6 },
   adminLinkBtn: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.primarySoft,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     alignItems: "center",
   },
-  adminLinkText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 12 },
+  adminLinkText: { color: COLORS.primaryDark, fontWeight: "600", fontSize: 11 },
+  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
 });
-

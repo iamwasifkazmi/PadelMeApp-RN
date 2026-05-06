@@ -74,6 +74,26 @@ function teamsPartitionPlayers(teamA: string[], teamB: string[], players: string
   return true;
 }
 
+/** Mirrors backend `actorCanValidatePendingScore` for confirm / reject / dispute UI. */
+function viewerCanValidatePendingScore(
+  m: MatchDto,
+  viewer: string,
+  hostEmail: string | null,
+  submitter: string | null | undefined,
+): boolean {
+  if (!submitter?.trim() || emailsMatch(submitter, viewer)) return false;
+  if (!(m.players || []).some((p) => emailsMatch(p, viewer))) return false;
+  if (hostEmail && emailsMatch(hostEmail, viewer)) return true;
+  if (isDoublesFormat(m) && m.players.length >= 4) {
+    const capA = (m.teamACaptainEmail || m.teamA?.[0] || "").trim();
+    const capB = (m.teamBCaptainEmail || m.teamB?.[0] || "").trim();
+    if (capA && emailsMatch(capA, viewer)) return true;
+    if (capB && emailsMatch(capB, viewer)) return true;
+    return false;
+  }
+  return true;
+}
+
 /** Base44-style start validation (structure + roster eligibility). */
 function validateMatchStartForUi(m: MatchDto, usersMap: Record<string, UserDto>): { valid: boolean; reason: string } {
   const players = m.players || [];
@@ -308,6 +328,9 @@ export function MatchDetailScreen({
   const onStart = () =>
     postJson(`/matches/${match!.id}/start`, { email: USER_EMAIL }, "Match started ▶");
 
+  const onAwaitingScore = () =>
+    postJson(`/matches/${match!.id}/awaiting-score`, { email: USER_EMAIL }, "Marked as awaiting score — players can submit.");
+
   const onSubmitScore = () => {
     if (!match) return;
     if (!scoreA.trim() || !scoreB.trim()) {
@@ -322,7 +345,24 @@ export function MatchDetailScreen({
     if (winnerPick) body.winnerTeam = winnerPick;
     const ev = evidenceUrlDraft.trim();
     if (ev) body.evidenceUrl = ev;
-    return postJson(`/matches/${match.id}/submit-score`, body, "Score saved");
+    return (async () => {
+      if (!match) return;
+      try {
+        setBusy(true);
+        const updated = await api.post<MatchDto>(`/matches/${match.id}/submit-score`, body);
+        await load(true);
+        const msg =
+          updated.status === "pending_validation"
+            ? "Score proposed — waiting for captain or organiser to confirm."
+            : "Match completed — Elo updated.";
+        showSnackbar(msg, { type: "success" });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Request failed";
+        showSnackbar(msg, { type: "error" });
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   const onConfirmPendingScore = () =>
@@ -402,7 +442,9 @@ export function MatchDetailScreen({
   const startValidation = validateMatchStartForUi(match, usersMap);
   const showOrganizerStart =
     isOrganizer && ["open", "full"].includes(status);
-  const showScoreForm = (joined || isOrganizer) && status === "in_progress";
+  const showOrganizerAwaitingScore = isOrganizer && status === "in_progress";
+  const showScoreForm =
+    (joined || isOrganizer) && (status === "in_progress" || status === "awaiting_score");
 
   const draftTeamA = match.players.filter((p) => teamDraft[p] === "a");
   const draftTeamB = match.players.filter((p) => teamDraft[p] === "b");
@@ -576,17 +618,15 @@ export function MatchDetailScreen({
             Team A: {match.pendingScoreTeamA} · Team B: {match.pendingScoreTeamB}
           </Text>
           <Text style={styles.pendingMeta}>
-            Submitted by {match.scoreSubmittedBy || "—"} · confirm as organiser or another player (Base44-style)
+            Submitted by {match.scoreSubmittedBy || "—"} · confirm as organiser or team captain (doubles) or the
+            other player (singles), Base44-style
           </Text>
           {match.evidenceUrl ? (
             <Pressable onPress={() => openEvidenceLink(match.evidenceUrl!)} style={styles.evidenceLinkWrap}>
               <Text style={styles.evidenceLinkText}>Evidence / photo link</Text>
             </Pressable>
           ) : null}
-          {isOrganizer ||
-          (joined &&
-            match.scoreSubmittedBy &&
-            !emailsMatch(match.scoreSubmittedBy, USER_EMAIL)) ? (
+          {viewerCanValidatePendingScore(match, USER_EMAIL, hostEmail, match.scoreSubmittedBy) ? (
             <View style={styles.pendingActions}>
               <Pressable
                 style={[styles.primaryBtn, busy && styles.disabled]}
@@ -619,6 +659,16 @@ export function MatchDetailScreen({
               </Pressable>
             </View>
           ) : null}
+        </View>
+      ) : null}
+
+      {status === "pending_validation" &&
+      match.scoreSubmittedBy &&
+      emailsMatch(match.scoreSubmittedBy, USER_EMAIL) ? (
+        <View style={styles.waitingScoreBanner}>
+          <Text style={styles.waitingScoreText}>
+            You proposed this score. Waiting for the other team captain or the organiser to confirm (Base44-style).
+          </Text>
         </View>
       ) : null}
 
@@ -840,6 +890,18 @@ export function MatchDetailScreen({
           </>
         ) : null}
 
+        {showOrganizerAwaitingScore ? (
+          <Pressable
+            style={[styles.secondaryBtn, busy && styles.disabled]}
+            disabled={busy}
+            onPress={() => onAwaitingScore()}
+          >
+            <Text style={styles.secondaryBtnText}>
+              {busy ? "…" : "Match played — awaiting score 🎾"}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {isOrganizer && ["open", "full"].includes(status) ? (
           <Pressable
             style={[styles.secondaryBtn, busy && styles.disabled]}
@@ -854,10 +916,9 @@ export function MatchDetailScreen({
           <View style={styles.scoreForm}>
             <Text style={styles.sectionTitle}>Submit score</Text>
             <Text style={styles.scoreHelp}>
-              Use commas between sets (e.g. 6-4, 6-3 vs 4-6, 3-6). Optional: link to a photo or sheet.{" "}
-              {!hostEmail || isOrganizer
-                ? "Submitting finalises the match and updates Elo."
-                : "Your proposal goes to the organiser to confirm."}
+              Enter Team A and Team B scores (comma-separated games per set, e.g. 6,4 vs 4,6). Optional evidence link.
+              With more than one player, the result stays pending until a team captain or the organiser confirms (same
+              flow as Base44).
             </Text>
             <Text style={styles.inputLabel}>Team A (sets e.g. 6-4, 6-3)</Text>
             <TextInput
@@ -905,9 +966,7 @@ export function MatchDetailScreen({
               disabled={busy}
               onPress={() => onSubmitScore()}
             >
-              <Text style={styles.primaryBtnText}>
-                {busy ? "…" : !hostEmail || isOrganizer ? "Submit final score" : "Propose score"}
-              </Text>
+              <Text style={styles.primaryBtnText}>{busy ? "…" : "Submit score"}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -1078,6 +1137,15 @@ const styles = StyleSheet.create({
   disputeBannerMeta: { fontSize: 11, color: COLORS.textMuted },
   disputeBannerHint: { fontSize: 11, color: COLORS.textSubtle, marginTop: 4, lineHeight: 15 },
   disputeReopenBtn: { marginTop: 8 },
+  waitingScoreBanner: {
+    backgroundColor: COLORS.infoSoft,
+    borderWidth: 1,
+    borderColor: COLORS.infoText,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+  },
+  waitingScoreText: { fontSize: 12, color: COLORS.text, lineHeight: 17 },
   evidenceLinkWrap: { marginTop: 8, alignSelf: "flex-start" },
   evidenceLinkText: { fontSize: 13, fontWeight: "700", color: COLORS.primary, textDecorationLine: "underline" },
   replaceBanner: {

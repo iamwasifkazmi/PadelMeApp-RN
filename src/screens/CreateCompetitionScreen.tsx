@@ -854,7 +854,7 @@ function formatDate(date: Date) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 14, paddingBottom: 112, paddingTop: 8 },
+  content: { padding: 14, paddingBottom: 112, paddingTop: 16 },
   typeToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
   choiceBtn: {
     flex: 1,

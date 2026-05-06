@@ -35,8 +35,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>MiPadel needs camera access to photograph your ID and selfie for verification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow MiPadel to select your profile photo.</string>
+	<string>Allow MiPadel to choose photos for your profile and ID verification.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Allow MiPadel to save profile-related images when needed.</string>
 	<key>RCTNewArchEnabled</key>
