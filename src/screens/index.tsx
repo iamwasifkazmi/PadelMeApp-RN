@@ -29,6 +29,7 @@ import { SubscriptionGateScreen as ActualSubscriptionGateScreen } from "./Subscr
 import { AdminIDReviewScreen as ActualAdminIDReviewScreen } from "./AdminIDReviewScreen";
 import { AdminTestModeScreen as ActualAdminTestModeScreen } from "./AdminTestModeScreen";
 import { MatchRatePlayersScreen as ActualMatchRatePlayersScreen } from "./MatchRatePlayersScreen";
+import { CommunityScreen as ActualCommunityScreen } from "./CommunityScreen";
 
 export const HomeScreen = ActualHomeScreen;
 export const DiscoverScreen = FindMatchScreen;
@@ -62,3 +63,4 @@ export const SubscriptionGateScreen = ActualSubscriptionGateScreen;
 export const AdminIDReviewScreen = ActualAdminIDReviewScreen;
 export const AdminTestModeScreen = ActualAdminTestModeScreen;
 export const MatchRatePlayersScreen = ActualMatchRatePlayersScreen;
+export const CommunityScreen = ActualCommunityScreen;

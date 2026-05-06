@@ -68,6 +68,21 @@ export type PlayerRecentFormDto = {
   createdAt: string;
 };
 
+export type CommunityPostDto = {
+  id: string;
+  authorEmail: string;
+  kind: "feedback" | "idea" | "general";
+  title: string | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    email: string;
+    fullName: string | null;
+    photoUrl: string | null;
+  };
+};
+
 export type UserDto = {
   id: string;
   email: string;

@@ -42,4 +42,5 @@ export type RootStackParamList = {
   SubscriptionGate: undefined;
   AdminIDReview: undefined;
   AdminTestMode: undefined;
+  Community: undefined;
 };

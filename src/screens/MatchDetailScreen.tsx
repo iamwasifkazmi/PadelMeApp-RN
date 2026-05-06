@@ -282,11 +282,17 @@ export function MatchDetailScreen({
     }
   };
 
-  const onJoin = () =>
-    postJson(`/matches/${match!.id}/join`, { email: USER_EMAIL }, "You're in! 🎉");
+  const onJoin = () => {
+    if (!match || busy) return;
+    if (match.players.some((p) => emailsMatch(p, USER_EMAIL))) return;
+    postJson(`/matches/${match.id}/join`, { email: USER_EMAIL }, "You're in! 🎉");
+  };
 
-  const onJoinTeam = (team: "a" | "b") =>
-    postJson(`/matches/${match!.id}/join`, { email: USER_EMAIL, team }, "You're in! 🎉");
+  const onJoinTeam = (team: "a" | "b") => {
+    if (!match || busy) return;
+    if (match.players.some((p) => emailsMatch(p, USER_EMAIL))) return;
+    postJson(`/matches/${match.id}/join`, { email: USER_EMAIL, team }, "You're in! 🎉");
+  };
 
   const onLeave = () => {
     const m = match;
@@ -711,6 +717,7 @@ export function MatchDetailScreen({
               viewerEmail={USER_EMAIL}
               usersMap={usersMap}
               recentForm={recentForm}
+              omitRoster
             />
           ) : status !== "completed" ? (
             <Text style={styles.teamPendingText}>Scores appear here once the match is completed.</Text>
@@ -830,6 +837,13 @@ export function MatchDetailScreen({
           <Pressable style={[styles.chatBtn]} onPress={() => navigation.navigate("MatchChat", { matchId: match.id })}>
             <Ionicons name="chatbubble-ellipses-outline" size={17} color={COLORS.primaryDark} />
             <Text style={styles.chatBtnText}>Match Chat</Text>
+          </Pressable>
+        ) : null}
+
+        {(joined || isOrganizer) && status !== "cancelled" ? (
+          <Pressable style={[styles.chatBtn]} onPress={() => navigation.navigate("Community")}>
+            <Ionicons name="people-outline" size={17} color={COLORS.primaryDark} />
+            <Text style={styles.chatBtnText}>Community — feedback & ideas</Text>
           </Pressable>
         ) : null}
 

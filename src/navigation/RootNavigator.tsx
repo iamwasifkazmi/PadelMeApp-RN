@@ -28,6 +28,7 @@ import {
   SubscriptionGateScreen,
   AdminIDReviewScreen,
   AdminTestModeScreen,
+  CommunityScreen,
 } from "../screens";
 import { COLORS } from "../theme/colors";
 import { MainTabs } from "./MainTabs";
@@ -139,7 +140,14 @@ export function RootNavigator() {
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AcceptInvite" component={AcceptInviteScreen} />
-      <Stack.Screen name="CreateMatch" component={CreateMatchScreen} />
+      <Stack.Screen
+        name="CreateMatch"
+        component={CreateMatchScreen}
+        options={{
+          title: "Create match",
+          contentStyle: { paddingTop: 12 },
+        }}
+      />
       <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen
@@ -173,6 +181,7 @@ export function RootNavigator() {
       <Stack.Screen name="SubscriptionGate" component={SubscriptionGateScreen} />
       <Stack.Screen name="AdminIDReview" component={AdminIDReviewScreen} options={{ title: "Admin ID Review" }} />
       <Stack.Screen name="AdminTestMode" component={AdminTestModeScreen} options={{ title: "Admin Test Mode" }} />
+      <Stack.Screen name="Community" component={CommunityScreen} options={{ title: "Community" }} />
         </>
       )}
     </Stack.Navigator>

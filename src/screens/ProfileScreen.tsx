@@ -327,6 +327,13 @@ export function ProfileScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
+            <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("Community")}>
+              <View>
+                <Text style={styles.rowTitle}>Community & feedback</Text>
+                <Text style={styles.rowMeta}>Share ideas and help shape PadelMe</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+            </Pressable>
           </View>
 
           <View style={styles.sectionCard}>
