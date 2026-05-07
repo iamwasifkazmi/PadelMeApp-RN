@@ -177,8 +177,6 @@ export function PlayerProfileScreen({
     profileVisibility?: "public" | "private";
     idVerified?: boolean;
     photoVerified?: boolean;
-    matchesPlayed?: number;
-    wins?: number;
   };
 
   const requests = friendData?.requests || [];
@@ -207,9 +205,15 @@ export function PlayerProfileScreen({
     ) ?? false;
   const isPrivateBlocked = profile.profileVisibility === "private" && !isOwn && !isConnected;
 
-  const matchesPlayed = profile.matchesPlayed ?? 0;
-  const wins = profile.wins ?? 0;
-  const winRate = matchesPlayed > 0 ? `${Math.round((wins / matchesPlayed) * 100)}%` : "—";
+  const matchesPlayed = user.matchesPlayed ?? 0;
+  const wins = user.wins ?? user.matchesWon ?? 0;
+  const losses = user.matchesLost ?? 0;
+  const winRate =
+    user.winRatePct != null
+      ? `${user.winRatePct}%`
+      : matchesPlayed > 0
+        ? `${Math.round((wins / matchesPlayed) * 100)}%`
+        : "—";
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -322,8 +326,43 @@ export function PlayerProfileScreen({
           <View style={styles.statsRow}>
             <Stat title="Matches" value={String(matchesPlayed)} />
             <Stat title="Wins" value={String(wins)} />
-            <Stat title="Win Rate" value={winRate} />
+            <Stat title="Losses" value={String(losses)} />
+            <Stat title="Win %" value={winRate} />
           </View>
+
+          {user.recentMatchResults && user.recentMatchResults.length > 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>📊 Recent match results</Text>
+              <Text style={styles.cardHint}>Tap a row to open the match and see full scores.</Text>
+              {user.recentMatchResults.map((r) => {
+                const won = /^w/i.test(String(r.result || ""));
+                return (
+                  <Pressable
+                    key={`${r.matchId}-${r.date}`}
+                    style={styles.resultRow}
+                    onPress={() => navigation.navigate("MatchDetail", { id: r.matchId })}
+                  >
+                    <View style={styles.resultRowTop}>
+                      <Text style={styles.resultTitle} numberOfLines={1}>
+                        {r.title || "Match"}
+                      </Text>
+                      <Text style={[styles.resultBadge, won ? styles.resultBadgeWin : styles.resultBadgeLoss]}>
+                        {won ? "W" : "L"}
+                      </Text>
+                    </View>
+                    <Text style={styles.resultMeta}>
+                      {new Date(r.date).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                      {r.scoreSummary ? ` · ${r.scoreSummary}` : ""}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
 
           {user.bio ? (
             <View style={styles.card}>
@@ -472,8 +511,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
   },
-  statTitle: { color: COLORS.text, fontSize: 12, fontWeight: "700" },
-  statValue: { marginTop: 5, color: COLORS.text, fontSize: 16, fontWeight: "800" },
+  statTitle: { color: COLORS.textMuted, fontSize: 10, fontWeight: "700" },
+  statValue: { marginTop: 4, color: COLORS.text, fontSize: 14, fontWeight: "800" },
   card: {
     marginTop: 8,
     backgroundColor: COLORS.card,
@@ -483,6 +522,25 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   cardTitle: { color: COLORS.text, fontSize: 15, fontWeight: "700", marginBottom: 6 },
+  cardHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 10, lineHeight: 15 },
+  resultRow: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  resultRowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  resultTitle: { flex: 1, color: COLORS.text, fontSize: 13, fontWeight: "700" },
+  resultMeta: { marginTop: 4, color: COLORS.textMuted, fontSize: 11 },
+  resultBadge: {
+    fontSize: 11,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  resultBadgeWin: { color: COLORS.successText, backgroundColor: COLORS.successSoft },
+  resultBadgeLoss: { color: COLORS.textMuted, backgroundColor: COLORS.bg },
   cardText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 2, textTransform: "capitalize" },
   tagsRow: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tagChip: {

@@ -900,7 +900,12 @@ export function MatchDetailScreen({
             </Pressable>
             {!startValidation.valid ? (
               <Text style={styles.warnText}>{startValidation.reason}</Text>
-            ) : null}
+            ) : (
+              <Text style={styles.flowHint}>
+                After you start, stay on this screen and scroll down to enter scores when play finishes — or use “Match
+                played — awaiting score” first, then submit.
+              </Text>
+            )}
           </>
         ) : null}
 

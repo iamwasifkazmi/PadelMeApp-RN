@@ -84,6 +84,14 @@ export type CommunityPostDto = {
   };
 };
 
+export type UserRecentMatchResultDto = {
+  matchId: string;
+  title: string | null;
+  date: string;
+  result: string;
+  scoreSummary: string | null;
+};
+
 export type UserDto = {
   id: string;
   email: string;
@@ -120,6 +128,13 @@ export type UserDto = {
   averageRating?: number | null;
   idVerified?: boolean;
   photoVerified?: boolean;
+  /** GET /users/:id — from PlayerStats + PlayerRecentForm */
+  matchesPlayed?: number;
+  matchesWon?: number;
+  matchesLost?: number;
+  wins?: number;
+  winRatePct?: number | null;
+  recentMatchResults?: UserRecentMatchResultDto[];
 };
 
 export type ProfileSummaryDto = {
