@@ -1,6 +1,7 @@
 import React from "react";
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -47,6 +48,79 @@ function MatchChatSkeleton() {
   );
 }
 
+function SenderAvatar({ uri, label }: { uri?: string | null; label: string }) {
+  const initial = (label || "?").trim().charAt(0).toUpperCase();
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={styles.avatarImg}
+        accessibilityLabel={label}
+        accessibilityRole="image"
+      />
+    );
+  }
+  return (
+    <View style={[styles.avatarImg, styles.avatarPlaceholder]} accessibilityRole="image" accessibilityLabel={label}>
+      <Text style={styles.avatarInitial}>{initial}</Text>
+    </View>
+  );
+}
+
+const SENDER_NAME_PALETTE = [
+  "#06CF9C",
+  "#53BDEB",
+  "#7B68EE",
+  "#FF6B9D",
+  "#FFA726",
+  "#AB47BC",
+  "#29B6F6",
+  "#E74C3C",
+];
+
+function senderBubbleAccent(email: string): string {
+  const e = email.trim().toLowerCase();
+  let h = 0;
+  for (let i = 0; i < e.length; i++) {
+    h = (h + e.charCodeAt(i) * (i + 1)) % 2147483647;
+  }
+  return SENDER_NAME_PALETTE[Math.abs(h) % SENDER_NAME_PALETTE.length];
+}
+
+function ReplyQuotePreview({
+  excerpt,
+  senderSnapshot,
+  senderEmailForAccent,
+  mine,
+}: {
+  excerpt?: string | null;
+  senderSnapshot?: string | null;
+  senderEmailForAccent?: string | null;
+  mine?: boolean;
+}) {
+  if (!excerpt?.trim()) return null;
+  const bar = senderEmailForAccent ? senderBubbleAccent(senderEmailForAccent) : COLORS.primary;
+  return (
+    <View
+      style={[
+        styles.quoteBox,
+        mine ? styles.quoteBoxMineWa : styles.quoteBoxInWa,
+        { borderLeftColor: bar },
+      ]}
+    >
+      <Text
+        style={[styles.quoteSender, mine ? styles.quoteSenderMineWa : { color: bar }]}
+        numberOfLines={1}
+      >
+        {senderSnapshot?.trim() || "Message"}
+      </Text>
+      <Text style={[styles.quoteExcerpt, mine ? styles.quoteExcerptMineWa : styles.quoteExcerptInWa]} numberOfLines={2}>
+        {excerpt.trim()}
+      </Text>
+    </View>
+  );
+}
+
 export function MatchChatScreen({
   route,
 }: {
@@ -60,7 +134,8 @@ export function MatchChatScreen({
   const [loading, setLoading] = React.useState(true);
   const [sending, setSending] = React.useState(false);
   const [text, setText] = React.useState("");
-  const [composerHeight, setComposerHeight] = React.useState(42);
+  const [composerHeight, setComposerHeight] = React.useState(36);
+  const [replyTarget, setReplyTarget] = React.useState<MatchChatMessageDto | null>(null);
   const [messages, setMessages] = React.useState<MatchChatMessageDto[]>([]);
   const [typingUsers, setTypingUsers] = React.useState<string[]>([]);
   const listRef = React.useRef<FlatList<MatchChatMessageDto>>(null);
@@ -225,12 +300,14 @@ export function MatchChatScreen({
         senderEmail: USER_EMAIL,
         senderName: USER_NAME,
         text: payload,
+        ...(replyTarget?.id ? { replyToId: replyTarget.id } : {}),
       });
       setMessages((prev) => {
         if (prev.some((m) => m.id === created.id)) return prev;
         return [...prev, created];
       });
       setText("");
+      setReplyTarget(null);
       if (isTypingRef.current) {
         emitTyping(false);
         isTypingRef.current = false;
@@ -279,22 +356,87 @@ export function MatchChatScreen({
         onContentSizeChange={() => {
           if (nearBottomRef.current) listRef.current?.scrollToEnd({ animated: true });
         }}
-        renderItem={({ item }) => {
-          const mine = item.senderEmail === USER_EMAIL;
+        renderItem={({ item, index }) => {
+          const mine =
+            item.senderEmail.trim().toLowerCase() === USER_EMAIL.trim().toLowerCase();
+          const prev = index > 0 ? messages[index - 1] : null;
+          const sameSenderAsPrev =
+            !mine &&
+            prev != null &&
+            prev.senderEmail.trim().toLowerCase() === item.senderEmail.trim().toLowerCase();
+          const sentAt = item.createdAt
+            ? new Date(item.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "";
+
+          if (mine) {
+            return (
+              <View style={[styles.msgOuter, styles.msgOuterMine]}>
+                <View style={styles.msgStack}>
+                  <Pressable
+                    onLongPress={() => setReplyTarget(item)}
+                    delayLongPress={380}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Message: ${item.text}. Long press to reply`}
+                  >
+                    <View style={[styles.bubble, styles.bubbleMine]}>
+                      <ReplyQuotePreview
+                        excerpt={item.replyToTextSnapshot}
+                        senderSnapshot={item.replyToSenderSnapshot}
+                        senderEmailForAccent={item.replyToSenderEmail}
+                        mine
+                      />
+                      <Text style={[styles.bubbleText, styles.bubbleTextMine]}>{item.text}</Text>
+                      <View style={[styles.meta, styles.metaInBubbleMine]}>
+                        <Text style={[styles.messageTime, styles.messageTimeInBubble]}>{sentAt}</Text>
+                        <MessageReceipt status={item.status} onOrangeBubble />
+                      </View>
+                    </View>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          }
+
+          const showSenderHeader = !sameSenderAsPrev;
+          const accent = senderBubbleAccent(item.senderEmail);
+
           return (
-            <View style={[styles.row, mine ? styles.rowMine : styles.rowOther]}>
-              <View style={[styles.messageWrap, mine ? styles.messageWrapMine : styles.messageWrapOther]}>
-                <View style={[styles.bubble, mine ? styles.mine : styles.other]}>
-                  <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>
-                    {item.text}
-                  </Text>
-                </View>
-                <View style={[styles.metaRow, mine && styles.metaRowMine]}>
-                  <Text style={styles.metaText}>
-                    {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </Text>
-                  {mine ? <MessageReceipt status={item.status} /> : null}
-                </View>
+            <View style={styles.otherRow}>
+              <View style={styles.otherAvatarGutter}>
+                {showSenderHeader ? (
+                  <SenderAvatar uri={item.senderPhotoUrl} label={item.senderName} />
+                ) : (
+                  <View style={styles.avatarGutterPlaceholder} />
+                )}
+              </View>
+              <View style={styles.otherMsgColumn}>
+                <Pressable
+                  onLongPress={() => setReplyTarget(item)}
+                  delayLongPress={380}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.senderName}: ${item.text}. Long press to reply`}
+                >
+                  <View style={[styles.bubble, styles.bubbleOther]}>
+                    {showSenderHeader ? (
+                      <Text style={[styles.bubbleSenderName, { color: accent }]} numberOfLines={1}>
+                        {item.senderName}
+                      </Text>
+                    ) : null}
+                    <ReplyQuotePreview
+                      excerpt={item.replyToTextSnapshot}
+                      senderSnapshot={item.replyToSenderSnapshot}
+                      senderEmailForAccent={item.replyToSenderEmail}
+                    />
+                    <Text style={styles.bubbleText}>{item.text}</Text>
+                    <View style={[styles.meta, styles.metaInBubbleOther]}>
+                      <Text style={styles.messageTime}>{sentAt}</Text>
+                      <MessageReceipt status={item.status} onOrangeBubble={false} />
+                    </View>
+                  </View>
+                </Pressable>
               </View>
             </View>
           );
@@ -304,109 +446,300 @@ export function MatchChatScreen({
         }
       />
 
-      <View style={styles.composerWrap}>
-        <View style={styles.liveMetaRow}>
-          {!!typingLabel && <Text style={styles.typingText}>{typingLabel}</Text>}
-        </View>
+      <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        {typingLabel ? (
+          <View style={styles.liveMetaRow}>
+            <Text style={styles.typingText}>{typingLabel}</Text>
+          </View>
+        ) : null}
+        {replyTarget ? (
+          <View style={styles.replyBanner}>
+            <View
+              style={[
+                styles.replyBannerAccent,
+                { backgroundColor: senderBubbleAccent(replyTarget.senderEmail) },
+              ]}
+            />
+            <View style={styles.replyBannerBody}>
+              <Text style={styles.replyBannerTitle} numberOfLines={1}>
+                Replying to {replyTarget.senderName}
+              </Text>
+              <Text style={styles.replyBannerPreview} numberOfLines={2}>
+                {replyTarget.text}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setReplyTarget(null)}
+              hitSlop={12}
+              style={styles.replyBannerClose}
+              accessibilityLabel="Cancel reply"
+            >
+              <Ionicons name="close" size={22} color={COLORS.textMuted} />
+            </Pressable>
+          </View>
+        ) : null}
         <View style={styles.inputRow}>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Message players..."
-          placeholderTextColor={COLORS.iconMuted}
-          style={[styles.input, { height: Math.min(96, Math.max(42, composerHeight)) }]}
-          multiline
-          textAlignVertical="top"
-          onContentSizeChange={(e) => setComposerHeight(e.nativeEvent.contentSize.height + 12)}
-          onBlur={() => {
-            if (isTypingRef.current) {
-              emitTyping(false);
-              isTypingRef.current = false;
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="Message players..."
+            placeholderTextColor={COLORS.iconMuted}
+            style={[styles.input, { height: Math.min(88, Math.max(36, composerHeight)) }]}
+            multiline
+            textAlignVertical="top"
+            onContentSizeChange={(e) =>
+              setComposerHeight(e.nativeEvent.contentSize.height + 10)
             }
-          }}
-        />
-        <Pressable
-          style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
-          onPress={send}
-          disabled={sending}
-        >
-          <Text style={styles.sendBtnText}>Send</Text>
-        </Pressable>
-      </View>
+            onBlur={() => {
+              if (isTypingRef.current) {
+                emitTyping(false);
+                isTypingRef.current = false;
+              }
+            }}
+          />
+          <Pressable
+            style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
+            onPress={send}
+            disabled={sending}
+            accessibilityLabel="Send message"
+          >
+            <Ionicons name="paper-plane" size={18} color={COLORS.card} />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-function MessageReceipt({ status }: { status?: MatchChatMessageDto["status"] }) {
+function MessageReceipt({
+  status,
+  onOrangeBubble,
+}: {
+  status?: MatchChatMessageDto["status"];
+  onOrangeBubble?: boolean;
+}) {
+  const onOrange = onOrangeBubble === true;
+  const tickColor = onOrange ? "rgba(255,255,255,0.9)" : "#5A6A78";
+  const readColor = onOrange ? "#E0F2FE" : COLORS.primary;
+  const iconSize = 16;
   if (status === "read") {
-    return <Ionicons name="checkmark-done" size={14} color={COLORS.primary} style={styles.metaTick} />;
+    return (
+      <Ionicons name="checkmark-done" size={iconSize} color={readColor} style={styles.messageTick} />
+    );
   }
   if (status === "delivered") {
-    return <Ionicons name="checkmark-done" size={14} color={COLORS.textMuted} style={styles.metaTick} />;
+    return (
+      <Ionicons name="checkmark-done" size={iconSize} color={tickColor} style={styles.messageTick} />
+    );
   }
-  return <Ionicons name="checkmark" size={14} color={COLORS.textMuted} style={styles.metaTick} />;
+  return <Ionicons name="checkmark" size={iconSize} color={tickColor} style={styles.messageTick} />;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  list: { flex: 1 },
-  listContent: { padding: 16, paddingBottom: 10 },
-  row: { marginBottom: 8, flexDirection: "row" },
-  rowMine: { justifyContent: "flex-end" },
-  rowOther: { justifyContent: "flex-start" },
-  messageWrap: { maxWidth: "78%" },
-  messageWrapMine: { alignItems: "flex-end" },
-  messageWrapOther: { alignItems: "flex-start" },
-  bubble: { borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
-  mine: { backgroundColor: COLORS.primary },
-  other: { backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border },
-  bubbleText: { color: COLORS.text, fontSize: 14 },
-  bubbleTextMine: { color: COLORS.card },
-  metaRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 4 },
-  metaRowMine: { alignSelf: "flex-end" },
-  metaText: { fontSize: 10, color: COLORS.textMuted },
-  metaTick: { marginTop: 0.5 },
-  composerWrap: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.card,
-    paddingTop: 2,
-    paddingBottom: Platform.OS === "ios" ? 8 : 9,
-  },
-  liveMetaRow: { minHeight: 14, paddingHorizontal: 14, alignItems: "flex-start", justifyContent: "center" },
-  typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },
-  inputRow: {
-    paddingHorizontal: 12,
-    paddingTop: 3,
+  list: { flex: 1, backgroundColor: COLORS.bg },
+  listContent: { paddingHorizontal: 10, paddingVertical: 8, paddingBottom: 12 },
+  msgOuter: { marginBottom: 4, flexDirection: "row", width: "100%" },
+  msgOuterMine: { justifyContent: "flex-end", marginBottom: 4 },
+  otherRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 9,
+    justifyContent: "flex-start",
+    marginBottom: 4,
+    width: "100%",
+  },
+  otherAvatarGutter: {
+    width: 48,
+    minWidth: 48,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 4,
+  },
+  avatarGutterPlaceholder: { width: 40, height: 1 },
+  otherMsgColumn: {
+    flexShrink: 1,
+    maxWidth: "82%",
+    alignItems: "flex-start",
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#DADCDE",
+    overflow: "hidden",
+  },
+  avatarPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DADCDE",
+  },
+  avatarInitial: { fontSize: 17, fontWeight: "600", color: "#54656F" },
+  msgStack: { maxWidth: "82%", alignItems: "flex-end", flexGrow: 0, flexShrink: 1 },
+  bubbleSenderName: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 4,
+    marginTop: 2,
+  },
+  quoteBox: {
+    marginBottom: 6,
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingVertical: 7,
+    borderLeftWidth: 4,
+    borderRadius: 4,
+  },
+  quoteBoxInWa: {
+    backgroundColor: COLORS.bg,
+  },
+  quoteBoxMineWa: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  quoteSender: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  quoteSenderMineWa: {
+    color: COLORS.card,
+  },
+  quoteExcerptInWa: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  quoteExcerptMineWa: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  replyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingLeft: 0,
+    paddingRight: 6,
+    marginBottom: 8,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
+  },
+  replyBannerAccent: {
+    width: 4,
+    alignSelf: "stretch",
+    minHeight: 44,
+  },
+  replyBannerBody: { flex: 1, minWidth: 0, paddingLeft: 10, paddingRight: 4 },
+  replyBannerTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+  replyBannerPreview: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  replyBannerClose: { padding: 6 },
+  bubble: {
+    paddingHorizontal: 10,
+    paddingTop: 5,
+    paddingBottom: 6,
+    maxWidth: "100%",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 0.5 },
+        shadowOpacity: 0.12,
+        shadowRadius: 1.2,
+      },
+      default: { elevation: 1 },
+    }),
+  },
+  bubbleMine: {
+    backgroundColor: COLORS.primary,
+    alignSelf: "flex-end",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 2,
+  },
+  bubbleOther: {
+    backgroundColor: COLORS.card,
+    alignSelf: "flex-start",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    borderBottomLeftRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
+  },
+  bubbleText: { color: COLORS.text, fontSize: 16.2, lineHeight: 21 },
+  bubbleTextMine: { color: COLORS.card },
+  meta: {
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-end",
+    paddingHorizontal: 0,
+  },
+  metaInBubbleMine: {
+    marginTop: 4,
+    justifyContent: "flex-end",
+    paddingHorizontal: 0,
+  },
+  metaInBubbleOther: {
+    marginTop: 4,
+    justifyContent: "flex-end",
+    paddingHorizontal: 0,
+  },
+  messageTime: { fontSize: 11, color: COLORS.textSoft, fontWeight: "500" },
+  messageTimeInBubble: { fontSize: 11, color: "rgba(255,255,255,0.92)", fontWeight: "500" },
+  messageTick: { marginTop: -1 },
+  composerWrap: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 0,
+  },
+  liveMetaRow: { paddingBottom: 4, paddingLeft: 4 },
+  typingText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  inputRow: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 16,
-    paddingHorizontal: 13,
-    paddingTop: Platform.OS === "ios" ? 11 : 9,
-    paddingBottom: 9,
+    borderRadius: 24,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    minHeight: 44,
     color: COLORS.text,
     backgroundColor: COLORS.bg,
-    fontSize: 14,
+    fontSize: 15,
   },
   sendBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
+    borderRadius: 22,
+    width: 44,
     height: 44,
-    minWidth: 76,
-    paddingHorizontal: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendBtnDisabled: { opacity: 0.65 },
-  sendBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 16 },
-  empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24 },
+  sendBtnDisabled: { opacity: 0.55 },
+  empty: { textAlign: "center", color: COLORS.textMuted, marginTop: 24, fontSize: 15 },
   matchChatSkeletonPad: { padding: 16 },
   matchChatSkeletonGap: { height: 12 },
   matchChatSkeletonBubbleWrap: { marginBottom: 8 },

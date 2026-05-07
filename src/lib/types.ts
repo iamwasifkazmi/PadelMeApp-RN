@@ -306,7 +306,13 @@ export type MatchChatMessageDto = {
   matchId: string;
   senderEmail: string;
   senderName: string;
+  /** Enriched from User.photoUrl when loading / sending; omitted for very old payloads. */
+  senderPhotoUrl?: string | null;
   text: string;
+  replyToId?: string | null;
+  replyToTextSnapshot?: string | null;
+  replyToSenderSnapshot?: string | null;
+  replyToSenderEmail?: string | null;
   readBy?: string[];
   status?: "sent" | "delivered" | "read";
   deliveredAt?: string | null;

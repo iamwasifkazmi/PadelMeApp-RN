@@ -188,10 +188,26 @@ export function InvitePlayersScreen() {
       if (!t) return;
       const body = buildInviteShareMessage(t, eventTitle);
       if (channel === "whatsapp") {
-        const url = `whatsapp://send?text=${encodeURIComponent(body)}`;
-        const ok = await Linking.canOpenURL(url);
-        if (ok) await Linking.openURL(url);
-        else showSnackbar("WhatsApp is not available.", { type: "info" });
+        const encoded = encodeURIComponent(body);
+        const appUrl = `whatsapp://send?text=${encoded}`;
+        const webUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+        let opened = false;
+        try {
+          if (await Linking.canOpenURL(appUrl)) {
+            await Linking.openURL(appUrl);
+            opened = true;
+          }
+        } catch {
+          /* try web fallback */
+        }
+        if (!opened) {
+          try {
+            await Linking.openURL(webUrl);
+            opened = true;
+          } catch {
+            showSnackbar("Could not open WhatsApp.", { type: "error" });
+          }
+        }
       } else if (channel === "sms") {
         const url = `sms:?body=${encodeURIComponent(body)}`;
         await Linking.openURL(url);
