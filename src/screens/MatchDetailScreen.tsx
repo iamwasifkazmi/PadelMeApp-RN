@@ -540,9 +540,9 @@ export function MatchDetailScreen({
         <InfoRow icon="time-outline" value={`${match.timeLabel} · ${match.durationMinutes || 90} min`} />
         <InfoRow
           icon="location-outline"
-          value={
+          value={`${
             match.locationAddress ? `${match.locationName} · ${match.locationAddress}` : match.locationName
-          }
+          }${match.country?.trim() ? ` · ${match.country.trim()}` : ""}`}
         />
         <InfoRow
           icon="people-outline"

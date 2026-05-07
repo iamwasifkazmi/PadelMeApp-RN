@@ -23,6 +23,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     window = UIWindow(frame: UIScreen.main.bounds)
 
+    if #available(iOS 14.0, *) {
+      UIDatePicker.appearance().preferredDatePickerStyle = .wheels
+    }
+
     factory.startReactNative(
       withModuleName: "MiPadel",
       in: window,

@@ -1,6 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React from "react";
 import {
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -9,10 +10,12 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
-import { MatchDto } from "../lib/types";
+import { MatchDto, UserDto } from "../lib/types";
+import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
@@ -36,6 +39,7 @@ type FormState = {
   locationAddress: string;
   locationLat: number | null;
   locationLng: number | null;
+  country: string;
   skillLevel: SkillValue;
   visibility: VisibilityValue;
   tags: string[];
@@ -83,6 +87,7 @@ function formatTime(date: Date) {
 }
 
 export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
+  const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const recurring = Boolean(route?.params?.recurring);
@@ -101,6 +106,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     locationAddress: "",
     locationLat: null,
     locationLng: null,
+    country: "",
     skillLevel: "any",
     visibility: "public",
     tags: [],
@@ -116,6 +122,22 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
   const steps = getSteps(form.mode);
   const currentStep = steps[stepIndex];
+
+  React.useEffect(() => {
+    if (!USER_EMAIL) return;
+    let cancelled = false;
+    api
+      .get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`)
+      .then((u) => {
+        if (cancelled) return;
+        const c = (u.country || "").trim();
+        if (c) setForm((p) => ({ ...p, country: p.country || c }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [USER_EMAIL]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -181,6 +203,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         locationAddress: form.locationAddress.trim(),
         locationLat: form.locationLat!,
         locationLng: form.locationLng!,
+        ...(form.country.trim() ? { country: form.country.trim() } : {}),
         durationMinutes: form.durationMinutes,
         skillLevel: form.skillLevel,
         visibility: form.visibility,
@@ -227,12 +250,13 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     return d;
   }, [pickerField, form.date, form.timeLabel]);
 
-  const onPickerChange = (_event: any, selected?: Date) => {
-    if (!pickerField) return;
-    if (selected) {
-      if (pickerField === "date") update("date", formatDate(selected));
-      else update("timeLabel", formatTime(selected));
-    }
+  const onPickerValueChange = (_event: unknown, selected?: Date) => {
+    if (!pickerField || !selected) return;
+    if (pickerField === "date") update("date", formatDate(selected));
+    else update("timeLabel", formatTime(selected));
+  };
+
+  const onPickerDismiss = () => {
     if (Platform.OS !== "ios") setPickerField(null);
   };
 
@@ -328,12 +352,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
             <SectionLabel text="Venue (exact map pin) *" />
             <Text style={styles.venueHint}>
-              {userLocationLabel({
-                locationName: form.locationName,
-                locationAddress: form.locationAddress,
-                locationLat: form.locationLat,
-                locationLng: form.locationLng,
-              }) || "Search for a club or court — coordinates are required."}
+              {userLocationLabel(form) || "Search for a club or court — coordinates are required."}
             </Text>
             {hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }) ? (
               <Text style={styles.coordsHint}>
@@ -366,6 +385,31 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               </View>
             </View>
+            <SectionLabel text="Country (optional)" />
+            <Text style={styles.countryWhenHint}>
+              Same labels as your profile country — helps others find this game in Discover.
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.countryChipsRow}>
+              <Pressable
+                onPress={() => update("country", "")}
+                style={[styles.countryChip, !form.country && styles.countryChipActive]}
+              >
+                <Text style={[styles.countryChipText, !form.country && styles.countryChipTextActive]}>None</Text>
+              </Pressable>
+              {USER_COUNTRY_CHOICES.map((c) => (
+                <Pressable
+                  key={c.value}
+                  onPress={() => update("country", c.value)}
+                  style={[styles.countryChip, form.country === c.value && styles.countryChipActive]}
+                >
+                  <Text
+                    style={[styles.countryChipText, form.country === c.value && styles.countryChipTextActive]}
+                  >
+                    {c.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </>
         ) : null}
 
@@ -528,7 +572,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                   : `📅 ${form.date} · ${form.timeLabel}`}
               </Text>
               <Text style={styles.previewMeta}>
-                📍 {userLocationLabel(form) || "Venue"} ·{" "}
+                📍 {userLocationLabel(form) || "Venue"}
+                {form.country.trim() ? ` · ${form.country.trim()}` : ""} ·{" "}
                 {form.matchType === "singles" ? "Singles" : form.matchType === "mixed_doubles" ? "Mixed Doubles" : "Doubles"} ·{" "}
                 {form.durationMinutes}min
               </Text>
@@ -556,24 +601,61 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       </View>
 
       {pickerField ? (
-        <View style={styles.pickerWrap}>
-          <DateTimePicker
-            value={pickerValue}
-            mode={pickerField === "date" ? "date" : "time"}
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={onPickerChange}
-          />
-          {Platform.OS === "ios" ? (
-            <Pressable style={styles.doneBtn} onPress={() => setPickerField(null)}>
-              <Text style={styles.doneText}>Done</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        Platform.OS === "ios" ? (
+          <Modal
+            visible
+            transparent
+            animationType="fade"
+            statusBarTranslucent
+            onRequestClose={() => setPickerField(null)}
+          >
+            <View style={styles.pickerModalRoot} pointerEvents="box-none">
+              <Pressable style={styles.pickerModalBackdrop} onPress={() => setPickerField(null)} />
+              <View
+                style={[
+                  styles.pickerModalSheet,
+                  { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+                ]}
+              >
+                <DateTimePicker
+                  value={pickerValue}
+                  mode={pickerField === "date" ? "date" : "time"}
+                  display="spinner"
+                  themeVariant="light"
+                  onValueChange={onPickerValueChange}
+                  style={styles.pickerIOSHeight}
+                />
+                <Pressable style={styles.doneBtn} onPress={() => setPickerField(null)}>
+                  <Text style={styles.doneText}>Done</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+        ) : (
+          <View style={styles.pickerWrap}>
+            <DateTimePicker
+              value={pickerValue}
+              mode={pickerField === "date" ? "date" : "time"}
+              display="default"
+              onValueChange={onPickerValueChange}
+              onDismiss={onPickerDismiss}
+            />
+          </View>
+        )
       ) : null}
       <LocationSearchModal
         visible={locationPickerOpen}
         title="Pick match location"
         initialQuery={form.locationName || form.locationAddress}
+        searchBias={
+          hasUserGeo(form)
+            ? {
+                lat: form.locationLat as number,
+                lng: form.locationLng as number,
+                labelHint: form.locationName.trim() || form.locationAddress.trim() || undefined,
+              }
+            : null
+        }
         onClose={() => setLocationPickerOpen(false)}
         onPick={(loc) => {
           const lat = loc.lat;
@@ -653,7 +735,7 @@ function Field({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingHorizontal: 16, paddingTop: 12, flexDirection: "row", alignItems: "center", gap: 10 },
+  header: { paddingHorizontal: 16, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
   backBtn: {
     width: 34,
     height: 34,
@@ -670,7 +752,7 @@ const styles = StyleSheet.create({
   progressDot: { flex: 1, height: 4, borderRadius: 999, backgroundColor: COLORS.border },
   progressDotActive: { backgroundColor: COLORS.primary },
   content: { paddingHorizontal: 16, paddingBottom: 20 },
-  stepTitle: { fontSize: 26, fontWeight: "800", color: COLORS.text, marginTop: 10, marginBottom: 9 },
+  stepTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginTop: 8, marginBottom: 8 },
   modeCard: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -744,6 +826,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dateText: { color: COLORS.text, fontSize: 13, fontWeight: "600" },
+  countryWhenHint: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: 8,
+  },
+  countryChipsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 4, paddingRight: 8 },
+  countryChip: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  countryChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
+  countryChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600" },
+  countryChipTextActive: { color: COLORS.primaryDark },
   venueHint: {
     color: COLORS.text,
     fontSize: 13,
@@ -822,6 +922,25 @@ const styles = StyleSheet.create({
   },
   ctaDisabled: { opacity: 0.65 },
   ctaText: { color: COLORS.card, fontWeight: "800", fontSize: 15 },
+  pickerModalRoot: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  pickerModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  pickerModalSheet: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+    paddingTop: 8,
+    paddingHorizontal: 4,
+  },
+  /** UIDatePicker wheels need a real height on some iOS devices or they render blank. */
+  pickerIOSHeight: { width: "100%", height: 216 },
   pickerWrap: {
     position: "absolute",
     left: 12,

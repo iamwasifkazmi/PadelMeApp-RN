@@ -6,7 +6,7 @@ import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
-import { getCurrentUserEmail } from "../store";
+import { getCurrentUserEmail, getCurrentUserId } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
@@ -59,6 +59,7 @@ export function PlayerProfileScreen({
   const navigation = useNavigation<any>();
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
+  const MY_USER_ID = getCurrentUserId();
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState(false);
   const [user, setUser] = React.useState<UserDto | null>(null);
@@ -124,6 +125,14 @@ export function PlayerProfileScreen({
 
   const openDirectChat = async () => {
     if (!user || user.email === USER_EMAIL) return;
+    const isFriendChat =
+      friendData?.friends?.some(
+        (f) => f.email.trim().toLowerCase() === user.email.trim().toLowerCase(),
+      ) ?? false;
+    if (!isFriendChat) {
+      showSnackbar("Add this player as a friend first to send messages.", { type: "info" });
+      return;
+    }
     try {
       setActionLoading(true);
       const conversations = await api.get<any[]>(
@@ -186,8 +195,16 @@ export function PlayerProfileScreen({
     (r) => r.status === "pending" && r.requesterEmail === USER_EMAIL && r.recipientEmail === user.email,
   );
 
-  const isOwn = user.email === USER_EMAIL;
+  const normEmail = (e: string) => e.trim().toLowerCase();
+  /** Prefer ids (route + session); email-only fallback for legacy sessions missing `user.id` in storage. */
+  const isOwn =
+    Boolean(MY_USER_ID && route.params.id === MY_USER_ID) ||
+    (!MY_USER_ID && normEmail(user.email) === normEmail(USER_EMAIL));
   const isConnected = Boolean(acceptedRequest);
+  const isFriend =
+    friendData?.friends?.some(
+      (f) => f.email.trim().toLowerCase() === user.email.trim().toLowerCase(),
+    ) ?? false;
   const isPrivateBlocked = profile.profileVisibility === "private" && !isOwn && !isConnected;
 
   const matchesPlayed = profile.matchesPlayed ?? 0;
@@ -280,12 +297,21 @@ export function PlayerProfileScreen({
                 </Text>
               </Pressable>
             )}
-            <Pressable style={styles.secondaryBtn} onPress={openDirectChat}>
-              <Text style={styles.secondaryBtnText}>Message</Text>
-            </Pressable>
+            {isFriend ? (
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={openDirectChat}
+                disabled={actionLoading}
+              >
+                <Text style={styles.secondaryBtnText}>Message</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : (
-          <Pressable style={styles.secondaryBtn} onPress={() => navigation.navigate("EditProfile")}>
+          <Pressable
+            style={[styles.secondaryBtn, styles.heroEditBtn]}
+            onPress={() => navigation.navigate("EditProfile")}
+          >
             <Text style={styles.secondaryBtnText}>Edit Profile</Text>
           </Pressable>
         )}
@@ -390,7 +416,14 @@ const styles = StyleSheet.create({
   name: { color: COLORS.text, fontSize: 22, fontWeight: "800", lineHeight: 25 },
   location: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },
   distanceAway: { marginTop: 2, color: COLORS.textSoft, fontSize: 11, fontWeight: "600" },
-  badgesRow: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
+  badgesRow: {
+    marginTop: 8,
+    marginBottom: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "center",
+  },
   levelWrap: { width: "100%", marginBottom: 2 },
   badge: { borderRadius: 999, backgroundColor: COLORS.border, paddingHorizontal: 10, paddingVertical: 5 },
   badgePrimary: { backgroundColor: COLORS.primarySoftAlt },
@@ -406,7 +439,8 @@ const styles = StyleSheet.create({
   },
   privateTitle: { color: COLORS.text, fontSize: 13, fontWeight: "700" },
   privateMeta: { marginTop: 2, color: COLORS.textMuted, fontSize: 11 },
-  actionRow: { flexDirection: "row", gap: 8, marginTop: 12 },
+  actionRow: { flexDirection: "row", gap: 8, marginTop: 20 },
+  heroEditBtn: { marginTop: 20, alignSelf: "stretch" },
   primaryBtn: {
     flex: 1,
     borderRadius: 12,
@@ -438,7 +472,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
   },
-  statTitle: { color: COLORS.textMuted, fontSize: 11, fontWeight: "600" },
+  statTitle: { color: COLORS.text, fontSize: 12, fontWeight: "700" },
   statValue: { marginTop: 5, color: COLORS.text, fontSize: 16, fontWeight: "800" },
   card: {
     marginTop: 8,

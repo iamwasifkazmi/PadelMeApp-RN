@@ -19,6 +19,7 @@ import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
+import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
@@ -71,6 +72,94 @@ const NOTIF_ITEMS = [
   { key: "notifyTournaments", label: "🏆 Tournament invitations" },
 ] as const;
 
+type EditProfileFormState = {
+  fullName: string;
+  age: string;
+  gender: string;
+  locationName: string;
+  country: string;
+  locationLat: number | null;
+  locationLng: number | null;
+  photoUrl: string;
+  photoVerified: boolean;
+  bio: string;
+  skillLevel: number;
+  skillLabel: string;
+  skillConfidence: string;
+  preferredPosition: string;
+  availabilityDays: string[];
+  availabilityTimes: string[];
+  travelRadiusKm: number;
+  useCurrentLocation: boolean;
+  matchTypePreference: string;
+  matchFormatPreference: string;
+  tags: string[];
+  profileVisibility: "public" | "private";
+  notifyInstantPlay: boolean;
+  notifyNearbyMatches: boolean;
+  notifyMatchInvites: boolean;
+  notifyTournaments: boolean;
+};
+
+/** Step 0–3 = PROFILE_STEPS; step 4 = bio section (scroll target; tab bar capped at Preferences). */
+function getProfileValidationError(
+  form: EditProfileFormState,
+): { message: string; step: number } | null {
+  if (!form.photoUrl.trim()) {
+    return { message: "Add a profile photo to complete your profile.", step: 0 };
+  }
+  if (!form.fullName.trim()) {
+    return { message: "Enter your full name.", step: 0 };
+  }
+  const ageNum = Number.parseInt(form.age.trim(), 10);
+  if (!form.age.trim() || !Number.isFinite(ageNum) || ageNum < 13 || ageNum > 100) {
+    return { message: "Enter a valid age (13–100).", step: 0 };
+  }
+  if (!form.gender.trim()) {
+    return { message: "Select your gender.", step: 0 };
+  }
+  if (!form.country.trim()) {
+    return { message: "Select the country where you mainly play.", step: 0 };
+  }
+  if (!hasUserGeo(form)) {
+    return { message: "Pick a home location with Search so we can save exact coordinates.", step: 0 };
+  }
+
+  const sl = Number(form.skillLevel);
+  if (!Number.isFinite(sl) || sl < 1 || sl > 10) {
+    return { message: "Select your padel level (1–10).", step: 1 };
+  }
+  if (!form.skillConfidence) {
+    return { message: "Select your confidence on court.", step: 1 };
+  }
+  if (!form.preferredPosition) {
+    return { message: "Select your preferred court position.", step: 1 };
+  }
+
+  if (form.availabilityDays.length < 1) {
+    return { message: "Choose at least one day you’re available.", step: 2 };
+  }
+  if (form.availabilityTimes.length < 1) {
+    return { message: "Choose at least one time of day (morning, afternoon, or evening).", step: 2 };
+  }
+
+  if (!form.matchTypePreference) {
+    return { message: "Select how you like to play (match type).", step: 3 };
+  }
+  if (!form.matchFormatPreference) {
+    return { message: "Select your preferred match format.", step: 3 };
+  }
+  if (form.tags.length < 1) {
+    return { message: "Pick at least one vibe tag.", step: 3 };
+  }
+
+  if (!form.bio.trim()) {
+    return { message: "Write a short bio — other players see this on your profile.", step: 4 };
+  }
+
+  return null;
+}
+
 function EditProfileSkeleton() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -94,7 +183,7 @@ export function EditProfileScreen() {
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const scrollRef = React.useRef<ScrollView | null>(null);
-  const sectionOffsetsRef = React.useRef<number[]>([0, 0, 0, 0]);
+  const sectionOffsetsRef = React.useRef<number[]>([0, 0, 0, 0, 0]);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [pickingPhoto, setPickingPhoto] = React.useState(false);
@@ -106,6 +195,7 @@ export function EditProfileScreen() {
     age: "",
     gender: "",
     locationName: "",
+    country: "",
     locationLat: null as number | null,
     locationLng: null as number | null,
     photoUrl: "",
@@ -141,6 +231,7 @@ export function EditProfileScreen() {
           age: u.age ? String(u.age) : "",
           gender: u.gender || "",
           locationName: (u.locationName || u.location || "").trim(),
+          country: (u.country || "").trim(),
           locationLat: u.locationLat ?? null,
           locationLng: u.locationLng ?? null,
           photoUrl: u.photoUrl || "",
@@ -174,12 +265,11 @@ export function EditProfileScreen() {
   }, [USER_EMAIL]);
 
   const onSave = async () => {
-    if (!form.fullName.trim()) {
-      showSnackbar("Name is required", { type: "error" });
-      return;
-    }
-    if (!hasUserGeo(form)) {
-      showSnackbar("Pick a location with Search so we can save exact coordinates.", { type: "error" });
+    const validation = getProfileValidationError(form);
+    if (validation) {
+      showSnackbar(validation.message, { type: "error" });
+      setActiveStep(validation.step <= 3 ? validation.step : 3);
+      scrollToSection(validation.step);
       return;
     }
     try {
@@ -193,6 +283,7 @@ export function EditProfileScreen() {
         locationName: form.locationName.trim() || null,
         locationLat: form.locationLat,
         locationLng: form.locationLng,
+        country: form.country.trim() || null,
         bio: form.bio.trim(),
         photoUrl: form.photoUrl.trim() || null,
         photoVerified: form.photoVerified,
@@ -284,7 +375,8 @@ export function EditProfileScreen() {
     for (let i = 0; i < offsets.length; i += 1) {
       if (y >= offsets[i]) next = i;
     }
-    if (next !== activeStep) setActiveStep(next);
+    const capped = Math.min(next, PROFILE_STEPS.length - 1);
+    if (capped !== activeStep) setActiveStep(capped);
   };
 
   if (loading) return <EditProfileSkeleton />;
@@ -317,7 +409,7 @@ export function EditProfileScreen() {
         <SectionCard
           emoji="👤"
           title="Basics"
-          subtitle="The essentials - required to get started"
+          subtitle="Photo, name, age, gender, country, and home location are required"
           onLayout={(y) => setSectionOffset(0, y)}
         >
           <View style={styles.photoRow}>
@@ -334,8 +426,11 @@ export function EditProfileScreen() {
               </View>
             ) : null}
             <View style={styles.photoMeta}>
-              <Text style={styles.photoTitle}>Profile photo</Text>
-              <Text style={styles.photoSubtitle}>Pick a photo from your gallery</Text>
+              <Text style={styles.photoTitle}>
+                Profile photo{" "}
+                <Text style={styles.requiredMark}>*</Text>
+              </Text>
+              <Text style={styles.photoSubtitle}>Required — pick a clear photo from your gallery</Text>
               <Pressable
                 style={[styles.photoInlineBtn, pickingPhoto && styles.saveBtnDisabled]}
                 onPress={onPickPhoto}
@@ -348,14 +443,20 @@ export function EditProfileScreen() {
               </Pressable>
             </View>
           </View>
-          <Field label="Full Name *" value={form.fullName} onChangeText={(v) => setForm((p) => ({ ...p, fullName: v }))} />
+          <Field
+            label="Full Name"
+            labelRequired
+            value={form.fullName}
+            onChangeText={(v) => setForm((p) => ({ ...p, fullName: v }))}
+          />
           <Field
             label="Age"
+            labelRequired
             value={form.age}
             onChangeText={(v) => setForm((p) => ({ ...p, age: v.replace(/\D/g, "").slice(0, 2) }))}
             keyboardType="number-pad"
           />
-          <Text style={styles.fieldLabel}>Home location *</Text>
+          <FieldLabel text="Home location" required />
           <Text style={styles.locationHint}>
             {userLocationLabel(form) || "No place selected yet — use search for a map pin (exact coordinates)."}
           </Text>
@@ -368,10 +469,33 @@ export function EditProfileScreen() {
             <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
             <Text style={styles.pickLocationBtnText}>Search & select location</Text>
           </Pressable>
-          <Text style={styles.fieldLabel}>Gender</Text>
+          <FieldLabel text="Country" required />
+          <Text style={styles.countryHint}>
+            Used for Discover → Players. Choose where you mainly play.
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.countryChipsRow}
+          >
+            {USER_COUNTRY_CHOICES.map((c) => (
+              <Chip
+                key={c.value}
+                label={c.label}
+                selected={form.country === c.value}
+                onPress={() => setForm((p) => ({ ...p, country: c.value }))}
+              />
+            ))}
+          </ScrollView>
+          <FieldLabel text="Gender" required />
           <View style={styles.chipsRow}>
             {["male", "female", "other"].map((g) => (
-              <Chip key={g} label={capitalize(g)} selected={form.gender === g} onPress={() => setForm((p) => ({ ...p, gender: p.gender === g ? "" : g }))} />
+              <Chip
+                key={g}
+                label={capitalize(g)}
+                selected={form.gender === g}
+                onPress={() => setForm((p) => ({ ...p, gender: g }))}
+              />
             ))}
           </View>
         </SectionCard>
@@ -379,9 +503,10 @@ export function EditProfileScreen() {
         <SectionCard
           emoji="🎾"
           title="Your Padel Level"
-          subtitle="Select your level - 1 = Pro, 10 = Just starting"
+          subtitle="Required: level (1 = pro, 10 = beginner), confidence, and court position"
           onLayout={(y) => setSectionOffset(1, y)}
         >
+          <FieldLabel text="Padel level (1–10)" required />
           <View style={styles.levelGrid}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <Pressable
@@ -397,33 +522,38 @@ export function EditProfileScreen() {
             {skillCategory(form.skillLevel)} · {skillLongLabel(form.skillLevel)}
           </Text>
 
-          <Text style={styles.fieldLabel}>Confidence on court</Text>
+          <FieldLabel text="Confidence on court" required />
           <View style={styles.chipsRow}>
             {CONFIDENCE.map((c) => (
               <Chip
                 key={c.value}
                 label={c.label}
                 selected={form.skillConfidence === c.value}
-                onPress={() => setForm((p) => ({ ...p, skillConfidence: p.skillConfidence === c.value ? "" : c.value }))}
+                onPress={() => setForm((p) => ({ ...p, skillConfidence: c.value }))}
               />
             ))}
           </View>
 
-          <Text style={styles.fieldLabel}>Court position</Text>
+          <FieldLabel text="Court position" required />
           <View style={styles.chipsRow}>
             {POSITIONS.map((pos) => (
               <Chip
                 key={pos.value}
                 label={pos.label}
                 selected={form.preferredPosition === pos.value}
-                onPress={() => setForm((p) => ({ ...p, preferredPosition: p.preferredPosition === pos.value ? "" : pos.value }))}
+                onPress={() => setForm((p) => ({ ...p, preferredPosition: pos.value }))}
               />
             ))}
           </View>
         </SectionCard>
 
-        <SectionCard emoji="📅" title="Availability" subtitle="You can update this anytime" onLayout={(y) => setSectionOffset(2, y)}>
-          <Text style={styles.fieldLabel}>Days available</Text>
+        <SectionCard
+          emoji="📅"
+          title="Availability"
+          subtitle="Pick at least one day and one time window"
+          onLayout={(y) => setSectionOffset(2, y)}
+        >
+          <FieldLabel text="Days available" required />
           <View style={styles.daysRow}>
             {DAYS.map((day) => (
               <Pressable
@@ -436,7 +566,7 @@ export function EditProfileScreen() {
             ))}
           </View>
 
-          <Text style={styles.fieldLabel}>Best time of day</Text>
+          <FieldLabel text="Best time of day" required />
           <View style={styles.timeGrid}>
             {TIMES.map((time) => (
               <Pressable
@@ -474,34 +604,34 @@ export function EditProfileScreen() {
         <SectionCard
           emoji="🎯"
           title="How do you like to play?"
-          subtitle="Help us find you the best matches"
+          subtitle="Match type, format, and at least one vibe — all required"
           onLayout={(y) => setSectionOffset(3, y)}
         >
-          <Text style={styles.fieldLabel}>Match type 🎮</Text>
+          <FieldLabel text="Match type 🎮" required />
           <View style={styles.chipsRow}>
             {MATCH_TYPES.map((type) => (
               <Chip
                 key={type.value}
                 label={type.label}
                 selected={form.matchTypePreference === type.value}
-                onPress={() => setForm((p) => ({ ...p, matchTypePreference: p.matchTypePreference === type.value ? "" : type.value }))}
+                onPress={() => setForm((p) => ({ ...p, matchTypePreference: type.value }))}
               />
             ))}
           </View>
 
-          <Text style={styles.fieldLabel}>Match format 🧩</Text>
+          <FieldLabel text="Match format 🧩" required />
           <View style={styles.chipsRow}>
             {MATCH_FORMATS.map((format) => (
               <Chip
                 key={format.value}
                 label={format.label}
                 selected={form.matchFormatPreference === format.value}
-                onPress={() => setForm((p) => ({ ...p, matchFormatPreference: p.matchFormatPreference === format.value ? "" : format.value }))}
+                onPress={() => setForm((p) => ({ ...p, matchFormatPreference: format.value }))}
               />
             ))}
           </View>
 
-          <Text style={styles.fieldLabel}>Your vibe (pick any) ✨</Text>
+          <FieldLabel text="Your vibe ✨" required />
           <View style={styles.chipsRow}>
             {TAG_OPTIONS.map((tag) => (
               <Chip
@@ -554,9 +684,15 @@ export function EditProfileScreen() {
           ))}
         </SectionCard>
 
-        <SectionCard emoji="💬" title="Tell us about you" subtitle="Optional - other players will see this">
+        <SectionCard
+          emoji="💬"
+          title="Tell us about you"
+          subtitle="Required — a short intro other players will see"
+          onLayout={(y) => setSectionOffset(4, y)}
+        >
           <Field
             label="Bio"
+            labelRequired
             value={form.bio}
             onChangeText={(v) => {
               const next = v.slice(0, 300);
@@ -573,7 +709,9 @@ export function EditProfileScreen() {
         <Pressable style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={onSave} disabled={saving}>
           <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save Profile"}</Text>
         </Pressable>
-        <Text style={styles.saveHint}>You can change this anytime</Text>
+        <Text style={styles.saveHint}>
+          Fields marked <Text style={styles.requiredMark}>*</Text> are required to save. You can update anytime after that.
+        </Text>
       </View>
       <LocationSearchModal
         visible={locationPickerOpen}
@@ -641,6 +779,20 @@ function ToggleLine({ label, value, onToggle }: { label: string; value: boolean;
   );
 }
 
+function FieldLabel({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <Text style={styles.fieldLabel}>
+      {text}
+      {required ? (
+        <>
+          {" "}
+          <Text style={styles.requiredMark}>*</Text>
+        </>
+      ) : null}
+    </Text>
+  );
+}
+
 function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable style={[styles.chip, selected && styles.chipActive]} onPress={onPress}>
@@ -651,12 +803,14 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
 
 function Field({
   label,
+  labelRequired,
   value,
   onChangeText,
   multiline,
   keyboardType,
 }: {
   label: string;
+  labelRequired?: boolean;
   value: string;
   onChangeText: (value: string) => void;
   multiline?: boolean;
@@ -664,7 +818,7 @@ function Field({
 }) {
   return (
     <View style={styles.fieldWrap}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <FieldLabel text={label} required={labelRequired} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -787,6 +941,7 @@ const styles = StyleSheet.create({
   photoInlineBtnText: { color: COLORS.card, fontSize: 11, fontWeight: "700" },
   fieldWrap: { marginBottom: 10 },
   fieldLabel: { marginBottom: 6, color: COLORS.textSubtle, fontSize: 11, fontWeight: "600" },
+  requiredMark: { color: COLORS.dangerText, fontWeight: "700" },
   locationHint: {
     marginBottom: 6,
     color: COLORS.text,
@@ -795,6 +950,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   coordsHint: { marginBottom: 8, color: COLORS.textMuted, fontSize: 11 },
+  countryHint: { marginBottom: 8, color: COLORS.textMuted, fontSize: 11, lineHeight: 15 },
+  countryChipsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 10, paddingRight: 8 },
   pickLocationBtn: {
     marginTop: -1,
     marginBottom: 10,

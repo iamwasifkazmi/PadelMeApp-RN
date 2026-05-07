@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
@@ -10,6 +10,7 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
+import { PLAYERS_COUNTRY_FILTER_CHIPS } from "../lib/profileCountries";
 
 type DistanceFilter = "any" | "5" | "10" | "20" | "30";
 type GenderFilter = "all" | "male" | "female";
@@ -72,6 +73,34 @@ function FilterChip({
   );
 }
 
+function PlayerListAvatar({ item }: { item: UserDto }) {
+  const [failed, setFailed] = React.useState(false);
+  const uri = (item.photoUrl || "").trim();
+  React.useEffect(() => {
+    setFailed(false);
+  }, [item.id, uri]);
+
+  const initial = (item.fullName || item.email).slice(0, 1).toUpperCase();
+  if (uri && !failed) {
+    return (
+      <View style={styles.avatar}>
+        <Image
+          source={{ uri }}
+          style={styles.avatarImage}
+          resizeMode="cover"
+          accessibilityLabel={item.fullName || item.email}
+          onError={() => setFailed(true)}
+        />
+      </View>
+    );
+  }
+  return (
+    <View style={styles.avatar}>
+      <Text style={styles.avatarText}>{initial}</Text>
+    </View>
+  );
+}
+
 function PlayersSkeleton() {
   return (
     <View style={styles.container}>
@@ -103,7 +132,9 @@ export function PlayersScreen() {
   const [distance, setDistance] = React.useState<DistanceFilter>("any");
   const [gender, setGender] = React.useState<GenderFilter>("all");
   const [ability, setAbility] = React.useState<AbilityFilter>("all");
+  const [country, setCountry] = React.useState("");
   const [players, setPlayers] = React.useState<UserDto[]>([]);
+  const [friendEmails, setFriendEmails] = React.useState<Set<string>>(() => new Set());
   const [openingChatEmail, setOpeningChatEmail] = React.useState<string | null>(null);
 
   const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
@@ -118,8 +149,16 @@ export function PlayersScreen() {
       if (distance !== "any") params.set("maxDistanceKm", distance);
       if (gender !== "all") params.set("gender", gender);
       if (ability !== "all") params.set("skillTier", ability);
-      const res = await api.get<UserDto[]>(`/users?${params.toString()}`);
+      if (country.trim()) params.set("country", country.trim());
+      const qs = params.toString();
+      const [res, friendsPayload] = await Promise.all([
+        api.get<UserDto[]>(`/users?${qs}`),
+        api.get<{ friends: UserDto[] }>(`/friends?email=${encodeURIComponent(USER_EMAIL)}`),
+      ]);
       const selfNorm = USER_EMAIL.trim().toLowerCase();
+      setFriendEmails(
+        new Set((friendsPayload.friends || []).map((f) => f.email.trim().toLowerCase())),
+      );
       setPlayers(
         selfNorm ? res.filter((u) => u.email.trim().toLowerCase() !== selfNorm) : res,
       );
@@ -129,7 +168,7 @@ export function PlayersScreen() {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
-  }, [USER_EMAIL, ability, distance, gender, query]);
+  }, [USER_EMAIL, ability, country, distance, gender, query]);
 
   React.useEffect(() => {
     load();
@@ -143,6 +182,11 @@ export function PlayersScreen() {
     async (player: UserDto) => {
       if (!player.email || player.email === USER_EMAIL) return;
       if (openingChatEmail) return;
+      const peerKey = player.email.trim().toLowerCase();
+      if (!friendEmails.has(peerKey)) {
+        showSnackbar("Add this player as a friend first to send messages.", { type: "info" });
+        return;
+      }
       try {
         setOpeningChatEmail(player.email);
         const conversations = await api.get<any[]>(
@@ -172,7 +216,7 @@ export function PlayersScreen() {
         setOpeningChatEmail(null);
       }
     },
-    [USER_EMAIL, navigation, openingChatEmail, showSnackbar],
+    [USER_EMAIL, navigation, openingChatEmail, showSnackbar, friendEmails],
   );
 
   if (loading) return <PlayersSkeleton />;
@@ -219,6 +263,22 @@ export function PlayersScreen() {
           />
         ))}
       </FilterChipRow>
+      <FilterChipRow title="Country">
+        {PLAYERS_COUNTRY_FILTER_CHIPS.map((c) => (
+          <FilterChip
+            key={c.value || "any"}
+            label={c.label}
+            selected={country === c.value}
+            onPress={() => setCountry(c.value)}
+          />
+        ))}
+      </FilterChipRow>
+      {country ? (
+        <Text style={styles.filterHint}>
+          Matches profiles with this country set in Edit profile, or—if they have not set it—location text containing
+          this name. Widen to “Any country” if results are thin.
+        </Text>
+      ) : null}
       {distance !== "any" ? (
         <Text style={styles.filterHint}>
           Distance uses your profile map location. Set it in Profile → Edit if results are empty.
@@ -233,16 +293,13 @@ export function PlayersScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         renderItem={({ item }) => {
           const dist = formatDistanceAway(item.distanceKm);
+          const isFriend = friendEmails.has(item.email.trim().toLowerCase());
           return (
           <Pressable
             style={styles.row}
             onPress={() => navigation.navigate("PlayerProfile", { id: item.id })}
           >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(item.fullName || item.email).slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
+            <PlayerListAvatar item={item} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.fullName || item.email.split("@")[0]}</Text>
               <View style={styles.skillWrap}>
@@ -250,18 +307,23 @@ export function PlayersScreen() {
               </View>
               <Text style={styles.metaLine}>
                 ELO {item.eloRating ?? 1000}
+                {item.country ? ` · ${item.country}` : ""}
                 {dist ? ` · ${dist}` : ""}
               </Text>
               <View style={styles.rowActions}>
                 <Pressable
-                  style={styles.messageBtn}
+                  style={[styles.messageBtn, !isFriend && styles.messageBtnDisabled]}
                   onPress={(event) => {
                     event.stopPropagation();
                     openDirectChat(item).catch(() => undefined);
                   }}
                 >
-                  <Ionicons name="chatbubble-outline" size={13} color={COLORS.primaryDark} />
-                  <Text style={styles.messageBtnText}>
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={13}
+                    color={isFriend ? COLORS.primaryDark : COLORS.iconMuted}
+                  />
+                  <Text style={[styles.messageBtnText, !isFriend && styles.messageBtnTextMuted]}>
                     {openingChatEmail === item.email ? "Opening..." : "Message"}
                   </Text>
                 </Pressable>
@@ -283,8 +345,8 @@ export function PlayersScreen() {
           <View style={styles.emptyWrap}>
             <Text style={styles.empty}>No players match these filters.</Text>
             <Text style={styles.emptySub}>
-              Try widening distance or ability, or clear gender. With a distance filter, ensure your profile has a
-              location pin.
+              Try widening distance, ability, or country, or clear gender. Distance needs a profile map pin;
+              country matches the location line players set in Edit profile.
             </Text>
           </View>
         }
@@ -348,7 +410,16 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.text,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: { width: 44, height: 44 },
   avatarText: { color: COLORS.card, fontWeight: "800" },
   name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   skillWrap: { marginTop: 6, alignSelf: "flex-start" },
@@ -366,6 +437,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   messageBtnText: { color: COLORS.primaryDark, fontWeight: "700", fontSize: 11 },
+  messageBtnDisabled: { backgroundColor: COLORS.bg, borderColor: COLORS.border },
+  messageBtnTextMuted: { color: COLORS.textMuted },
   profileBtn: {
     backgroundColor: COLORS.card,
     borderWidth: 1,

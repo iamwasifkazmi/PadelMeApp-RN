@@ -29,6 +29,10 @@ export function getCurrentUserEmail() {
   return store.getState().auth.user?.email || "";
 }
 
+export function getCurrentUserId() {
+  return store.getState().auth.user?.id || "";
+}
+
 export function getCurrentUserName() {
   const user = store.getState().auth.user;
   if (user?.fullName?.trim()) return user.fullName.trim();

@@ -27,17 +27,30 @@ function emailOnTeam(list: string[] | undefined, viewer: string) {
   return (list || []).some((e) => e.trim().toLowerCase() === viewer.trim().toLowerCase());
 }
 
+function emailYou(e: string, viewer: string) {
+  return e.trim().toLowerCase() === viewer.trim().toLowerCase();
+}
+
+function rosterDisplayName(usersMap: Record<string, UserDto>, email: string, viewerEmail: string) {
+  const u = usersMap[email];
+  const name = u?.fullName?.trim() || email.split("@")[0] || email;
+  return `${name}${emailYou(email, viewerEmail) ? " (you)" : ""}`;
+}
+
 /** Base44-style result hero: sets, team names, Elo delta from recent-form API */
 export function MatchResultPanel({
   match,
   viewerEmail,
   usersMap,
   recentForm,
+  omitRoster = false,
 }: {
   match: MatchDto;
   viewerEmail: string;
   usersMap: Record<string, UserDto>;
   recentForm: PlayerRecentFormDto | null;
+  /** When true, team lists are already shown above (Teams & score card). */
+  omitRoster?: boolean;
 }) {
   const isDoubles = isDoublesFormat(match);
   const myTeam = emailOnTeam(match.teamA, viewerEmail)
@@ -136,6 +149,40 @@ export function MatchResultPanel({
           </View>
         )}
 
+        {!omitRoster && (teamAEmails.length > 0 || teamBEmails.length > 0) ? (
+          <View style={styles.rosterSection}>
+            <Text style={styles.rosterSectionTitle}>Who played</Text>
+            <View style={styles.rosterColumns}>
+              <View style={styles.rosterCol}>
+                <Text style={styles.rosterColHeading}>Team A</Text>
+                {teamAEmails.map((e) => (
+                  <Text key={`a-${e}`} style={styles.rosterLine} numberOfLines={2}>
+                    • {rosterDisplayName(usersMap, e, viewerEmail)}
+                  </Text>
+                ))}
+              </View>
+              <View style={[styles.rosterCol, styles.rosterColRight]}>
+                <Text style={[styles.rosterColHeading, styles.rosterColHeadingRight]}>Team B</Text>
+                {teamBEmails.map((e) => (
+                  <Text
+                    key={`b-${e}`}
+                    style={[styles.rosterLine, styles.rosterLineRight]}
+                    numberOfLines={2}
+                  >
+                    • {rosterDisplayName(usersMap, e, viewerEmail)}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          </View>
+        ) : !omitRoster && isDoubles && (match.players?.length ?? 0) >= 2 ? (
+          <View style={styles.rosterSection}>
+            <Text style={styles.rosterMissing}>
+              Team rosters were not saved for this match, so only the score and winner side are shown.
+            </Text>
+          </View>
+        ) : null}
+
         {eloChange !== null && eloBefore !== null && eloAfter !== null ? (
           <View style={styles.eloRow}>
             <View
@@ -218,6 +265,28 @@ const styles = StyleSheet.create({
   noScoreRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   vsText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   noScoreHint: { fontSize: 11, color: COLORS.textMuted, fontStyle: "italic", textAlign: "center", marginTop: 8 },
+  rosterSection: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  rosterSectionTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  rosterColumns: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  rosterCol: { flex: 1 },
+  rosterColRight: { alignItems: "flex-end" },
+  rosterColHeading: { fontSize: 12, fontWeight: "800", color: COLORS.text, marginBottom: 4 },
+  rosterColHeadingRight: { textAlign: "right", alignSelf: "stretch" },
+  rosterLine: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted, lineHeight: 18, marginBottom: 2 },
+  rosterLineRight: { textAlign: "right" },
+  rosterMissing: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17 },
   eloRow: { alignItems: "center", marginTop: 10 },
   eloPill: {
     flexDirection: "row",

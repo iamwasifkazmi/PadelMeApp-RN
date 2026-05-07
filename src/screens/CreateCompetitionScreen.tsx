@@ -684,6 +684,15 @@ export function CreateCompetitionScreen({
         visible={locationPickerOpen}
         title="Pick competition location"
         initialQuery={form.locationName || form.locationAddress}
+        searchBias={
+          hasUserGeo(form)
+            ? {
+                lat: form.locationLat as number,
+                lng: form.locationLng as number,
+                labelHint: form.locationName.trim() || form.locationAddress.trim() || undefined,
+              }
+            : null
+        }
         onClose={() => setLocationPickerOpen(false)}
         onPick={(loc) => {
           const lat = loc.lat;

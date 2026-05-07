@@ -19,6 +19,7 @@ import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { ConversationDto, MessageDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { conversationTitleForViewer } from "../lib/conversationDisplay";
 import { COLORS } from "../theme/colors";
@@ -83,6 +84,7 @@ export function ConversationViewScreen({
   route: { params: { id: string } };
 }) {
   const navigation = useNavigation<any>();
+  const { showSnackbar } = useSnackbar();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const USER_EMAIL = getCurrentUserEmail();
@@ -96,6 +98,7 @@ export function ConversationViewScreen({
   const [text, setText] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [composerHeight, setComposerHeight] = React.useState(36);
+  const [accessDenied, setAccessDenied] = React.useState(false);
   const listRef = React.useRef<FlatList<MessageDto>>(null);
   const nearBottomRef = React.useRef(true);
   const typingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,12 +109,20 @@ export function ConversationViewScreen({
     const silent = opts?.silent === true;
     try {
       if (!silent) setLoading(true);
+      setAccessDenied(false);
       const res = await api.get<MessageDto[]>(
         `/conversations/${id}/messages?email=${encodeURIComponent(USER_EMAIL)}`,
       );
       setMessages(res);
-    } catch {
+    } catch (e) {
       setMessages([]);
+      if (!silent) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const low = msg.toLowerCase();
+        if (low.includes("friend") || low.includes("403")) {
+          setAccessDenied(true);
+        }
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -308,6 +319,8 @@ export function ConversationViewScreen({
       if (nearBottomRef.current) {
         setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 20);
       }
+    } catch {
+      showSnackbar("Could not send message.", { type: "error" });
     } finally {
       setSending(false);
     }
@@ -320,6 +333,21 @@ export function ConversationViewScreen({
   }, []);
 
   if (loading) return <ConversationSkeleton />;
+
+  if (accessDenied) {
+    return (
+      <View style={styles.accessDeniedWrap}>
+        <Ionicons name="people-outline" size={40} color={COLORS.iconMuted} />
+        <Text style={styles.accessDeniedTitle}>Messaging is for friends</Text>
+        <Text style={styles.accessDeniedMeta}>
+          You can only message players on your friends list. Send a friend request first, then chat once they accept.
+        </Text>
+        <Pressable style={styles.accessDeniedBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.accessDeniedBtnText}>Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   /** Larger offset = more lift (RN subtracts this from keyboard screenY). Header + safe-area nudge + extra for native stack. */
   const iosKeyboardOffset =
@@ -448,6 +476,29 @@ function MessageReceipt({ status, onOrangeBubble }: { status?: "sent" | "deliver
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  accessDeniedWrap: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    paddingHorizontal: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  accessDeniedTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text, textAlign: "center" },
+  accessDeniedMeta: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  accessDeniedBtn: {
+    marginTop: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  accessDeniedBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 14 },
   list: { flex: 1 },
   listContent: { padding: 16, paddingBottom: 10 },
   headerTitleWrap: { flexDirection: "row", alignItems: "center", maxWidth: 220 },

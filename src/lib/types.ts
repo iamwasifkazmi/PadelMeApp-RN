@@ -7,6 +7,7 @@ export type MatchDto = {
   locationAddress?: string | null;
   locationLat?: number | null;
   locationLng?: number | null;
+  country?: string | null;
   durationMinutes?: number | null;
   skillLevel?: string | null;
   matchType?: "singles" | "doubles" | "mixed_doubles";
@@ -91,6 +92,7 @@ export type UserDto = {
   locationLat?: number | null;
   locationLng?: number | null;
   locationName?: string | null;
+  country?: string | null;
   /** Kilometres from viewer when API called with viewerEmail / friends?email */
   distanceKm?: number | null;
   age?: number | null;
@@ -127,6 +129,7 @@ export type ProfileSummaryDto = {
     fullName: string;
     location?: string | null;
     locationName?: string | null;
+    country?: string | null;
     locationLat?: number | null;
     locationLng?: number | null;
     bio?: string | null;
