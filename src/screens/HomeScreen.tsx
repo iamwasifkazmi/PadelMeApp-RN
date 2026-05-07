@@ -688,23 +688,53 @@ function StatItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function homeMatchStatusLabel(status: string | undefined): string {
+  const raw = (status || "open").trim().toLowerCase().replace(/\s+/g, "_");
+  switch (raw) {
+    case "open":
+      return "Open";
+    case "full":
+      return "Full";
+    case "in_progress":
+      return "Live";
+    case "awaiting_score":
+      return "Awaiting";
+    case "pending_validation":
+      return "Pending";
+    case "completed":
+      return "Done";
+    case "cancelled":
+      return "Cancelled";
+    case "disputed":
+      return "Disputed";
+    default:
+      return (status || "Open").replaceAll("_", " ");
+  }
+}
+
 function UserMatchCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
-  const status = match.status?.replaceAll("_", " ") || "open";
+  const label = homeMatchStatusLabel(match.status);
   return (
     <Pressable style={styles.matchCard} onPress={onPress}>
       <View style={styles.cardTopRow}>
-        <Text style={styles.matchTitle}>{match.title}</Text>
-        <View style={styles.statusTagSoft}>
-          <Text style={styles.statusTagSoftText}>{status}</Text>
+        <View style={styles.cardTitleBlock}>
+          <Text style={styles.matchTitle} numberOfLines={2}>
+            {match.title}
+          </Text>
+        </View>
+        <View style={styles.cardTopRight}>
+          <View style={styles.statusTagSoft}>
+            <Text style={styles.statusTagSoftText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
         </View>
       </View>
       <View style={styles.metaRows}>
         <Text style={styles.matchMeta}>📅 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}</Text>
         <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
         <Text style={styles.matchMetaSmall}>👥 {match.players.length}/{match.maxPlayers} players</Text>
-      </View>
-      <View style={styles.cardEndChevron}>
-        <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
       </View>
     </Pressable>
   );
@@ -784,13 +814,23 @@ function CompetitionMiniCardLike({
 }
 
 function InProgressCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
-  const status = match.status === "in_progress" ? "In Progress" : match.status === "awaiting_score" ? "Awaiting score" : "Pending validation";
+  const label =
+    match.status === "in_progress" ? "Live" : match.status === "awaiting_score" ? "Awaiting" : "Pending";
   return (
     <Pressable style={styles.matchCard} onPress={onPress}>
       <View style={styles.cardTopRow}>
-        <Text style={styles.matchTitle}>{match.title}</Text>
-        <View style={styles.progressTag}>
-          <Text style={styles.progressTagText}>{status}</Text>
+        <View style={styles.cardTitleBlock}>
+          <Text style={styles.matchTitle} numberOfLines={2}>
+            {match.title}
+          </Text>
+        </View>
+        <View style={styles.cardTopRight}>
+          <View style={styles.progressTag}>
+            <Text style={styles.progressTagText} numberOfLines={1}>
+              {label}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
         </View>
       </View>
       <View style={styles.metaRows}>
@@ -971,26 +1011,36 @@ const styles = StyleSheet.create({
   quickActionText: { fontSize: 11, fontWeight: "700", color: COLORS.text },
   quickActionTextAccent: { color: COLORS.card },
   matchCard: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
-  cardTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 },
+  cardTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 3,
+    gap: 8,
+  },
+  cardTitleBlock: { flex: 1, minWidth: 0 },
+  cardTopRight: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 },
   topTagsRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   statusTagSoft: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.success,
     backgroundColor: COLORS.successSoft,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: 120,
   },
-  statusTagSoftText: { color: COLORS.successText, fontSize: 9, fontWeight: "700" },
+  statusTagSoftText: { color: COLORS.successText, fontSize: 10, fontWeight: "700" },
   progressTag: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primarySoft,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: 120,
   },
-  progressTagText: { color: COLORS.primaryDark, fontSize: 9, fontWeight: "700" },
+  progressTagText: { color: COLORS.primaryDark, fontSize: 10, fontWeight: "700" },
   metaRows: { marginTop: 2, gap: 1 },
   cardEndChevron: { position: "absolute", right: 10, top: 11 },
   levelPill: {

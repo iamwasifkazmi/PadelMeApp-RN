@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  Linking,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,9 +10,11 @@ import {
   View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { launchImageLibrary } from "react-native-image-picker";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchResultPanel } from "../components/MatchResultPanel";
+import { UserAvatar } from "../components/UserAvatar";
 import { MatchDto, PlayerRecentFormDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
@@ -20,6 +22,39 @@ import { COLORS } from "../theme/colors";
 import { userLocationLabel } from "../lib/userLocation";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
 import { isDoublesFormat } from "../lib/matchFormat";
+import { parseEvidenceBlob, serializeEvidenceBlob } from "../lib/matchEvidence";
+
+const MAX_EVIDENCE_PHOTOS = 8;
+const MAX_EVIDENCE_PER_IMAGE_CHARS = 130_000;
+const MAX_EVIDENCE_TOTAL_CHARS = 900_000;
+
+const evidencePreviewStyles = StyleSheet.create({
+  previewWrap: { marginTop: 8, gap: 6 },
+  previewLabel: { fontSize: 11, fontWeight: "700", color: COLORS.textMuted },
+  previewRow: { flexDirection: "row", gap: 8, alignItems: "center", paddingVertical: 4 },
+  previewThumb: { width: 72, height: 72, borderRadius: 10, backgroundColor: COLORS.borderMuted },
+});
+
+function EvidenceAttachmentsPreview({ blob }: { blob: string }) {
+  const items = parseEvidenceBlob(blob);
+  const imgs = items.filter((x) => x.startsWith("data:image/"));
+  if (!imgs.length) return null;
+
+  return (
+    <View style={evidencePreviewStyles.previewWrap}>
+      <Text style={evidencePreviewStyles.previewLabel}>Evidence photos</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={evidencePreviewStyles.previewRow}
+      >
+        {imgs.map((uri, i) => (
+          <Image key={`evpv-${i}`} source={{ uri }} style={evidencePreviewStyles.previewThumb} />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 type MatchStatusValue =
   | "open"
@@ -72,6 +107,21 @@ function teamsPartitionPlayers(teamA: string[], teamB: string[], players: string
   }
   if (u.size !== players.length) return false;
   return true;
+}
+
+/** Extra copy so organisers see what to tap next (Start is disabled until these steps are done). */
+function organizerStartBlockHelp(reason: string): string | null {
+  if (!reason) return null;
+  if (reason.includes("Lock line-ups")) {
+    return 'Saving teams (Apply or Auto-balance) is not enough for doubles: tap "Lock line-ups" next, then Start Match.';
+  }
+  if (reason.includes("Team A needs") || reason.includes("Team B needs")) {
+    return "Put 2 players on each team, then tap Apply line-ups — or use Auto-balance. Unsaved picks in this screen do not count.";
+  }
+  if (reason.includes("every player once")) {
+    return "Each roster player must be on exactly one team. Adjust picks and Apply line-ups again.";
+  }
+  return null;
 }
 
 /** Mirrors backend `actorCanValidatePendingScore` for confirm / reject / dispute UI. */
@@ -181,11 +231,19 @@ export function MatchDetailScreen({
   const [busy, setBusy] = React.useState(false);
   const [scoreA, setScoreA] = React.useState("");
   const [scoreB, setScoreB] = React.useState("");
-  const [evidenceUrlDraft, setEvidenceUrlDraft] = React.useState("");
+  const [evidencePhotoUris, setEvidencePhotoUris] = React.useState<string[]>([]);
   const [winnerPick, setWinnerPick] = React.useState<"team_a" | "team_b" | "">("");
   const [teamDraft, setTeamDraft] = React.useState<Record<string, "a" | "b" | null>>({});
   const [recentForm, setRecentForm] = React.useState<PlayerRecentFormDto | null>(null);
   const [disputeReason, setDisputeReason] = React.useState("");
+
+  React.useEffect(() => {
+    setScoreA("");
+    setScoreB("");
+    setEvidencePhotoUris([]);
+    setWinnerPick("");
+    setDisputeReason("");
+  }, [id]);
 
   const teamsSyncKey = match
     ? `${match.id}:${match.teamsLocked}:${match.players.join("|")}:${(match.teamA || []).join(",")}:${(match.teamB || []).join(",")}`
@@ -349,8 +407,12 @@ export function MatchDetailScreen({
       submittedBy: USER_EMAIL,
     };
     if (winnerPick) body.winnerTeam = winnerPick;
-    const ev = evidenceUrlDraft.trim();
-    if (ev) body.evidenceUrl = ev;
+    const evCombined = serializeEvidenceBlob(evidencePhotoUris);
+    if (evCombined.length > MAX_EVIDENCE_TOTAL_CHARS) {
+      showSnackbar("Evidence is too large. Remove a photo or pick smaller images.", { type: "error" });
+      return;
+    }
+    if (evCombined) body.evidenceUrl = evCombined;
     return (async () => {
       if (!match) return;
       try {
@@ -404,16 +466,47 @@ export function MatchDetailScreen({
     }
   };
 
-  const openEvidenceLink = async (url: string) => {
+  const removeEvidencePhotoAt = (index: number) => {
+    setEvidencePhotoUris((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const onAddEvidencePhotos = async () => {
+    const remaining = MAX_EVIDENCE_PHOTOS - evidencePhotoUris.length;
+    if (remaining <= 0) {
+      showSnackbar(`You can add up to ${MAX_EVIDENCE_PHOTOS} photos.`, { type: "error" });
+      return;
+    }
     try {
-      const ok = await Linking.canOpenURL(url);
-      if (!ok) {
-        showSnackbar("Could not open this link", { type: "error" });
-        return;
+      const result = await launchImageLibrary({
+        mediaType: "photo",
+        selectionLimit: remaining,
+        includeBase64: true,
+        quality: 0.42,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      });
+      if (result.didCancel || !(result.assets && result.assets.length)) return;
+      const added: string[] = [];
+      for (const asset of result.assets) {
+        if (added.length >= remaining) break;
+        if (!asset.base64) {
+          showSnackbar("Could not read an image. Try another photo.", { type: "error" });
+          continue;
+        }
+        const mime = asset.type || "image/jpeg";
+        const dataUrl = `data:${mime};base64,${asset.base64}`;
+        if (dataUrl.length > MAX_EVIDENCE_PER_IMAGE_CHARS) {
+          showSnackbar("A photo is too large. Choose a smaller one.", { type: "error" });
+          continue;
+        }
+        added.push(dataUrl);
       }
-      await Linking.openURL(url);
+      if (added.length) {
+        setEvidencePhotoUris((prev) => [...prev, ...added]);
+        showSnackbar(added.length > 1 ? "Photos added" : "Photo added", { type: "success" });
+      }
     } catch {
-      showSnackbar("Could not open this link", { type: "error" });
+      showSnackbar("Could not open photo library", { type: "error" });
     }
   };
 
@@ -448,12 +541,17 @@ export function MatchDetailScreen({
   const startValidation = validateMatchStartForUi(match, usersMap);
   const showOrganizerStart =
     isOrganizer && ["open", "full"].includes(status);
+  const organizerStartHint =
+    showOrganizerStart && !startValidation.valid ? organizerStartBlockHelp(startValidation.reason) : null;
   const showOrganizerAwaitingScore = isOrganizer && status === "in_progress";
   const showScoreForm =
     (joined || isOrganizer) && (status === "in_progress" || status === "awaiting_score");
 
   const draftTeamA = match.players.filter((p) => teamDraft[p] === "a");
   const draftTeamB = match.players.filter((p) => teamDraft[p] === "b");
+  const draftUnassignedCount = match.players.filter(
+    (p) => teamDraft[p] !== "a" && teamDraft[p] !== "b",
+  ).length;
   const allDraftAssigned =
     match.players.length > 0 && match.players.every((p) => teamDraft[p] === "a" || teamDraft[p] === "b");
   const draftFourValid =
@@ -628,9 +726,7 @@ export function MatchDetailScreen({
             other player (singles), Base44-style
           </Text>
           {match.evidenceUrl ? (
-            <Pressable onPress={() => openEvidenceLink(match.evidenceUrl!)} style={styles.evidenceLinkWrap}>
-              <Text style={styles.evidenceLinkText}>Evidence / photo link</Text>
-            </Pressable>
+            <EvidenceAttachmentsPreview blob={match.evidenceUrl} />
           ) : null}
           {viewerCanValidatePendingScore(match, USER_EMAIL, hostEmail, match.scoreSubmittedBy) ? (
             <View style={styles.pendingActions}>
@@ -683,6 +779,13 @@ export function MatchDetailScreen({
           <Text style={styles.sectionTitle}>
             Teams & score{showDraftPreview ? " (preview)" : ""}
           </Text>
+          {showDraftPreview ? (
+            <Text style={styles.teamDraftHint}>
+              {draftUnassignedCount > 0
+                ? `You're splitting players into sides (draft only — not saved yet). ${draftUnassignedCount} player${draftUnassignedCount === 1 ? " still needs" : "s still need"} a team. "Confirmed RSVP" counts who said they're coming — it's separate from Team A/B.`
+                : `Draft line-up is complete for everyone — tap Save line-ups below to apply it. "Confirmed RSVP" only tracks attendance, not teams.`}
+            </Text>
+          ) : null}
           <View style={styles.teamsColumns}>
             <View style={styles.teamCol}>
               <Text style={styles.teamColLabel}>Team A</Text>
@@ -735,9 +838,14 @@ export function MatchDetailScreen({
           const tick = emailListed(confirmed, email);
           return (
             <View key={email} style={styles.playerRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials(user?.fullName || email)}</Text>
-              </View>
+              <UserAvatar
+                photoUrl={user?.photoUrl}
+                label={user?.fullName || email}
+                size={36}
+                shape="rounded"
+                variant="soft"
+                style={{ marginRight: 10 }}
+              />
               <View style={styles.playerTextWrap}>
                 <Text style={styles.playerName}>
                   {user?.fullName || email.split("@")[0]}
@@ -764,6 +872,11 @@ export function MatchDetailScreen({
       {isOrganizer && ["open", "full"].includes(status) ? (
         <View style={styles.orgCard}>
           <Text style={styles.sectionTitle}>Organiser · teams</Text>
+          {lockRequired && showOrganizerStart ? (
+            <Text style={styles.orgWorkflowHint}>
+              Doubles: set teams (Apply line-ups or Auto-balance) → tap Lock line-ups → then Start Match.
+            </Text>
+          ) : null}
           {showManualTeams ? (
             <View style={styles.manualTeamsBlock}>
               <Text style={styles.teamPickHint}>
@@ -891,15 +1004,27 @@ export function MatchDetailScreen({
             <Pressable
               style={[
                 styles.primaryBtn,
-                (busy || !startValidation.valid) && styles.disabled,
+                (busy || !startValidation.valid) && styles.primaryBtnDisabled,
               ]}
               disabled={busy || !startValidation.valid}
               onPress={() => onStart()}
             >
-              <Text style={styles.primaryBtnText}>{busy ? "Starting..." : "Start Match ▶"}</Text>
+              <Text
+                style={[
+                  styles.primaryBtnText,
+                  (busy || !startValidation.valid) && styles.primaryBtnTextDisabled,
+                ]}
+              >
+                {busy ? "Starting..." : "Start Match ▶"}
+              </Text>
             </Pressable>
             {!startValidation.valid ? (
-              <Text style={styles.warnText}>{startValidation.reason}</Text>
+              <>
+                <Text style={styles.warnText}>{startValidation.reason}</Text>
+                {organizerStartHint ? (
+                  <Text style={styles.startFixHint}>{organizerStartHint}</Text>
+                ) : null}
+              </>
             ) : (
               <Text style={styles.flowHint}>
                 After you start, stay on this screen and scroll down to enter scores when play finishes — or use “Match
@@ -935,9 +1060,9 @@ export function MatchDetailScreen({
           <View style={styles.scoreForm}>
             <Text style={styles.sectionTitle}>Submit score</Text>
             <Text style={styles.scoreHelp}>
-              Enter Team A and Team B scores (comma-separated games per set, e.g. 6,4 vs 4,6). Optional evidence link.
-              With more than one player, the result stays pending until a team captain or the organiser confirms (same
-              flow as Base44).
+              Enter Team A and Team B scores (comma-separated games per set, e.g. 6,4 vs 4,6). Optional: attach up to
+              eight photos as proof — or skip. With more than one player, the result stays pending until a team captain or
+              the organiser confirms (same flow as Base44).
             </Text>
             <Text style={styles.inputLabel}>Team A (sets e.g. 6-4, 6-3)</Text>
             <TextInput
@@ -955,16 +1080,47 @@ export function MatchDetailScreen({
               placeholder="e.g. 4-6, 3-6"
               placeholderTextColor={COLORS.iconMuted}
             />
-            <Text style={styles.inputLabel}>Evidence URL (optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={evidenceUrlDraft}
-              onChangeText={setEvidenceUrlDraft}
-              placeholder="https://… photo or score sheet"
-              placeholderTextColor={COLORS.iconMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <Text style={styles.inputLabel}>Photos (optional, up to 8)</Text>
+            <Text style={styles.scoreEvidenceHint}>Add scorecard or court photos — or leave empty.</Text>
+            {evidencePhotoUris.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.evidenceDraftRow}
+              >
+                {evidencePhotoUris.map((uri, idx) => (
+                  <View key={`eph-${idx}`} style={styles.evidenceDraftThumbWrap}>
+                    <Image source={{ uri }} style={styles.evidenceDraftThumb} />
+                    <Pressable
+                      accessibilityLabel="Remove photo"
+                      style={styles.evidenceDraftRemove}
+                      onPress={() => removeEvidencePhotoAt(idx)}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="close-circle" size={22} color={COLORS.dangerText} />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+            <Pressable
+              style={[
+                styles.secondaryBtn,
+                evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS && styles.disabled,
+              ]}
+              disabled={busy || evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS}
+              onPress={() => {
+                void onAddEvidencePhotos();
+              }}
+            >
+              <Text style={styles.secondaryBtnText}>
+                {evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS
+                  ? `Maximum ${MAX_EVIDENCE_PHOTOS} photos`
+                  : evidencePhotoUris.length
+                    ? "Add more photos…"
+                    : "Add photos…"}
+              </Text>
+            </Pressable>
             <Text style={styles.inputLabel}>Winner (optional if scores show it)</Text>
             <View style={styles.winnerRow}>
               <Pressable
@@ -1058,15 +1214,6 @@ function getStatusStyle(status: MatchStatusValue) {
   if (status === "disputed") return styles.statusDisputed;
   if (status === "full") return styles.statusFull;
   return styles.statusOpen;
-}
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase() || "")
-    .join("");
 }
 
 const styles = StyleSheet.create({
@@ -1165,8 +1312,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   waitingScoreText: { fontSize: 12, color: COLORS.text, lineHeight: 17 },
-  evidenceLinkWrap: { marginTop: 8, alignSelf: "flex-start" },
-  evidenceLinkText: { fontSize: 13, fontWeight: "700", color: COLORS.primary, textDecorationLine: "underline" },
   replaceBanner: {
     backgroundColor: COLORS.warningSoft,
     borderWidth: 1,
@@ -1212,6 +1357,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: "uppercase",
   },
+  teamDraftHint: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17, marginBottom: 8 },
   teamPlayerLine: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginBottom: 4 },
   teamPlayerMuted: { fontSize: 13, color: COLORS.textSoft },
   teamPendingText: { marginTop: 10, fontSize: 12, color: COLORS.textMuted, fontStyle: "italic" },
@@ -1260,17 +1406,8 @@ const styles = StyleSheet.create({
   },
   primaryOutlineBtnText: { color: COLORS.primary, fontSize: 14, fontWeight: "800" },
   sectionTitle: { color: COLORS.text, fontSize: 15, fontWeight: "800", marginBottom: 8 },
+  orgWorkflowHint: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17, marginBottom: 10 },
   playerRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.primarySoftAlt,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  avatarText: { color: COLORS.primaryDark, fontSize: 12, fontWeight: "800" },
   playerTextWrap: { flex: 1 },
   playerName: { color: COLORS.text, fontSize: 13, fontWeight: "700" },
   playerMeta: { color: COLORS.textMuted, fontSize: 11, marginTop: 1 },
@@ -1294,6 +1431,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   scoreHelp: { fontSize: 11, color: COLORS.textMuted, marginBottom: 4 },
+  scoreEvidenceHint: { fontSize: 10, color: COLORS.textSoft, marginTop: -2, marginBottom: 6, lineHeight: 14 },
+  evidenceDraftRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
+  evidenceDraftThumbWrap: { position: "relative", marginRight: 6 },
+  evidenceDraftThumb: { width: 76, height: 76, borderRadius: 10, backgroundColor: COLORS.borderMuted },
+  evidenceDraftRemove: { position: "absolute", top: -6, right: -6, backgroundColor: COLORS.card, borderRadius: 14 },
   inputLabel: { fontSize: 11, fontWeight: "700", color: COLORS.textMuted },
   input: {
     borderWidth: 1,
@@ -1316,6 +1458,7 @@ const styles = StyleSheet.create({
   winnerChipOn: { backgroundColor: COLORS.primarySoft, borderColor: COLORS.borderStrong },
   winnerChipText: { fontWeight: "700", color: COLORS.text, fontSize: 13 },
   warnText: { fontSize: 12, color: COLORS.warningText, fontWeight: "600" },
+  startFixHint: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17, marginTop: 4 },
   chatBtn: {
     borderRadius: 14,
     backgroundColor: COLORS.primarySoft,
@@ -1335,7 +1478,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
   },
+  primaryBtnDisabled: {
+    backgroundColor: COLORS.borderMuted,
+  },
   primaryBtnText: { color: COLORS.card, fontSize: 14, fontWeight: "800" },
+  primaryBtnTextDisabled: { color: COLORS.textMuted },
   secondaryBtn: {
     borderRadius: 14,
     borderWidth: 1,

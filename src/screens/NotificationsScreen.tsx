@@ -1,11 +1,37 @@
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { api } from "../lib/api";
 import { NotificationDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import type { RootStackParamList } from "../navigation/types";
+
+function navigateForNotification(
+  navigation: NativeStackNavigationProp<RootStackParamList>,
+  n: NotificationDto,
+) {
+  const type = (n.type || "").toLowerCase();
+  const matchId = n.matchId?.trim();
+  const isConversation =
+    (n.relatedEntityType || "").toLowerCase() === "conversation" && n.relatedEntityId?.trim();
+  const conversationId = isConversation ? n.relatedEntityId!.trim() : "";
+
+  if (type === "match_chat_message" && matchId) {
+    navigation.navigate("MatchChat", { matchId });
+    return;
+  }
+  if (conversationId) {
+    navigation.navigate("ConversationView", { id: conversationId });
+    return;
+  }
+  if (matchId) {
+    navigation.navigate("MatchDetail", { id: matchId });
+  }
+}
 
 function NotificationsSkeleton() {
   return (
@@ -30,6 +56,7 @@ function NotificationsSkeleton() {
 
 export function NotificationsScreen() {
   const USER_EMAIL = getCurrentUserEmail();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<NotificationDto[]>([]);
@@ -55,11 +82,17 @@ export function NotificationsScreen() {
     load();
   }, [load]);
 
-  const markRead = async (id: string) => {
-    await api.patch(`/notifications/${id}/read`);
-    await load();
+  const onNotificationPress = async (item: NotificationDto) => {
+    try {
+      if (!item.isRead) {
+        await api.patch(`/notifications/${item.id}/read`);
+        setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, isRead: true } : x)));
+      }
+    } catch {
+      /* still try to navigate */
+    }
+    navigateForNotification(navigation, { ...item, isRead: true });
   };
-
   const markAllRead = async () => {
     await api.patch("/notifications/read-all", { email: USER_EMAIL });
     await load();
@@ -94,7 +127,7 @@ export function NotificationsScreen() {
           <View style={styles.groupWrap}>
             <Text style={styles.groupLabel}>{section.label}</Text>
             {section.items.map((item) => (
-              <Pressable key={item.id} style={styles.card} onPress={() => markRead(item.id)}>
+              <Pressable key={item.id} style={styles.card} onPress={() => void onNotificationPress(item)}>
                 <View style={styles.iconWrap}>
                   <Ionicons
                     name={item.isRead ? "notifications-outline" : "notifications"}

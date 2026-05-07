@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
@@ -9,6 +9,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, getCurrentUserId } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
+import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
 
@@ -227,15 +228,14 @@ export function PlayerProfileScreen({
 
       <View style={styles.hero}>
         <View style={styles.heroRow}>
-          {profile.photoUrl ? (
-            <Image source={{ uri: profile.photoUrl }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(user.fullName || user.email).slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <UserAvatar
+            photoUrl={profile.photoUrl}
+            label={user.fullName || user.email}
+            size={72}
+            shape="rounded"
+            borderRadius={16}
+            variant="solid"
+          />
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>{user.fullName || user.email.split("@")[0]}</Text>
@@ -441,16 +441,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  avatarImage: { width: 72, height: 72, borderRadius: 16 },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
-    backgroundColor: COLORS.text,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: COLORS.card, fontSize: 28, fontWeight: "800" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   name: { color: COLORS.text, fontSize: 22, fontWeight: "800", lineHeight: 25 },
   location: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },

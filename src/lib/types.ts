@@ -327,6 +327,9 @@ export type NotificationDto = {
   body?: string | null;
   isRead: boolean;
   createdAt: string;
+  matchId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
 };
 
 export type FriendRequestDto = {

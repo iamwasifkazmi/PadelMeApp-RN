@@ -1,7 +1,6 @@
 import React from "react";
 import {
   FlatList,
-  Image,
   KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -19,6 +18,7 @@ import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { MatchChatMessageDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { UserAvatar } from "../components/UserAvatar";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
 
@@ -49,21 +49,14 @@ function MatchChatSkeleton() {
 }
 
 function SenderAvatar({ uri, label }: { uri?: string | null; label: string }) {
-  const initial = (label || "?").trim().charAt(0).toUpperCase();
-  if (uri) {
-    return (
-      <Image
-        source={{ uri }}
-        style={styles.avatarImg}
-        accessibilityLabel={label}
-        accessibilityRole="image"
-      />
-    );
-  }
   return (
-    <View style={[styles.avatarImg, styles.avatarPlaceholder]} accessibilityRole="image" accessibilityLabel={label}>
-      <Text style={styles.avatarInitial}>{initial}</Text>
-    </View>
+    <UserAvatar
+      photoUrl={uri}
+      label={label || "?"}
+      size={40}
+      shape="circle"
+      variant="chat"
+    />
   );
 }
 
@@ -561,19 +554,6 @@ const styles = StyleSheet.create({
     maxWidth: "82%",
     alignItems: "flex-start",
   },
-  avatarImg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#DADCDE",
-    overflow: "hidden",
-  },
-  avatarPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#DADCDE",
-  },
-  avatarInitial: { fontSize: 17, fontWeight: "600", color: "#54656F" },
   msgStack: { maxWidth: "82%", alignItems: "flex-end", flexGrow: 0, flexShrink: 1 },
   bubbleSenderName: {
     fontSize: 13,

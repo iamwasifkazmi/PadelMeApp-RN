@@ -17,6 +17,7 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import type { RootStackParamList } from "../navigation/types";
 import { PadelLevelRow } from "../components/PadelLevelRow";
+import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
 
 type Tab = "friends" | "requests" | "sent" | "discover";
@@ -262,11 +263,14 @@ export function FriendsScreen() {
           return (
           <View style={styles.card}>
             <View style={styles.cardTop}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {(item.fullName || item.email).trim().slice(0, 2).toUpperCase()}
-                </Text>
-              </View>
+              <UserAvatar
+                photoUrl={item.photoUrl}
+                label={item.fullName || item.email}
+                size={40}
+                shape="circle"
+                variant="soft"
+                fallbackBackgroundColor={COLORS.primarySoft}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{item.fullName || item.email}</Text>
                 <View style={styles.friendSkillWrap}>
@@ -348,15 +352,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardTop: { flexDirection: "row", gap: 10, alignItems: "center" },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { fontWeight: "800", color: COLORS.primaryDark, fontSize: 13 },
   cardTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   friendSkillWrap: { marginTop: 6, alignSelf: "flex-start" },
   cardMeta: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },

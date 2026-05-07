@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
@@ -9,6 +9,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
+import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { PLAYERS_COUNTRY_FILTER_CHIPS } from "../lib/profileCountries";
 
@@ -70,34 +71,6 @@ function FilterChip({
     >
       <Text style={[styles.filterChipText, selected && styles.filterChipTextSelected]}>{label}</Text>
     </Pressable>
-  );
-}
-
-function PlayerListAvatar({ item }: { item: UserDto }) {
-  const [failed, setFailed] = React.useState(false);
-  const uri = (item.photoUrl || "").trim();
-  React.useEffect(() => {
-    setFailed(false);
-  }, [item.id, uri]);
-
-  const initial = (item.fullName || item.email).slice(0, 1).toUpperCase();
-  if (uri && !failed) {
-    return (
-      <View style={styles.avatar}>
-        <Image
-          source={{ uri }}
-          style={styles.avatarImage}
-          resizeMode="cover"
-          accessibilityLabel={item.fullName || item.email}
-          onError={() => setFailed(true)}
-        />
-      </View>
-    );
-  }
-  return (
-    <View style={styles.avatar}>
-      <Text style={styles.avatarText}>{initial}</Text>
-    </View>
   );
 }
 
@@ -299,7 +272,13 @@ export function PlayersScreen() {
             style={styles.row}
             onPress={() => navigation.navigate("PlayerProfile", { id: item.id })}
           >
-            <PlayerListAvatar item={item} />
+            <UserAvatar
+              photoUrl={item.photoUrl}
+              label={item.fullName || item.email}
+              size={44}
+              shape="circle"
+              variant="solid"
+            />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.fullName || item.email.split("@")[0]}</Text>
               <View style={styles.skillWrap}>
@@ -410,17 +389,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.text,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  avatarImage: { width: 44, height: 44 },
-  avatarText: { color: COLORS.card, fontWeight: "800" },
   name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   skillWrap: { marginTop: 6, alignSelf: "flex-start" },
   metaLine: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
