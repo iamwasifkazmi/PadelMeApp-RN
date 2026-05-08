@@ -239,6 +239,7 @@ export type ProfileSummaryDto = {
 export type ConversationDto = {
   id: string;
   type: string;
+  entityId?: string | null;
   entityName?: string | null;
   participantEmails: string[];
   lastMessageText?: string | null;

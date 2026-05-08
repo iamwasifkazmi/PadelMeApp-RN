@@ -64,6 +64,14 @@ const MATCH_TYPES: Array<{
   { value: "mixed_doubles", label: "Mixed", icon: "🤝", sub: "2v2 · mixed" },
 ];
 
+const DEFAULT_MATCH_TITLES: Record<MatchTypeValue, string> = {
+  singles: "Padel Singles",
+  doubles: "Padel Doubles",
+  mixed_doubles: "Mixed Padel",
+};
+
+const STOCK_MATCH_TITLES = new Set(Object.values(DEFAULT_MATCH_TITLES));
+
 const SKILL_OPTIONS: Array<{ value: SkillValue; label: string }> = [
   { value: "any", label: "🌍 Any Level" },
   { value: "beginner", label: "🌱 Beginner" },
@@ -98,7 +106,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const [form, setForm] = React.useState<FormState>({
     mode: recurring ? "recurring" : "scheduled",
     matchType: "doubles",
-    title: "Padel Doubles",
+    title: DEFAULT_MATCH_TITLES.doubles,
     date: formatDate(new Date()),
     timeLabel: "19:30",
     durationMinutes: 90,
@@ -138,6 +146,14 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       cancelled = true;
     };
   }, [USER_EMAIL]);
+
+  const applyMatchType = (next: MatchTypeValue) => {
+    setForm((prev) => {
+      const t = prev.title.trim();
+      const nextTitle = !t || STOCK_MATCH_TITLES.has(t) ? DEFAULT_MATCH_TITLES[next] : prev.title;
+      return { ...prev, matchType: next, title: nextTitle };
+    });
+  };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -316,7 +332,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               {MATCH_TYPES.map((item) => (
                 <Pressable
                   key={item.value}
-                  onPress={() => update("matchType", item.value)}
+                  onPress={() => applyMatchType(item.value)}
                   style={[styles.optionCard, form.matchType === item.value && styles.optionCardActive]}
                 >
                   <Text style={styles.optionEmoji}>{item.icon}</Text>
@@ -332,7 +348,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               label="Match Name"
               value={form.title}
               onChangeText={(v) => update("title", v)}
-              placeholder="Padel Doubles"
+              placeholder={DEFAULT_MATCH_TITLES[form.matchType]}
             />
 
             <SectionLabel text="Duration" />

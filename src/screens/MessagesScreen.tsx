@@ -13,6 +13,14 @@ import { COLORS } from "../theme/colors";
 export function MessagesScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
+  const navigateRoot = React.useCallback(
+    (route: string, params?: Record<string, unknown>) => {
+      const parent = navigation.getParent?.();
+      if (parent?.navigate) parent.navigate(route, params);
+      else navigation.navigate(route, params);
+    },
+    [navigation],
+  );
   const [search, setSearch] = React.useState("");
   const [tab, setTab] = React.useState<"all" | "direct" | "groups">("all");
   const [conversations, setConversations] = React.useState<ConversationDto[]>([]);
@@ -112,7 +120,13 @@ export function MessagesScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={styles.row}
-            onPress={() => navigation.navigate("ConversationView", { id: item.id })}
+            onPress={() => {
+              if (item.type === "match" && item.entityId) {
+                navigateRoot("MatchChat", { matchId: item.entityId });
+              } else {
+                navigation.navigate("ConversationView", { id: item.id });
+              }
+            }}
           >
             <View style={styles.avatar}>
               <Ionicons

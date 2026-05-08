@@ -6,11 +6,13 @@ import { useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { SUBSCRIPTION_PLAN_KEY } from "./SubscriptionGateScreen";
 import { COLORS } from "../theme/colors";
 
 export function CompetitionsScreen() {
   const navigation = useNavigation<any>();
+  const { showSnackbar } = useSnackbar();
   const listRef = React.useRef<FlatList<CompetitionDto>>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -116,7 +118,10 @@ export function CompetitionsScreen() {
             </View>
 
             {showPremiumBanner ? (
-              <View style={styles.premiumCard}>
+              <Pressable
+                style={({ pressed }) => [styles.premiumCard, pressed && styles.premiumCardPressed]}
+                onPress={() => showSnackbar("Coming soon", { type: "info" })}
+              >
                 <View style={styles.premiumIcon}>
                   <Ionicons name="diamond-outline" size={16} color={COLORS.card} />
                 </View>
@@ -125,7 +130,7 @@ export function CompetitionsScreen() {
                   <Text style={styles.premiumSub}>Unlimited tournaments · Better prize controls</Text>
                 </View>
                 <Text style={styles.premiumTag}>PRO</Text>
-              </View>
+              </Pressable>
             ) : null}
 
             <View style={styles.quickTiles}>
@@ -366,6 +371,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  premiumCardPressed: { opacity: 0.92 },
   premiumIcon: {
     width: 30,
     height: 30,

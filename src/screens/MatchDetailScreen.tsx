@@ -19,6 +19,7 @@ import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { userLocationLabel } from "../lib/userLocation";
+import { displayMatchTitle } from "../lib/matchDisplay";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
 import { isDoublesFormat } from "../lib/matchFormat";
 import { parseEvidenceBlob, serializeEvidenceBlob } from "../lib/matchEvidence";
@@ -653,7 +654,7 @@ export function MatchDetailScreen({
           <Text style={styles.skillPill}>{match.skillLevel || "any"}</Text>
           <Text style={[styles.statusPill, getStatusStyle(status)]}>{statusLabel(status)}</Text>
         </View>
-        <Text style={styles.title}>{match.title}</Text>
+        <Text style={styles.title}>{displayMatchTitle(match)}</Text>
         <InfoRow icon="calendar-outline" value={new Date(match.date).toLocaleDateString()} />
         <InfoRow icon="time-outline" value={`${match.timeLabel} · ${match.durationMinutes || 90} min`} />
         <InfoRow
@@ -965,13 +966,13 @@ export function MatchDetailScreen({
 
         {(joined || isOrganizer) && status !== "completed" && status !== "cancelled" && status !== "disputed" ? (
           <Pressable
-            style={[styles.secondaryBtn, busy && styles.disabled]}
-            disabled={busy}
+            style={[styles.secondaryBtn, (busy || isFull) && styles.disabled]}
+            disabled={busy || isFull}
             onPress={() =>
               navigation.navigate("InvitePlayers", {
                 eventId: match.id,
                 eventKind: "match",
-                eventTitle: match.title,
+                eventTitle: displayMatchTitle(match),
                 eventSubtitle: `${match.locationName} · ${match.timeLabel}`,
               })
             }

@@ -28,14 +28,19 @@ function parseErrorBody(text: string, status: number): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = store.getState().auth.token;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const isGet = method === "GET";
+  const fetchInit: RequestInit & { cache?: "default" | "no-store" | "reload" } = {
+    ...init,
+    ...(isGet ? { cache: "no-store" as const } : {}),
     headers: {
       "Content-Type": "application/json",
+      ...(isGet ? { "Cache-Control": "no-cache", Pragma: "no-cache" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}),
     },
-    ...init,
-  });
+  };
+  const response = await fetch(`${API_BASE_URL}${path}`, fetchInit);
 
   if (!response.ok) {
     const text = await response.text();

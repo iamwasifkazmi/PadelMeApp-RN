@@ -1,6 +1,5 @@
 import React from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
@@ -9,19 +8,9 @@ export const SUBSCRIPTION_PLAN_KEY = "padelme.subscription.plan.v1";
 
 export function SubscriptionGateScreen({ navigation }: { navigation: any }) {
   const { showSnackbar } = useSnackbar();
-  const [starting, setStarting] = React.useState(false);
 
-  const startPremium = async () => {
-    try {
-      setStarting(true);
-      await AsyncStorage.setItem(SUBSCRIPTION_PLAN_KEY, "premium");
-      showSnackbar("Premium activated! 👑", { type: "success" });
-      navigation.replace("Competitions");
-    } catch {
-      showSnackbar("Could not start premium", { type: "error" });
-    } finally {
-      setStarting(false);
-    }
+  const onStartPremium = () => {
+    showSnackbar("Coming soon", { type: "info" });
   };
 
   return (
@@ -41,8 +30,8 @@ export function SubscriptionGateScreen({ navigation }: { navigation: any }) {
           <Text style={styles.feature}>• Advanced competition actions</Text>
         </View>
 
-        <Pressable style={[styles.startBtn, starting && styles.disabled]} onPress={startPremium} disabled={starting}>
-          {starting ? <ActivityIndicator color={COLORS.card} /> : <Text style={styles.startBtnText}>Start Premium</Text>}
+        <Pressable style={styles.startBtn} onPress={onStartPremium}>
+          <Text style={styles.startBtnText}>Start Premium</Text>
         </Pressable>
 
         <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -108,5 +97,4 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   backBtnText: { color: COLORS.warningText, fontSize: 11, fontWeight: "700" },
-  disabled: { opacity: 0.65 },
 });

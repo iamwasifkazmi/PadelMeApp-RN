@@ -16,6 +16,7 @@ import { MatchDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { displayMatchTitle } from "../lib/matchDisplay";
 
 type SkillFilter = "" | "beginner" | "intermediate" | "advanced";
 type FormatFilter = "" | "singles" | "doubles" | "mixed_doubles";
@@ -245,7 +246,7 @@ export function FindMatchScreen() {
                   <Text style={styles.viewBtnText}>{joined ? "Joined ✓" : spots === 0 ? "View" : "Join →"}</Text>
                 </Pressable>
               </View>
-              <Text style={styles.matchTitle}>{item.match.title}</Text>
+              <Text style={styles.matchTitle}>{displayMatchTitle(item.match)}</Text>
               <Text style={styles.matchMeta}>📍 {item.match.locationName}</Text>
               <Text style={styles.matchMeta}>
                 {item.match.players.length}/{item.match.maxPlayers} players

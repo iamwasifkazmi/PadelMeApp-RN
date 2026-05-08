@@ -19,11 +19,13 @@ import {
   UserDto,
 } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
+import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
+import { displayMatchTitle } from "../lib/matchDisplay";
 import { shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
 
 type FriendRequestDto = {
@@ -153,6 +155,7 @@ function EmptyState({
 export function HomeScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
+  const { showSnackbar } = useSnackbar();
   const [playersTab, setPlayersTab] = React.useState<"nearby" | "friends">("nearby");
   const [instantTime, setInstantTime] = React.useState<"Now" | "1 hour" | "2 hours">("Now");
   const [loading, setLoading] = React.useState(true);
@@ -171,10 +174,13 @@ export function HomeScreen() {
   const [recentResults, setRecentResults] = React.useState<RecentResultDto[]>([]);
 
   const load = React.useCallback(
-    async (opts?: { refresh?: boolean }) => {
+    async (opts?: { refresh?: boolean; silent?: boolean }) => {
       const isRefresh = opts?.refresh === true;
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      const isSilent = opts?.silent === true;
+      if (!isSilent) {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+      }
 
       try {
         const [
@@ -220,8 +226,10 @@ export function HomeScreen() {
         setConversations(conversationsRes.status === "fulfilled" ? conversationsRes.value : []);
         setRecentResults(recentRes.status === "fulfilled" ? recentRes.value : []);
       } finally {
-        if (isRefresh) setRefreshing(false);
-        else setLoading(false);
+        if (!isSilent) {
+          if (isRefresh) setRefreshing(false);
+          else setLoading(false);
+        }
       }
     },
     [USER_EMAIL],
@@ -268,18 +276,32 @@ export function HomeScreen() {
 
   const sendFriendRequest = React.useCallback(
     async (recipientEmail: string) => {
-      await api.post("/friends/requests", { requesterEmail: USER_EMAIL, recipientEmail });
-      await load({ refresh: true });
+      try {
+        await api.post("/friends/requests", { requesterEmail: USER_EMAIL, recipientEmail });
+        await load({ silent: true });
+        showSnackbar("Friend request sent", { type: "success" });
+      } catch (e: any) {
+        showSnackbar(typeof e?.message === "string" ? e.message : "Could not send friend request", {
+          type: "error",
+        });
+      }
     },
-    [USER_EMAIL, load],
+    [USER_EMAIL, load, showSnackbar],
   );
 
   const acceptFriendRequest = React.useCallback(
     async (requestId: string) => {
-      await api.patch(`/friends/requests/${requestId}`, { status: "accepted" });
-      await load({ refresh: true });
+      try {
+        await api.patch(`/friends/requests/${requestId}`, { status: "accepted" });
+        await load({ silent: true });
+        showSnackbar("Friend request accepted", { type: "success" });
+      } catch (e: any) {
+        showSnackbar(typeof e?.message === "string" ? e.message : "Could not accept request", {
+          type: "error",
+        });
+      }
     },
-    [load],
+    [load, showSnackbar],
   );
 
   if (loading) return <HomeSkeleton />;
@@ -724,7 +746,7 @@ function UserMatchCardLike({ match, onPress }: { match: MatchDto; onPress: () =>
       <View style={styles.cardTopRow}>
         <View style={styles.cardTitleBlock}>
           <Text style={styles.matchTitle} numberOfLines={2}>
-            {match.title}
+            {displayMatchTitle(match)}
           </Text>
         </View>
         <View style={styles.cardTopRight}>
@@ -767,7 +789,7 @@ function OpenMatchCardLike({ match, onPress }: { match: MatchDto; onPress: () =>
           </Text>
         </View>
       </View>
-      <Text style={styles.matchTitle}>{match.title}</Text>
+      <Text style={styles.matchTitle}>{displayMatchTitle(match)}</Text>
       <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
       <Text style={styles.matchMeta}>
         🕒 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}
@@ -845,7 +867,7 @@ function InProgressCardLike({
         <View style={styles.cardTopRow}>
           <View style={styles.cardTitleBlock}>
             <Text style={styles.matchTitle} numberOfLines={2}>
-              {match.title}
+              {displayMatchTitle(match)}
             </Text>
           </View>
           <View style={styles.cardTopRight}>
@@ -1176,7 +1198,13 @@ const styles = StyleSheet.create({
   playerMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   playerElo: { fontSize: 10, color: COLORS.primary, fontWeight: "700" },
   playerRating: { fontSize: 10, color: COLORS.text, fontWeight: "600" },
-  playerCardFooter: { marginTop: 7, minHeight: 24, alignItems: "center", justifyContent: "center", width: "100%" },
+  playerCardFooter: {
+    marginTop: 7,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
   friendCtaBtn: {
     borderRadius: 8,
     borderWidth: 1,
@@ -1185,7 +1213,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     minWidth: 86,
+    minHeight: 30,
     alignItems: "center",
+    justifyContent: "center",
   },
   friendCtaBtnDone: { backgroundColor: COLORS.successSoft, borderColor: COLORS.success },
   friendCtaBtnPending: { backgroundColor: COLORS.borderMuted, borderColor: COLORS.border },
