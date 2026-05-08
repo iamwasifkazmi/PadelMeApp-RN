@@ -50,6 +50,10 @@ export type MatchDto = {
   cancelledAt?: string | null;
   teamACaptainEmail?: string | null;
   teamBCaptainEmail?: string | null;
+  /** `sets` | `simple` | omit — Base44-style scoring UI */
+  scoringMode?: string | null;
+  numSets?: number | null;
+  gamesPerSet?: number | null;
 };
 
 /** Row from GET /matches/:id/recent-form for the viewer */

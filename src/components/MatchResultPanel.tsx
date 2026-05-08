@@ -114,29 +114,42 @@ export function MatchResultPanel({
 
       <View style={styles.body}>
         {sets.length > 0 ? (
-          <View style={styles.setsRow}>
-            <View style={[styles.teamCol, teamBWon && !teamAWon && styles.teamDim]}>
-              <Text style={[styles.teamName, teamAWon && styles.teamNameWin]}>{teamAName}</Text>
-              {teamAWon ? <Text style={styles.winnerTag}>Winner</Text> : null}
-            </View>
-            <View style={styles.setsMiddle}>
-              {sets.map((set, i) => (
-                <View key={i} style={styles.setLine}>
-                  <Text style={[styles.setNum, teamAWon && styles.setNumWin]}>{set.a}</Text>
-                  <Text style={styles.setDash}>—</Text>
-                  <Text style={[styles.setNum, teamBWon && styles.setNumWin]}>{set.b}</Text>
-                </View>
-              ))}
-              {sets.length > 1 ? (
-                <Text style={styles.setCount}>
-                  {sets.length} sets
+          <View style={styles.scoreGrid}>
+            <View style={styles.gridHeaderRow}>
+              <View style={styles.gridCorner} />
+              {sets.map((_, i) => (
+                <Text key={`gh-${i}`} style={styles.gridHeadCell}>
+                  Set {i + 1}
                 </Text>
-              ) : null}
+              ))}
             </View>
-            <View style={[styles.teamCol, styles.teamColRight, teamAWon && !teamBWon && styles.teamDim]}>
-              <Text style={[styles.teamName, teamBWon && styles.teamNameWin]}>{teamBName}</Text>
-              {teamBWon ? <Text style={[styles.winnerTag, styles.winnerTagRight]}>Winner</Text> : null}
+            <View style={styles.gridDataRow}>
+              <View style={styles.gridRowTitleCol}>
+                <Text style={[styles.gridRowTitle, teamAWon && styles.gridRowTitleWin]} numberOfLines={2}>
+                  {teamAName}
+                </Text>
+                {teamAWon ? <Text style={styles.gridWinnerTag}>Winner</Text> : null}
+              </View>
+              {sets.map((set, i) => (
+                <Text key={`ga-${i}`} style={[styles.gridCell, teamAWon && styles.gridCellWin]}>
+                  {set.a}
+                </Text>
+              ))}
             </View>
+            <View style={styles.gridDataRow}>
+              <View style={styles.gridRowTitleCol}>
+                <Text style={[styles.gridRowTitle, teamBWon && styles.gridRowTitleWin]} numberOfLines={2}>
+                  {teamBName}
+                </Text>
+                {teamBWon ? <Text style={styles.gridWinnerTag}>Winner</Text> : null}
+              </View>
+              {sets.map((set, i) => (
+                <Text key={`gb-${i}`} style={[styles.gridCell, teamBWon && styles.gridCellWin]}>
+                  {set.b}
+                </Text>
+              ))}
+            </View>
+            {sets.length > 1 ? <Text style={styles.gridFootNote}>{sets.length} sets</Text> : null}
           </View>
         ) : (
           <View style={styles.noScore}>
@@ -239,28 +252,47 @@ const styles = StyleSheet.create({
   bannerLabel: { fontSize: 18, fontWeight: "900", color: "#fff", letterSpacing: 0.5 },
   bannerElo: { fontSize: 13, fontWeight: "800", color: "#fff" },
   body: { backgroundColor: COLORS.card, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
-  setsRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-  teamCol: { flex: 1 },
-  teamDim: { opacity: 0.5 },
-  teamColRight: { alignItems: "flex-end" },
-  teamName: { fontSize: 15, fontWeight: "800", color: COLORS.text },
-  teamNameWin: { color: COLORS.successText },
-  teamNameMuted: { fontSize: 14, fontWeight: "700", color: COLORS.textMuted },
-  winnerTag: {
+  scoreGrid: { marginBottom: 4 },
+  gridHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 6 },
+  gridCorner: { width: 100, minWidth: 100 },
+  gridHeadCell: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.textMuted,
+    letterSpacing: 0.3,
+  },
+  gridDataRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 10, gap: 6 },
+  gridRowTitleCol: { width: 100, minWidth: 100 },
+  gridRowTitle: { fontSize: 13, fontWeight: "800", color: COLORS.text, lineHeight: 17 },
+  gridRowTitleWin: { color: COLORS.successText },
+  gridWinnerTag: {
     marginTop: 2,
     fontSize: 9,
     fontWeight: "900",
     color: COLORS.successText,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
   },
-  winnerTagRight: { textAlign: "right" },
-  setsMiddle: { alignItems: "center", gap: 4, paddingHorizontal: 4 },
-  setLine: { flexDirection: "row", alignItems: "center", gap: 8 },
-  setNum: { fontSize: 26, fontWeight: "900", color: COLORS.text, minWidth: 36, textAlign: "right" },
-  setNumWin: { color: COLORS.successText },
-  setDash: { fontSize: 14, fontWeight: "700", color: COLORS.textMuted, width: 16, textAlign: "center" },
-  setCount: { fontSize: 10, color: COLORS.textMuted, marginTop: 2 },
+  gridCell: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "900",
+    color: COLORS.text,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    overflow: "hidden",
+  },
+  gridCellWin: { color: COLORS.successText, borderColor: COLORS.successText, backgroundColor: COLORS.successSoft },
+  gridFootNote: { fontSize: 10, color: COLORS.textMuted, textAlign: "center", marginTop: 2 },
+  teamNameMuted: { fontSize: 14, fontWeight: "700", color: COLORS.textMuted },
+  teamNameWin: { color: COLORS.successText },
   noScore: { paddingVertical: 6 },
   noScoreRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   vsText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },

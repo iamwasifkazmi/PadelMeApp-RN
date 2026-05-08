@@ -24,6 +24,7 @@ import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
+import { shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
 
 type FriendRequestDto = {
   id: string;
@@ -460,7 +461,11 @@ export function HomeScreen() {
           <InProgressCardLike
             key={m.id}
             match={m}
+            userEmail={USER_EMAIL}
             onPress={() => navigation.navigate("MatchDetail", { id: m.id })}
+            onConfirmScore={() =>
+              navigation.navigate("MatchDetail", { id: m.id, openConfirmScore: true })
+            }
           />
         ))
       ) : (
@@ -813,37 +818,63 @@ function CompetitionMiniCardLike({
   );
 }
 
-function InProgressCardLike({ match, onPress }: { match: MatchDto; onPress: () => void }) {
+function InProgressCardLike({
+  match,
+  onPress,
+  userEmail,
+  onConfirmScore,
+}: {
+  match: MatchDto;
+  onPress: () => void;
+  userEmail: string;
+  onConfirmScore: () => void;
+}) {
   const label =
-    match.status === "in_progress" ? "Live" : match.status === "awaiting_score" ? "Awaiting" : "Pending";
+    match.status === "in_progress"
+      ? "Live"
+      : match.status === "awaiting_score"
+        ? "Awaiting score"
+        : match.status === "pending_validation"
+          ? "Pending Validation"
+          : "Pending";
+  const showConfirm = shouldShowConfirmScoreCta(match, userEmail);
+
   return (
-    <Pressable style={styles.matchCard} onPress={onPress}>
-      <View style={styles.cardTopRow}>
-        <View style={styles.cardTitleBlock}>
-          <Text style={styles.matchTitle} numberOfLines={2}>
-            {match.title}
-          </Text>
-        </View>
-        <View style={styles.cardTopRight}>
-          <View style={styles.progressTag}>
-            <Text style={styles.progressTagText} numberOfLines={1}>
-              {label}
+    <View style={styles.matchCard}>
+      <Pressable onPress={onPress}>
+        <View style={styles.cardTopRow}>
+          <View style={styles.cardTitleBlock}>
+            <Text style={styles.matchTitle} numberOfLines={2}>
+              {match.title}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
+          <View style={styles.cardTopRight}>
+            <View style={styles.progressTag}>
+              <Text style={styles.progressTagText} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.textMuted} />
+          </View>
         </View>
-      </View>
-      <View style={styles.metaRows}>
-        <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
-        <Text style={styles.matchMeta}>🕒 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}</Text>
-        <Text style={styles.matchMetaSmall}>Tap to continue</Text>
-      </View>
+        <View style={styles.metaRows}>
+          <Text style={styles.matchMeta}>📍 {match.locationName}</Text>
+          <Text style={styles.matchMeta}>🕒 {new Date(match.date).toLocaleDateString()} · {match.timeLabel}</Text>
+        </View>
+      </Pressable>
       <View style={styles.progressActionsRow}>
-        <View style={styles.viewMiniBtn}>
-          <Text style={styles.viewMiniBtnText}>View Match</Text>
-        </View>
+        <Pressable style={styles.progressOutlineBtn} onPress={onPress}>
+          <Text style={styles.progressOutlineBtnText}>View Match</Text>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.primaryDark} />
+        </Pressable>
+        {showConfirm ? (
+          <Pressable style={styles.progressConfirmBtn} onPress={onConfirmScore}>
+            <Ionicons name="checkmark-circle" size={16} color="#fff" />
+            <Text style={styles.progressConfirmBtnText}>Confirm Score</Text>
+          </Pressable>
+        ) : null}
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -1067,7 +1098,37 @@ const styles = StyleSheet.create({
   matchMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   matchMetaSmall: { fontSize: 10, color: COLORS.textSubtle, marginTop: 3, textTransform: "capitalize" },
   openSpotsText: { marginTop: 6, color: COLORS.successText, fontSize: 11, fontWeight: "700" },
-  progressActionsRow: { marginTop: 9, flexDirection: "row", justifyContent: "flex-start" },
+  progressActionsRow: {
+    marginTop: 9,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  progressOutlineBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.card,
+  },
+  progressOutlineBtnText: { color: COLORS.text, fontSize: 12, fontWeight: "700" },
+  progressConfirmBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#15803d",
+  },
+  progressConfirmBtnText: { color: "#fff", fontSize: 12, fontWeight: "800" },
   emptyCard: { backgroundColor: COLORS.card, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, borderStyle: "dashed", padding: 14, alignItems: "center", marginBottom: 8 },
   emptyIcon: { fontSize: 22, marginBottom: 2 },
   emptyText: { color: COLORS.textMuted, fontSize: 12, textAlign: "center" },

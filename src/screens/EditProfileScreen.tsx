@@ -1,6 +1,8 @@
 import React from "react";
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,7 +10,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { launchImageLibrary } from "react-native-image-picker";
 import { api } from "../lib/api";
@@ -180,6 +184,8 @@ function EditProfileSkeleton() {
 
 export function EditProfileScreen() {
   const navigation = useNavigation<any>();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const scrollRef = React.useRef<ScrollView | null>(null);
@@ -382,11 +388,17 @@ export function EditProfileScreen() {
   if (loading) return <EditProfileSkeleton />;
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerHeight}
+    >
       <ScrollView
         ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         onScroll={onScroll}
         scrollEventThrottle={16}
         stickyHeaderIndices={[0]}
@@ -705,7 +717,7 @@ export function EditProfileScreen() {
         </SectionCard>
       </ScrollView>
 
-      <View style={styles.saveBar}>
+      <View style={[styles.saveBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <Pressable style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={onSave} disabled={saving}>
           <Text style={styles.saveBtnText}>{saving ? "Saving..." : "Save Profile"}</Text>
         </Pressable>
@@ -733,7 +745,7 @@ export function EditProfileScreen() {
           }));
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -866,7 +878,7 @@ function capitalize(value: string) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { paddingTop: 14, paddingBottom: 130 },
+  content: { paddingTop: 14, paddingBottom: 150 },
   stickyHeader: {
     backgroundColor: COLORS.bg,
     borderBottomWidth: 1,
@@ -1098,7 +1110,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 12,
   },
   saveBtn: {
     height: 48,

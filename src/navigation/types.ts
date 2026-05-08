@@ -16,7 +16,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   AcceptInvite: { token?: string } | undefined;
   CreateMatch: { recurring?: boolean } | undefined;
-  MatchDetail: { id: string };
+  MatchDetail: { id: string; openConfirmScore?: boolean };
   EditProfile: undefined;
   Notifications: undefined;
   Competitions: undefined;

@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { launchImageLibrary } from "react-native-image-picker";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchResultPanel } from "../components/MatchResultPanel";
@@ -23,6 +22,11 @@ import { userLocationLabel } from "../lib/userLocation";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
 import { isDoublesFormat } from "../lib/matchFormat";
 import { parseEvidenceBlob, serializeEvidenceBlob } from "../lib/matchEvidence";
+import {
+  viewerCanValidatePendingScore,
+  shouldShowConfirmScoreCta,
+} from "../lib/matchPendingScore";
+import { ConfirmMatchResultModal, SubmitMatchScoreModal } from "../components/MatchScoreFlowModals";
 
 const MAX_EVIDENCE_PHOTOS = 8;
 const MAX_EVIDENCE_PER_IMAGE_CHARS = 130_000;
@@ -124,26 +128,6 @@ function organizerStartBlockHelp(reason: string): string | null {
   return null;
 }
 
-/** Mirrors backend `actorCanValidatePendingScore` for confirm / reject / dispute UI. */
-function viewerCanValidatePendingScore(
-  m: MatchDto,
-  viewer: string,
-  hostEmail: string | null,
-  submitter: string | null | undefined,
-): boolean {
-  if (!submitter?.trim() || emailsMatch(submitter, viewer)) return false;
-  if (!(m.players || []).some((p) => emailsMatch(p, viewer))) return false;
-  if (hostEmail && emailsMatch(hostEmail, viewer)) return true;
-  if (isDoublesFormat(m) && m.players.length >= 4) {
-    const capA = (m.teamACaptainEmail || m.teamA?.[0] || "").trim();
-    const capB = (m.teamBCaptainEmail || m.teamB?.[0] || "").trim();
-    if (capA && emailsMatch(capA, viewer)) return true;
-    if (capB && emailsMatch(capB, viewer)) return true;
-    return false;
-  }
-  return true;
-}
-
 /** Base44-style start validation (structure + roster eligibility). */
 function validateMatchStartForUi(m: MatchDto, usersMap: Record<string, UserDto>): { valid: boolean; reason: string } {
   const players = m.players || [];
@@ -218,7 +202,7 @@ export function MatchDetailScreen({
   route,
   navigation,
 }: {
-  route: { params: { id: string } };
+  route: { params: { id: string; openConfirmScore?: boolean } };
   navigation: any;
 }) {
   const { showSnackbar } = useSnackbar();
@@ -236,6 +220,9 @@ export function MatchDetailScreen({
   const [teamDraft, setTeamDraft] = React.useState<Record<string, "a" | "b" | null>>({});
   const [recentForm, setRecentForm] = React.useState<PlayerRecentFormDto | null>(null);
   const [disputeReason, setDisputeReason] = React.useState("");
+  const pendingScoreDraftSyncKey = React.useRef("");
+  const [submitScoreModalOpen, setSubmitScoreModalOpen] = React.useState(false);
+  const [confirmScoreModalOpen, setConfirmScoreModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     setScoreA("");
@@ -243,6 +230,7 @@ export function MatchDetailScreen({
     setEvidencePhotoUris([]);
     setWinnerPick("");
     setDisputeReason("");
+    pendingScoreDraftSyncKey.current = "";
   }, [id]);
 
   const teamsSyncKey = match
@@ -302,6 +290,41 @@ export function MatchDetailScreen({
   React.useEffect(() => {
     load(false);
   }, [load]);
+
+  React.useEffect(() => {
+    if (!match) return;
+    if (match.status !== "pending_validation") {
+      pendingScoreDraftSyncKey.current = "";
+      return;
+    }
+    if (!match.scoreSubmittedBy || !emailsMatch(match.scoreSubmittedBy, USER_EMAIL)) return;
+    if (!match.pendingScoreTeamA?.trim() || !match.pendingScoreTeamB?.trim()) return;
+    const key = `${match.id}:${match.pendingScoreTeamA}:${match.pendingScoreTeamB}:${match.pendingWinnerTeam || ""}`;
+    if (pendingScoreDraftSyncKey.current === key) return;
+    pendingScoreDraftSyncKey.current = key;
+    setScoreA(match.pendingScoreTeamA);
+    setScoreB(match.pendingScoreTeamB);
+    setWinnerPick(
+      match.pendingWinnerTeam === "team_a" || match.pendingWinnerTeam === "team_b"
+        ? match.pendingWinnerTeam
+        : "",
+    );
+  }, [
+    match?.id,
+    match?.status,
+    match?.scoreSubmittedBy,
+    match?.pendingScoreTeamA,
+    match?.pendingScoreTeamB,
+    match?.pendingWinnerTeam,
+    USER_EMAIL,
+  ]);
+
+  React.useEffect(() => {
+    if (!route.params.openConfirmScore) return;
+    if (!match?.pendingScoreTeamA?.trim()) return;
+    setConfirmScoreModalOpen(true);
+    navigation.setParams({ id: match.id, openConfirmScore: false });
+  }, [route.params.openConfirmScore, match?.id, match?.pendingScoreTeamA, navigation]);
 
   React.useEffect(() => {
     if (!match || match.status !== "completed" || !USER_EMAIL) {
@@ -395,15 +418,17 @@ export function MatchDetailScreen({
   const onAwaitingScore = () =>
     postJson(`/matches/${match!.id}/awaiting-score`, { email: USER_EMAIL }, "Marked as awaiting score — players can submit.");
 
-  const onSubmitScore = () => {
+  const onSubmitScore = (overrideA?: string, overrideB?: string) => {
     if (!match) return;
-    if (!scoreA.trim() || !scoreB.trim()) {
+    const a = (overrideA ?? scoreA).trim();
+    const b = (overrideB ?? scoreB).trim();
+    if (!a || !b) {
       showSnackbar("Enter scores for both teams", { type: "error" });
       return;
     }
     const body: Record<string, string> = {
-      scoreTeamA: scoreA.trim(),
-      scoreTeamB: scoreB.trim(),
+      scoreTeamA: a,
+      scoreTeamB: b,
       submittedBy: USER_EMAIL,
     };
     if (winnerPick) body.winnerTeam = winnerPick;
@@ -419,6 +444,7 @@ export function MatchDetailScreen({
         setBusy(true);
         const updated = await api.post<MatchDto>(`/matches/${match.id}/submit-score`, body);
         await load(true);
+        setSubmitScoreModalOpen(false);
         const msg =
           updated.status === "pending_validation"
             ? "Score proposed — waiting for captain or organiser to confirm."
@@ -433,11 +459,37 @@ export function MatchDetailScreen({
     })();
   };
 
-  const onConfirmPendingScore = () =>
-    postJson(`/matches/${match!.id}/confirm-score`, { email: USER_EMAIL }, "Final score confirmed");
+  const onConfirmPendingScore = async () => {
+    if (!match) return;
+    try {
+      setBusy(true);
+      await api.post<MatchDto>(`/matches/${match.id}/confirm-score`, { email: USER_EMAIL });
+      setConfirmScoreModalOpen(false);
+      await load(true);
+      showSnackbar("Final score confirmed", { type: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Request failed";
+      showSnackbar(msg, { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  const onRejectPendingScore = () =>
-    postJson(`/matches/${match!.id}/reject-score`, { email: USER_EMAIL }, "Proposed score rejected");
+  const onRejectPendingScore = async () => {
+    if (!match) return;
+    try {
+      setBusy(true);
+      await api.post<MatchDto>(`/matches/${match.id}/reject-score`, { email: USER_EMAIL });
+      setConfirmScoreModalOpen(false);
+      await load(true);
+      showSnackbar("Proposed score rejected", { type: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Request failed";
+      showSnackbar(msg, { type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onReopenDispute = () =>
     postJson(`/matches/${match!.id}/reopen-dispute`, { email: USER_EMAIL }, "Match reopened — you can enter a new score.");
@@ -456,6 +508,7 @@ export function MatchDetailScreen({
         reason,
       });
       setDisputeReason("");
+      setConfirmScoreModalOpen(false);
       await load(true);
       showSnackbar("Score disputed. The organiser can reopen when ready.", { type: "success" });
     } catch (e) {
@@ -466,51 +519,6 @@ export function MatchDetailScreen({
     }
   };
 
-  const removeEvidencePhotoAt = (index: number) => {
-    setEvidencePhotoUris((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const onAddEvidencePhotos = async () => {
-    const remaining = MAX_EVIDENCE_PHOTOS - evidencePhotoUris.length;
-    if (remaining <= 0) {
-      showSnackbar(`You can add up to ${MAX_EVIDENCE_PHOTOS} photos.`, { type: "error" });
-      return;
-    }
-    try {
-      const result = await launchImageLibrary({
-        mediaType: "photo",
-        selectionLimit: remaining,
-        includeBase64: true,
-        quality: 0.42,
-        maxWidth: 1600,
-        maxHeight: 1600,
-      });
-      if (result.didCancel || !(result.assets && result.assets.length)) return;
-      const added: string[] = [];
-      for (const asset of result.assets) {
-        if (added.length >= remaining) break;
-        if (!asset.base64) {
-          showSnackbar("Could not read an image. Try another photo.", { type: "error" });
-          continue;
-        }
-        const mime = asset.type || "image/jpeg";
-        const dataUrl = `data:${mime};base64,${asset.base64}`;
-        if (dataUrl.length > MAX_EVIDENCE_PER_IMAGE_CHARS) {
-          showSnackbar("A photo is too large. Choose a smaller one.", { type: "error" });
-          continue;
-        }
-        added.push(dataUrl);
-      }
-      if (added.length) {
-        setEvidencePhotoUris((prev) => [...prev, ...added]);
-        showSnackbar(added.length > 1 ? "Photos added" : "Photo added", { type: "success" });
-      }
-    } catch {
-      showSnackbar("Could not open photo library", { type: "error" });
-    }
-  };
-
-  if (loading) return <ScreenSkeleton rows={6} topGap={12} />;
 
   if (!match) {
     return (
@@ -544,8 +552,19 @@ export function MatchDetailScreen({
   const organizerStartHint =
     showOrganizerStart && !startValidation.valid ? organizerStartBlockHelp(startValidation.reason) : null;
   const showOrganizerAwaitingScore = isOrganizer && status === "in_progress";
+  const isPendingScoreSubmitter =
+    status === "pending_validation" &&
+    Boolean(match.scoreSubmittedBy && emailsMatch(match.scoreSubmittedBy, USER_EMAIL));
   const showScoreForm =
-    (joined || isOrganizer) && (status === "in_progress" || status === "awaiting_score");
+    (joined || isOrganizer) &&
+    (status === "in_progress" || status === "awaiting_score" || isPendingScoreSubmitter);
+  const showConfirmScoreDetailCta = shouldShowConfirmScoreCta(match, USER_EMAIL);
+  const viewerMayValidatePending = viewerCanValidatePendingScore(
+    match,
+    USER_EMAIL,
+    hostEmail,
+    match.scoreSubmittedBy,
+  );
 
   const draftTeamA = match.players.filter((p) => teamDraft[p] === "a");
   const draftTeamB = match.players.filter((p) => teamDraft[p] === "b");
@@ -612,6 +631,7 @@ export function MatchDetailScreen({
   }
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -722,44 +742,11 @@ export function MatchDetailScreen({
             Team A: {match.pendingScoreTeamA} · Team B: {match.pendingScoreTeamB}
           </Text>
           <Text style={styles.pendingMeta}>
-            Submitted by {match.scoreSubmittedBy || "—"} · confirm as organiser or team captain (doubles) or the
-            other player (singles), Base44-style
+            Submitted by {match.scoreSubmittedBy || "—"}. Use{" "}
+            <Text style={{ fontWeight: "800" }}>Confirm Score</Text> below (Base44-style).
           </Text>
           {match.evidenceUrl ? (
             <EvidenceAttachmentsPreview blob={match.evidenceUrl} />
-          ) : null}
-          {viewerCanValidatePendingScore(match, USER_EMAIL, hostEmail, match.scoreSubmittedBy) ? (
-            <View style={styles.pendingActions}>
-              <Pressable
-                style={[styles.primaryBtn, busy && styles.disabled]}
-                disabled={busy}
-                onPress={() => onConfirmPendingScore()}
-              >
-                <Text style={styles.primaryBtnText}>{busy ? "…" : "Confirm final result"}</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.secondaryBtn, busy && styles.disabled]}
-                disabled={busy}
-                onPress={() => onRejectPendingScore()}
-              >
-                <Text style={styles.secondaryBtnText}>Reject & keep playing</Text>
-              </Pressable>
-              <Text style={styles.inputLabel}>Dispute — reason required</Text>
-              <TextInput
-                style={styles.input}
-                value={disputeReason}
-                onChangeText={setDisputeReason}
-                placeholder="e.g. Wrong set scores — I have proof"
-                placeholderTextColor={COLORS.iconMuted}
-              />
-              <Pressable
-                style={[styles.secondaryBtn, busy && styles.disabled]}
-                disabled={busy}
-                onPress={() => onDisputeScore()}
-              >
-                <Text style={[styles.secondaryBtnText, styles.destructiveText]}>Dispute (locks scoring)</Text>
-              </Pressable>
-            </View>
           ) : null}
         </View>
       ) : null}
@@ -769,7 +756,8 @@ export function MatchDetailScreen({
       emailsMatch(match.scoreSubmittedBy, USER_EMAIL) ? (
         <View style={styles.waitingScoreBanner}>
           <Text style={styles.waitingScoreText}>
-            You proposed this score. Waiting for the other team captain or the organiser to confirm (Base44-style).
+            You proposed this score — you can edit it below until a team captain or the organiser confirms (same as
+            Base44).
           </Text>
         </View>
       ) : null}
@@ -953,6 +941,46 @@ export function MatchDetailScreen({
           </Pressable>
         ) : null}
 
+        {showConfirmScoreDetailCta ? (
+          <Pressable
+            style={[styles.confirmScoreBtn, busy && styles.disabled]}
+            disabled={busy}
+            onPress={() => setConfirmScoreModalOpen(true)}
+          >
+            <Ionicons name="checkmark-circle" size={18} color="#fff" />
+            <Text style={styles.confirmScoreBtnText}>Confirm Score</Text>
+          </Pressable>
+        ) : null}
+
+        {showScoreForm ? (
+          <Pressable
+            style={[styles.secondaryBtn, busy && styles.disabled]}
+            disabled={busy}
+            onPress={() => setSubmitScoreModalOpen(true)}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={COLORS.primaryDark} />
+            <Text style={[styles.secondaryBtnText, { marginLeft: 6 }]}>Submit match score</Text>
+          </Pressable>
+        ) : null}
+
+        {(joined || isOrganizer) && status !== "completed" && status !== "cancelled" && status !== "disputed" ? (
+          <Pressable
+            style={[styles.secondaryBtn, busy && styles.disabled]}
+            disabled={busy}
+            onPress={() =>
+              navigation.navigate("InvitePlayers", {
+                eventId: match.id,
+                eventKind: "match",
+                eventTitle: match.title,
+                eventSubtitle: `${match.locationName} · ${match.timeLabel}`,
+              })
+            }
+          >
+            <Ionicons name="person-add-outline" size={17} color={COLORS.primaryDark} />
+            <Text style={[styles.secondaryBtnText, { marginLeft: 6 }]}>Invite Players</Text>
+          </Pressable>
+        ) : null}
+
         {(joined || isOrganizer) && status !== "cancelled" ? (
           <Pressable style={[styles.chatBtn]} onPress={() => navigation.navigate("Community")}>
             <Ionicons name="people-outline" size={17} color={COLORS.primaryDark} />
@@ -1056,96 +1084,6 @@ export function MatchDetailScreen({
           </Pressable>
         ) : null}
 
-        {showScoreForm ? (
-          <View style={styles.scoreForm}>
-            <Text style={styles.sectionTitle}>Submit score</Text>
-            <Text style={styles.scoreHelp}>
-              Enter Team A and Team B scores (comma-separated games per set, e.g. 6,4 vs 4,6). Optional: attach up to
-              eight photos as proof — or skip. With more than one player, the result stays pending until a team captain or
-              the organiser confirms (same flow as Base44).
-            </Text>
-            <Text style={styles.inputLabel}>Team A (sets e.g. 6-4, 6-3)</Text>
-            <TextInput
-              style={styles.input}
-              value={scoreA}
-              onChangeText={setScoreA}
-              placeholder="e.g. 6-4, 6-3"
-              placeholderTextColor={COLORS.iconMuted}
-            />
-            <Text style={styles.inputLabel}>Team B</Text>
-            <TextInput
-              style={styles.input}
-              value={scoreB}
-              onChangeText={setScoreB}
-              placeholder="e.g. 4-6, 3-6"
-              placeholderTextColor={COLORS.iconMuted}
-            />
-            <Text style={styles.inputLabel}>Photos (optional, up to 8)</Text>
-            <Text style={styles.scoreEvidenceHint}>Add scorecard or court photos — or leave empty.</Text>
-            {evidencePhotoUris.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.evidenceDraftRow}
-              >
-                {evidencePhotoUris.map((uri, idx) => (
-                  <View key={`eph-${idx}`} style={styles.evidenceDraftThumbWrap}>
-                    <Image source={{ uri }} style={styles.evidenceDraftThumb} />
-                    <Pressable
-                      accessibilityLabel="Remove photo"
-                      style={styles.evidenceDraftRemove}
-                      onPress={() => removeEvidencePhotoAt(idx)}
-                      hitSlop={10}
-                    >
-                      <Ionicons name="close-circle" size={22} color={COLORS.dangerText} />
-                    </Pressable>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : null}
-            <Pressable
-              style={[
-                styles.secondaryBtn,
-                evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS && styles.disabled,
-              ]}
-              disabled={busy || evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS}
-              onPress={() => {
-                void onAddEvidencePhotos();
-              }}
-            >
-              <Text style={styles.secondaryBtnText}>
-                {evidencePhotoUris.length >= MAX_EVIDENCE_PHOTOS
-                  ? `Maximum ${MAX_EVIDENCE_PHOTOS} photos`
-                  : evidencePhotoUris.length
-                    ? "Add more photos…"
-                    : "Add photos…"}
-              </Text>
-            </Pressable>
-            <Text style={styles.inputLabel}>Winner (optional if scores show it)</Text>
-            <View style={styles.winnerRow}>
-              <Pressable
-                style={[styles.winnerChip, winnerPick === "team_a" && styles.winnerChipOn]}
-                onPress={() => setWinnerPick("team_a")}
-              >
-                <Text style={styles.winnerChipText}>Team A</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.winnerChip, winnerPick === "team_b" && styles.winnerChipOn]}
-                onPress={() => setWinnerPick("team_b")}
-              >
-                <Text style={styles.winnerChipText}>Team B</Text>
-              </Pressable>
-            </View>
-            <Pressable
-              style={[styles.primaryBtn, busy && styles.disabled]}
-              disabled={busy}
-              onPress={() => onSubmitScore()}
-            >
-              <Text style={styles.primaryBtnText}>{busy ? "…" : "Submit score"}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
         {joined && status === "completed" && match.players.filter((e) => !emailsMatch(e, USER_EMAIL)).length > 0 ? (
           <Pressable
             style={[styles.secondaryBtn, busy && styles.disabled]}
@@ -1153,23 +1091,6 @@ export function MatchDetailScreen({
             onPress={() => navigation.navigate("MatchRatePlayers", { matchId: match.id })}
           >
             <Text style={styles.secondaryBtnText}>Rate players ⭐</Text>
-          </Pressable>
-        ) : null}
-
-        {(joined || isOrganizer) && status !== "completed" && status !== "cancelled" && status !== "disputed" ? (
-          <Pressable
-            style={[styles.secondaryBtn, busy && styles.disabled]}
-            disabled={busy}
-            onPress={() =>
-              navigation.navigate("InvitePlayers", {
-                eventId: match.id,
-                eventKind: "match",
-                eventTitle: match.title,
-                eventSubtitle: `${match.locationName} · ${match.timeLabel}`,
-              })
-            }
-          >
-            <Text style={styles.secondaryBtnText}>Invite Players</Text>
           </Pressable>
         ) : null}
 
@@ -1183,6 +1104,36 @@ export function MatchDetailScreen({
         ) : null}
       </View>
     </ScrollView>
+    <SubmitMatchScoreModal
+      visible={submitScoreModalOpen}
+      onClose={() => setSubmitScoreModalOpen(false)}
+      match={match}
+      scoreA={scoreA}
+      scoreB={scoreB}
+      setScoreA={setScoreA}
+      setScoreB={setScoreB}
+      winnerPick={winnerPick}
+      setWinnerPick={setWinnerPick}
+      evidencePhotoUris={evidencePhotoUris}
+      setEvidencePhotoUris={setEvidencePhotoUris}
+      busy={busy}
+      onSubmit={(a, b) => void onSubmitScore(a, b)}
+    />
+    <ConfirmMatchResultModal
+      visible={confirmScoreModalOpen}
+      onClose={() => setConfirmScoreModalOpen(false)}
+      match={match}
+      viewerEmail={USER_EMAIL}
+      hostEmail={hostEmail}
+      canValidate={viewerMayValidatePending}
+      busy={busy}
+      disputeReason={disputeReason}
+      setDisputeReason={setDisputeReason}
+      onConfirm={() => void onConfirmPendingScore()}
+      onReject={() => void onRejectPendingScore()}
+      onDispute={() => void onDisputeScore()}
+    />
+    </>
   );
 }
 
@@ -1490,8 +1441,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
     paddingVertical: 11,
   },
+  confirmScoreBtn: {
+    borderRadius: 14,
+    backgroundColor: "#15803d",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+  },
+  confirmScoreBtnText: { color: "#fff", fontSize: 14, fontWeight: "800" },
   secondaryBtnText: { color: COLORS.text, fontSize: 13, fontWeight: "700" },
   disabled: { opacity: 0.65 },
   emptyText: { marginTop: 24, color: COLORS.textMuted, textAlign: "center" },
