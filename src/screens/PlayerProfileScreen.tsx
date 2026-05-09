@@ -12,6 +12,7 @@ import { PadelLevelRow } from "../components/PadelLevelRow";
 import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
+import { isDirectDmBetween, normEmail } from "../lib/emailNorm";
 
 type FriendRequestDto = {
   id: string;
@@ -139,18 +140,12 @@ export function PlayerProfileScreen({
       const conversations = await api.get<any[]>(
         `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
       );
-      const existing = conversations.find(
-        (c) =>
-          c.type === "direct" &&
-          Array.isArray(c.participantEmails) &&
-          c.participantEmails.includes(USER_EMAIL) &&
-          c.participantEmails.includes(user.email),
-      );
+      const existing = conversations.find((c) => isDirectDmBetween(c, USER_EMAIL, user.email));
       let conversationId = existing?.id as string | undefined;
       if (!conversationId) {
         const created = await api.post<any>("/conversations", {
           type: "direct",
-          participantEmails: [USER_EMAIL, user.email],
+          participantEmails: [normEmail(USER_EMAIL), normEmail(user.email)].sort(),
           entityName: user.fullName || user.email.split("@")[0],
         });
         conversationId = created.id;
@@ -194,7 +189,6 @@ export function PlayerProfileScreen({
     (r) => r.status === "pending" && r.requesterEmail === USER_EMAIL && r.recipientEmail === user.email,
   );
 
-  const normEmail = (e: string) => e.trim().toLowerCase();
   /** Prefer ids (route + session); email-only fallback for legacy sessions missing `user.id` in storage. */
   const isOwn =
     Boolean(MY_USER_ID && route.params.id === MY_USER_ID) ||

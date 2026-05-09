@@ -1,7 +1,7 @@
 import React from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
@@ -12,6 +12,7 @@ import { PadelLevelRow } from "../components/PadelLevelRow";
 import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { PLAYERS_COUNTRY_FILTER_CHIPS } from "../lib/profileCountries";
+import { isDirectDmBetween, normEmail } from "../lib/emailNorm";
 
 type DistanceFilter = "any" | "5" | "10" | "20" | "30";
 type GenderFilter = "all" | "male" | "female";
@@ -147,6 +148,26 @@ export function PlayersScreen() {
     load();
   }, [load]);
 
+  const syncFriendEmails = React.useCallback(async () => {
+    if (!USER_EMAIL) return;
+    try {
+      const friendsPayload = await api.get<{ friends: UserDto[] }>(
+        `/friends?email=${encodeURIComponent(USER_EMAIL)}`,
+      );
+      setFriendEmails(
+        new Set((friendsPayload.friends || []).map((f) => f.email.trim().toLowerCase())),
+      );
+    } catch {
+      // Keep previous friend set on failure.
+    }
+  }, [USER_EMAIL]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      syncFriendEmails();
+    }, [syncFriendEmails]),
+  );
+
   const onRefresh = React.useCallback(() => {
     load({ refresh: true });
   }, [load]);
@@ -165,19 +186,13 @@ export function PlayersScreen() {
         const conversations = await api.get<any[]>(
           `/conversations?email=${encodeURIComponent(USER_EMAIL)}`,
         );
-        const existing = conversations.find(
-          (c) =>
-            c.type === "direct" &&
-            Array.isArray(c.participantEmails) &&
-            c.participantEmails.includes(USER_EMAIL) &&
-            c.participantEmails.includes(player.email),
-        );
+        const existing = conversations.find((c) => isDirectDmBetween(c, USER_EMAIL, player.email));
 
         let conversationId = existing?.id as string | undefined;
         if (!conversationId) {
           const created = await api.post<any>("/conversations", {
             type: "direct",
-            participantEmails: [USER_EMAIL, player.email],
+            participantEmails: [normEmail(USER_EMAIL), normEmail(player.email)].sort(),
             entityName: player.fullName || player.email.split("@")[0],
           });
           conversationId = created.id;
@@ -280,7 +295,14 @@ export function PlayersScreen() {
               variant="solid"
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.fullName || item.email.split("@")[0]}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{item.fullName || item.email.split("@")[0]}</Text>
+                {isFriend ? (
+                  <View style={styles.friendBadge}>
+                    <Text style={styles.friendBadgeText}>Friends</Text>
+                  </View>
+                ) : null}
+              </View>
               <View style={styles.skillWrap}>
                 <PadelLevelRow skillLevel={item.skillLevel} fallbackLabel={item.skillLabel} compact />
               </View>
@@ -389,7 +411,17 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
+  nameRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
   name: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  friendBadge: {
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  friendBadgeText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark, letterSpacing: 0.2 },
   skillWrap: { marginTop: 6, alignSelf: "flex-start" },
   metaLine: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   rowActions: { marginTop: 8, flexDirection: "row", gap: 6 },

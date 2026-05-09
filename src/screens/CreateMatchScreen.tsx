@@ -86,12 +86,31 @@ function getSteps(mode: Mode) {
   return ["mode", "setup", "when", "players"] as const;
 }
 
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+function formatLocalDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function formatTime(date: Date) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function parseLocalDateTime(dateStr: string, timeLabel: string): Date {
+  const [y, mo, d] = dateStr.split("-").map((v) => Number(v));
+  const [h, m] = timeLabel.split(":").map((v) => Number(v || 0));
+  return new Date(y, (mo || 1) - 1, d || 1, h || 0, m || 0, 0, 0);
+}
+
+function startOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isSameLocalCalendarDay(dateStr: string, ref: Date): boolean {
+  return dateStr === formatLocalDate(ref);
 }
 
 export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
@@ -107,7 +126,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     mode: recurring ? "recurring" : "scheduled",
     matchType: "doubles",
     title: DEFAULT_MATCH_TITLES.doubles,
-    date: formatDate(new Date()),
+    date: formatLocalDate(new Date()),
     timeLabel: "19:30",
     durationMinutes: 90,
     locationName: "",
@@ -186,6 +205,13 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       showSnackbar("Please complete this step first.", { type: "error" });
       return;
     }
+    if (currentStep === "when" && form.mode !== "instant") {
+      const t = parseLocalDateTime(form.date, form.timeLabel);
+      if (t.getTime() < Date.now()) {
+        showSnackbar("Pick a date and time in the future.", { type: "error" });
+        return;
+      }
+    }
     if (stepIndex < steps.length - 1) setStepIndex((s) => s + 1);
   };
 
@@ -202,6 +228,13 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     if (!hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng })) {
       showSnackbar("Pick a venue with Search so we save exact coordinates.", { type: "error" });
       return;
+    }
+    if (form.mode !== "instant") {
+      const t = parseLocalDateTime(form.date, form.timeLabel);
+      if (t.getTime() < Date.now()) {
+        showSnackbar("Match must be scheduled in the future.", { type: "error" });
+        return;
+      }
     }
 
     try {
@@ -256,20 +289,48 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   };
 
   const pickerValue = React.useMemo(() => {
-    if (pickerField === "date") return new Date(`${form.date}T12:00:00`);
+    const startToday = startOfLocalDay(new Date());
+    if (pickerField === "date") {
+      const d = new Date(`${form.date}T12:00:00`);
+      return d < startToday ? startToday : d;
+    }
     const [h, m] = form.timeLabel.split(":").map((v) => Number(v || 0));
     const d = new Date();
     d.setHours(h || 0);
     d.setMinutes(m || 0);
     d.setSeconds(0);
     d.setMilliseconds(0);
+    const now = new Date();
+    if (isSameLocalCalendarDay(form.date, now) && d < now) return now;
     return d;
   }, [pickerField, form.date, form.timeLabel]);
 
+  const pickerMinimumDate = React.useMemo(() => {
+    if (!pickerField) return undefined;
+    const startToday = startOfLocalDay(new Date());
+    if (pickerField === "date") return startToday;
+    return isSameLocalCalendarDay(form.date, new Date()) ? new Date() : undefined;
+  }, [pickerField, form.date]);
+
   const onPickerValueChange = (_event: unknown, selected?: Date) => {
     if (!pickerField || !selected) return;
-    if (pickerField === "date") update("date", formatDate(selected));
-    else update("timeLabel", formatTime(selected));
+    const startToday = startOfLocalDay(new Date());
+    if (pickerField === "date") {
+      const d = selected < startToday ? startToday : selected;
+      let nextDate = formatLocalDate(d);
+      let nextTime = form.timeLabel;
+      if (isSameLocalCalendarDay(nextDate, new Date())) {
+        const combined = parseLocalDateTime(nextDate, nextTime);
+        const now = new Date();
+        if (combined.getTime() < now.getTime()) nextTime = formatTime(now);
+      }
+      update("date", nextDate);
+      update("timeLabel", nextTime);
+      return;
+    }
+    const combined = parseLocalDateTime(form.date, formatTime(selected));
+    const now = new Date();
+    update("timeLabel", formatTime(combined < now ? now : combined));
   };
 
   const onPickerDismiss = () => {
@@ -638,6 +699,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                   mode={pickerField === "date" ? "date" : "time"}
                   display="spinner"
                   themeVariant="light"
+                  minimumDate={pickerMinimumDate}
                   onValueChange={onPickerValueChange}
                   style={styles.pickerIOSHeight}
                 />
@@ -653,6 +715,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               value={pickerValue}
               mode={pickerField === "date" ? "date" : "time"}
               display="default"
+              minimumDate={pickerMinimumDate}
               onValueChange={onPickerValueChange}
               onDismiss={onPickerDismiss}
             />
