@@ -28,6 +28,7 @@ import {
   shouldShowConfirmScoreCta,
 } from "../lib/matchPendingScore";
 import { ConfirmMatchResultModal, SubmitMatchScoreModal } from "../components/MatchScoreFlowModals";
+import { scheduledNonInstantJoinAllowed } from "../lib/matchSchedule";
 
 const MAX_EVIDENCE_PHOTOS = 8;
 const MAX_EVIDENCE_PER_IMAGE_CHARS = 130_000;
@@ -82,6 +83,13 @@ function emailListed(list: string[] | undefined, e: string) {
 
 function doublesNeedsLock(m: MatchDto) {
   return isDoublesFormat(m) && m.maxPlayers >= 4 && m.players.length >= 4;
+}
+
+function matchDtoDateIso(m: MatchDto): string {
+  const raw = m.date as unknown;
+  if (typeof raw === "string") return raw;
+  if (raw instanceof Date) return raw.toISOString();
+  return "";
 }
 
 function matchEligibilitySummary(m: MatchDto): string | null {
@@ -543,7 +551,14 @@ export function MatchDetailScreen({
   const lockRequired = doublesNeedsLock(match);
   const teamsLocked = match.teamsLocked === true;
 
-  const canJoin = !joined && status === "open" && !isFull;
+  const scheduleAllowsJoin = scheduledNonInstantJoinAllowed({
+    date: matchDtoDateIso(match),
+    timeLabel: match.timeLabel ?? "00:00",
+    isInstant: Boolean(match.isInstant),
+  });
+  const canJoin = !joined && status === "open" && !isFull && scheduleAllowsJoin;
+  const slotPastNoJoin =
+    !joined && status === "open" && !isFull && !match.isInstant && !scheduleAllowsJoin;
   const joinNeedsTeamPick =
     canJoin && isDoublesFormat(match) && !teamsLocked && match.maxPlayers >= 4;
   const canLeave = joined && ["open", "full"].includes(status);
@@ -987,6 +1002,12 @@ export function MatchDetailScreen({
             <Ionicons name="people-outline" size={17} color={COLORS.primaryDark} />
             <Text style={styles.chatBtnText}>Community — feedback & ideas</Text>
           </Pressable>
+        ) : null}
+
+        {slotPastNoJoin ? (
+          <Text style={styles.flowHint}>
+            This match's scheduled time has passed — you can't join anymore.
+          </Text>
         ) : null}
 
         {joinNeedsTeamPick ? (
