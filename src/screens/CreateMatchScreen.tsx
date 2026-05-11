@@ -189,7 +189,12 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     setForm((prev) => {
       const t = prev.title.trim();
       const nextTitle = !t || STOCK_MATCH_TITLES.has(t) ? DEFAULT_MATCH_TITLES[next] : prev.title;
-      return { ...prev, matchType: next, title: nextTitle };
+      return {
+        ...prev,
+        matchType: next,
+        title: nextTitle,
+        autoBalanceTeams: next === "singles" ? false : prev.autoBalanceTeams,
+      };
     });
   };
 
@@ -282,7 +287,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         numSets,
         gamesPerSet: 6,
         tiebreakRule: "tiebreak_at_6",
-        autoBalanceTeams: form.matchType !== "singles" ? form.autoBalanceTeams : false,
+        autoBalanceTeams:
+          form.matchType !== "singles" && Boolean(form.autoBalanceTeams),
       });
       showSnackbar(form.mode === "instant" ? "Looking for players ⚡" : "Match created! 🎾", {
         type: "success",
@@ -564,11 +570,14 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
             </Pressable>
 
             {showAdvancedOptions ? (
-              <>
-                <Text style={styles.advancedCaps}>Scoring format</Text>
-                <View style={styles.row}>
+              <View style={styles.advancedPanel}>
+                <Text style={[styles.advancedCaps, styles.advancedCapsPanelFirst]}>Scoring format</Text>
+                <View style={styles.scoringFormatRow}>
                   <Pressable
-                    style={[styles.flexOne, styles.choiceBtn, form.scoringMode === "simple" && styles.choiceBtnActive]}
+                    style={[
+                      styles.scoringFormatBtn,
+                      form.scoringMode === "simple" && styles.choiceBtnActive,
+                    ]}
                     onPress={() => update("scoringMode", "simple")}
                   >
                     <Text
@@ -581,7 +590,10 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                     </Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.flexOne, styles.choiceBtn, form.scoringMode === "sets" && styles.choiceBtnActive]}
+                    style={[
+                      styles.scoringFormatBtn,
+                      form.scoringMode === "sets" && styles.choiceBtnActive,
+                    ]}
                     onPress={() => update("scoringMode", "sets")}
                   >
                     <Text
@@ -594,8 +606,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
                 {form.scoringMode === "sets" ? (
                   <>
-                    <Text style={styles.advancedCaps}>Sets</Text>
-                    <View style={styles.row}>
+                    <Text style={[styles.advancedCaps, styles.advancedCapsTight]}>Sets</Text>
+                    <View style={styles.setsRow}>
                       {(
                         [
                           [1 as NumSetsPick, "1 Set"],
@@ -606,9 +618,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                         <Pressable
                           key={n}
                           style={[
-                            styles.flexOne,
-                            styles.choiceBtn,
-                            form.numSetsPick === n && styles.choiceBtnActive,
+                            styles.setsChip,
+                            form.numSetsPick === n && styles.setsChipActive,
                           ]}
                           onPress={() => {
                             update("scoringMode", "sets");
@@ -617,9 +628,12 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                         >
                           <Text
                             style={[
-                              styles.choiceText,
-                              form.numSetsPick === n && styles.choiceTextActive,
+                              styles.setsChipText,
+                              form.numSetsPick === n && styles.setsChipTextActive,
                             ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.82}
                           >
                             {label}
                           </Text>
@@ -631,8 +645,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
                 {form.matchType !== "singles" ? (
                   <View style={styles.autoBalanceRow}>
-                    <View style={styles.flexOne}>
-                      <Text style={styles.autoBalanceTitle}>Auto-balance teams</Text>
+                    <View style={styles.autoBalanceTextCol}>
+                      <Text style={styles.autoBalanceTitle}>Auto-balance Teams</Text>
                       <Text style={styles.autoBalanceSub}>Balance skill levels automatically</Text>
                     </View>
                     <Switch
@@ -643,7 +657,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                     />
                   </View>
                 ) : null}
-              </>
+              </View>
             ) : null}
 
             <View style={styles.previewCard}>
@@ -1069,6 +1083,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   advancedToggleText: { fontSize: 15, fontWeight: "800", color: COLORS.text },
+  advancedPanel: {
+    marginTop: 4,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: COLORS.borderMuted,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  advancedCapsPanelFirst: { marginTop: 0 },
   advancedCaps: {
     marginTop: 10,
     marginBottom: 6,
@@ -1078,12 +1101,54 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
+  advancedCapsTight: { marginTop: 4 },
+  scoringFormatRow: { flexDirection: "row", gap: 8 },
+  scoringFormatBtn: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  setsRow: {
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "stretch",
+    justifyContent: "space-between",
+  },
+  setsChip: {
+    flex: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  setsChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
+  setsChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.text,
+    textAlign: "center",
+    width: "100%",
+  },
+  setsChipTextActive: { color: COLORS.primaryDark },
   autoBalanceRow: {
     marginTop: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
-  autoBalanceTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  autoBalanceTextCol: { flex: 1, minWidth: 0, paddingRight: 4 },
+  autoBalanceTitle: { fontSize: 14, fontWeight: "600", color: COLORS.text },
   autoBalanceSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
 });

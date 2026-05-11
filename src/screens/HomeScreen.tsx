@@ -26,7 +26,8 @@ import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
 import { displayMatchTitle } from "../lib/matchDisplay";
-import { shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
+import { emailsMatch, shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
+import { matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
 
 type FriendRequestDto = {
   id: string;
@@ -311,16 +312,23 @@ export function HomeScreen() {
   const meLocation = userLocationLabel(me ?? {});
   const meAvatarInitial = meName.slice(0, 1).toUpperCase() || "P";
 
+  const viewerOnRoster = (m: MatchDto) => (m.players || []).some((p) => emailsMatch(p, USER_EMAIL));
+
   const activeMatches = [...inProgressMatches, ...awaitingMatches, ...pendingValidationMatches]
-    .filter((m) => m.players.includes(USER_EMAIL))
+    .filter((m) => String(m.status || "").trim().toLowerCase() !== "cancelled")
+    .filter(viewerOnRoster)
     .slice(0, 4);
 
   const myUpcomingMatches = [...openMatches, ...fullMatches]
-    .filter((m) => m.players.includes(USER_EMAIL))
+    .filter((m) => String(m.status || "").trim().toLowerCase() !== "cancelled")
+    .filter(viewerOnRoster)
+    .filter((m) => matchAppearsOnDiscoveryListBySchedule(m))
     .slice(0, 5);
 
   const joinableOpenMatches = openMatches
-    .filter((m) => !m.players.includes(USER_EMAIL))
+    .filter((m) => String(m.status || "").trim().toLowerCase() !== "cancelled")
+    .filter((m) => matchAppearsOnDiscoveryListBySchedule(m))
+    .filter((m) => !viewerOnRoster(m))
     .filter((m) => {
       if (!m.visibility || m.visibility === "public") return true;
       const invited = (m.invitedEmails || []).includes(USER_EMAIL);
@@ -456,7 +464,12 @@ export function HomeScreen() {
         <QuickAction icon="👥" label="Players" onPress={() => navigation.navigate("Players")} />
       </View>
 
-      <SectionHeader title="📅 Your Matches" subtitle="Matches you're in" action="See all →" onAction={goDiscover} />
+      <SectionHeader
+        title="📅 Your Matches"
+        subtitle="Matches you're in"
+        action="See all →"
+        onAction={() => navigation.navigate("MyMatches")}
+      />
       {myUpcomingMatches.length > 0 ? (
         myUpcomingMatches.map((m) => (
           <UserMatchCardLike

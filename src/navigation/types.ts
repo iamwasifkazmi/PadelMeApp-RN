@@ -43,4 +43,5 @@ export type RootStackParamList = {
   AdminIDReview: undefined;
   AdminTestMode: undefined;
   Community: undefined;
+  MyMatches: undefined;
 };

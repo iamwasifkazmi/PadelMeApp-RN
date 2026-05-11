@@ -17,6 +17,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { displayMatchTitle } from "../lib/matchDisplay";
+import { dateKeyUtcFromMatchDate, matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
 
 type SkillFilter = "" | "beginner" | "intermediate" | "advanced";
 type FormatFilter = "" | "singles" | "doubles" | "mixed_doubles";
@@ -71,11 +72,12 @@ export function FindMatchScreen() {
     load(true);
   }, [load]);
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-
-  const filteredMatches = React.useMemo(() => {
+  const { filteredMatches, instantMatches, todayMatches, upcomingMatches } = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    return matches
+    const todayKeyUtc = dateKeyUtcFromMatchDate(new Date());
+    const filtered = matches
+      .filter((m) => String(m.status || "").toLowerCase() !== "cancelled")
+      .filter((m) => matchAppearsOnDiscoveryListBySchedule(m))
       .filter((m) => {
         if (q) {
           const hay = `${m.title} ${m.locationName} ${m.locationAddress || ""}`.toLowerCase();
@@ -90,11 +92,17 @@ export function FindMatchScreen() {
         return true;
       })
       .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return {
+      filteredMatches: filtered,
+      instantMatches: filtered.filter((m) => m.isInstant),
+      todayMatches: filtered.filter(
+        (m) => !m.isInstant && dateKeyUtcFromMatchDate(m.date) === todayKeyUtc,
+      ),
+      upcomingMatches: filtered.filter(
+        (m) => !m.isInstant && dateKeyUtcFromMatchDate(m.date) > todayKeyUtc,
+      ),
+    };
   }, [matches, query, skillFilter, formatFilter]);
-
-  const instantMatches = filteredMatches.filter((m) => m.isInstant);
-  const todayMatches = filteredMatches.filter((m) => String(m.date).slice(0, 10) === todayIso && !m.isInstant);
-  const upcomingMatches = filteredMatches.filter((m) => String(m.date).slice(0, 10) > todayIso && !m.isInstant);
 
   if (loading) return <DiscoverSkeleton />;
 

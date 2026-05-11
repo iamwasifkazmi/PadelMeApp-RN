@@ -29,6 +29,7 @@ import {
   AdminIDReviewScreen,
   AdminTestModeScreen,
   CommunityScreen,
+  MyMatchesScreen,
 } from "../screens";
 import { COLORS } from "../theme/colors";
 import { MainTabs } from "./MainTabs";
@@ -175,6 +176,7 @@ export function RootNavigator() {
       <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="PastEvents" component={PastEventsScreen} />
+      <Stack.Screen name="MyMatches" component={MyMatchesScreen} options={{ title: "My matches" }} />
       <Stack.Screen name="ConversationView" component={ConversationViewScreen} />
       <Stack.Screen name="MatchChat" component={MatchChatScreen} />
       <Stack.Screen name="MatchRatePlayers" component={MatchRatePlayersScreen} options={{ title: "Rate players" }} />
