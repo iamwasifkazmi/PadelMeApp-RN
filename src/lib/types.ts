@@ -54,6 +54,8 @@ export type MatchDto = {
   scoringMode?: string | null;
   numSets?: number | null;
   gamesPerSet?: number | null;
+  tiebreakRule?: string | null;
+  autoBalanceTeams?: boolean | null;
 };
 
 /** Row from GET /matches/:id/recent-form for the viewer */

@@ -13,10 +13,11 @@ import { launchImageLibrary } from "react-native-image-picker";
 import { MatchDto } from "../lib/types";
 import { COLORS } from "../theme/colors";
 import {
-  effectiveGamesPerSet,
   formatSubmittedScoreDisplay,
   emailsMatch,
   matchUsesSetBasedScoring,
+  matchScoringSubtitle,
+  scoringGridRowsForNumSets,
 } from "../lib/matchPendingScore";
 import { isDoublesFormat } from "../lib/matchFormat";
 
@@ -34,35 +35,11 @@ function parseCommaScores(scoreA: string, scoreB: string, numSets: number): SetR
   }));
 }
 
-type SetsPlayed = 1 | 2 | 3 | 5;
-
-function defaultSetsPlayed(match: MatchDto, scoreA: string, scoreB: string): SetsPlayed {
-  const n = match.numSets;
-  if (n === 1 || n === 2 || n === 3 || n === 5) {
-    return n as SetsPlayed;
-  }
-  const as = (scoreA || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const bs = (scoreB || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const len = Math.max(as.length, bs.length, 1);
-  if (len <= 1) return 1;
-  if (len === 2) return 2;
-  if (len === 3) return 3;
-  return 5;
-}
-
 function rowsToTeamArrays(rows: SetRow[]): { colA: string[]; colB: string[] } {
   return {
     colA: rows.map((r) => r.a),
     colB: rows.map((r) => r.b),
   };
-}
-
-function resizeTeamCols(colA: string[], colB: string[], newN: number): { colA: string[]; colB: string[] } {
-  const na = colA.slice(0, newN);
-  const nb = colB.slice(0, newN);
-  while (na.length < newN) na.push("");
-  while (nb.length < newN) nb.push("");
-  return { colA: na, colB: nb };
 }
 
 /** Base44-style submit score sheet (sets grid or simple two totals). */
@@ -103,28 +80,22 @@ export function SubmitMatchScoreModal(props: {
   const teamALabel = isDoubles ? "Team A" : "You / side A";
   const teamBLabel = isDoubles ? "Team B" : "Opponent";
   const useSets = matchUsesSetBasedScoring(match);
-  const gamesPerSet = effectiveGamesPerSet(match);
+  const configuredNumSets = match.numSets;
+  const rowCount = React.useMemo(
+    () => (useSets ? scoringGridRowsForNumSets(configuredNumSets) : 1),
+    [useSets, configuredNumSets],
+  );
 
-  const [setsPlayed, setSetsPlayed] = React.useState<SetsPlayed>(3);
-  const [colA, setColA] = React.useState<string[]>(() => Array(3).fill(""));
-  const [colB, setColB] = React.useState<string[]>(() => Array(3).fill(""));
+  const [colA, setColA] = React.useState<string[]>(() => []);
+  const [colB, setColB] = React.useState<string[]>(() => []);
 
   React.useEffect(() => {
     if (!visible) return;
-    const sp = defaultSetsPlayed(match, scoreA, scoreB);
-    const rows = parseCommaScores(scoreA, scoreB, sp);
+    const rows = parseCommaScores(scoreA, scoreB, rowCount);
     const { colA: ca, colB: cb } = rowsToTeamArrays(rows);
-    setSetsPlayed(sp);
     setColA(ca);
     setColB(cb);
-  }, [visible, match.id, match.numSets, scoreA, scoreB]);
-
-  const pickSetsPlayed = (sp: SetsPlayed) => {
-    const { colA: na, colB: nb } = resizeTeamCols(colA, colB, sp);
-    setSetsPlayed(sp);
-    setColA(na);
-    setColB(nb);
-  };
+  }, [visible, match.id, rowCount, scoreA, scoreB]);
 
   const setCell = (team: "a" | "b", setIdx: number, val: string) => {
     if (team === "a") {
@@ -148,8 +119,8 @@ export function SubmitMatchScoreModal(props: {
 
   const setsValid =
     useSets &&
-    colA.length === setsPlayed &&
-    colB.length === setsPlayed &&
+    colA.length === rowCount &&
+    colB.length === rowCount &&
     colA.every((c) => c.trim() !== "") &&
     colB.every((c) => c.trim() !== "");
   const simpleValid = scoreA.trim() !== "" && scoreB.trim() !== "";
@@ -194,77 +165,39 @@ export function SubmitMatchScoreModal(props: {
             </Pressable>
           </View>
 
-          {useSets ? (
-            <Text style={mStyles.sheetHint}>
-              First to {gamesPerSet} games wins a set (typical). Enter games won per set for each side.
-            </Text>
+          {useSets && matchScoringSubtitle(match) ? (
+            <Text style={mStyles.sheetHint}>{matchScoringSubtitle(match)}</Text>
           ) : null}
 
           <ScrollView style={mStyles.sheetBody} keyboardShouldPersistTaps="handled">
             {useSets ? (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={mStyles.inputLabel}>Sets played?</Text>
-                <View style={mStyles.setsPlayedRow}>
-                  {([1, 2, 3, 5] as const).map((n) => (
-                    <Pressable
-                      key={n}
-                      style={[mStyles.setsPlayedChip, setsPlayed === n && mStyles.setsPlayedChipOn]}
-                      onPress={() => pickSetsPlayed(n)}
-                    >
-                      <Text
-                        style={[
-                          mStyles.setsPlayedChipText,
-                          setsPlayed === n && mStyles.setsPlayedChipTextOn,
-                        ]}
-                      >
-                        {n}
-                      </Text>
-                    </Pressable>
-                  ))}
+              <View style={mStyles.setTable}>
+                <View style={mStyles.setHeadRow}>
+                  <Text style={mStyles.setHeadIdx}>Set</Text>
+                  <Text style={mStyles.setHeadCell}>{teamALabel}</Text>
+                  <Text style={mStyles.setHeadCell}>{teamBLabel}</Text>
                 </View>
-
-                <View style={mStyles.transposeTable}>
-                  <View style={mStyles.transposeHeadRow}>
-                    <View style={mStyles.transposeCorner} />
-                    {Array.from({ length: setsPlayed }, (_, i) => (
-                      <Text key={i} style={mStyles.transposeHeadCell}>
-                        Set {i + 1}
-                      </Text>
-                    ))}
+                {Array.from({ length: rowCount }, (_, i) => (
+                  <View key={i} style={mStyles.setRow}>
+                    <Text style={mStyles.setIdx}>Set {i + 1}</Text>
+                    <TextInput
+                      style={mStyles.setInput}
+                      value={colA[i] ?? ""}
+                      onChangeText={(t) => setCell("a", i, t)}
+                      keyboardType="number-pad"
+                      placeholder="0"
+                      placeholderTextColor={COLORS.iconMuted}
+                    />
+                    <TextInput
+                      style={mStyles.setInput}
+                      value={colB[i] ?? ""}
+                      onChangeText={(t) => setCell("b", i, t)}
+                      keyboardType="number-pad"
+                      placeholder="0"
+                      placeholderTextColor={COLORS.iconMuted}
+                    />
                   </View>
-                  <View style={mStyles.transposeDataRow}>
-                    <Text style={mStyles.transposeRowLabel} numberOfLines={2}>
-                      {teamALabel}
-                    </Text>
-                    {Array.from({ length: setsPlayed }, (_, i) => (
-                      <TextInput
-                        key={`a-${i}`}
-                        style={mStyles.transposeCellInput}
-                        value={colA[i] ?? ""}
-                        onChangeText={(t) => setCell("a", i, t)}
-                        keyboardType="number-pad"
-                        placeholder="0"
-                        placeholderTextColor={COLORS.iconMuted}
-                      />
-                    ))}
-                  </View>
-                  <View style={mStyles.transposeDataRow}>
-                    <Text style={mStyles.transposeRowLabel} numberOfLines={2}>
-                      {teamBLabel}
-                    </Text>
-                    {Array.from({ length: setsPlayed }, (_, i) => (
-                      <TextInput
-                        key={`b-${i}`}
-                        style={mStyles.transposeCellInput}
-                        value={colB[i] ?? ""}
-                        onChangeText={(t) => setCell("b", i, t)}
-                        keyboardType="number-pad"
-                        placeholder="0"
-                        placeholderTextColor={COLORS.iconMuted}
-                      />
-                    ))}
-                  </View>
-                </View>
+                ))}
               </View>
             ) : (
               <View style={mStyles.simpleRow}>
@@ -298,7 +231,7 @@ export function SubmitMatchScoreModal(props: {
               <Text style={mStyles.uploadText}>
                 {evidencePhotoUris.length
                   ? `${evidencePhotoUris.length} photo(s) attached`
-              : "Add photos (optional)"}
+                  : "Upload screenshot (optional)"}
               </Text>
             </Pressable>
 
@@ -544,51 +477,6 @@ const mStyles = StyleSheet.create({
     marginBottom: 10,
   },
   sheetBody: { maxHeight: 400 },
-  setsPlayedRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
-  setsPlayedChip: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    backgroundColor: COLORS.bg,
-  },
-  setsPlayedChipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  setsPlayedChipText: { fontSize: 17, fontWeight: "800", color: COLORS.text },
-  setsPlayedChipTextOn: { color: COLORS.primaryDark },
-  transposeTable: { marginBottom: 8 },
-  transposeHeadRow: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 6 },
-  transposeCorner: { width: 88, minWidth: 88 },
-  transposeHeadCell: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: "800",
-    color: COLORS.textMuted,
-    minWidth: 0,
-  },
-  transposeDataRow: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 6 },
-  transposeRowLabel: {
-    width: 88,
-    minWidth: 88,
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  transposeCellInput: {
-    flex: 1,
-    minWidth: 0,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    paddingVertical: 8,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "800",
-    color: COLORS.text,
-    backgroundColor: COLORS.bg,
-  },
   setTable: { marginBottom: 12 },
   setHeadRow: { flexDirection: "row", marginBottom: 8, alignItems: "center", gap: 8 },
   setHeadIdx: {

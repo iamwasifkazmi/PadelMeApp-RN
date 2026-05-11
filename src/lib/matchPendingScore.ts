@@ -45,18 +45,28 @@ export function formatSubmittedScoreDisplay(scoreTeamA: string, scoreTeamB: stri
 }
 
 export function matchUsesSetBasedScoring(m: MatchDto): boolean {
-  const mode = (m.scoringMode || "").toLowerCase();
-  if (mode === "simple") return false;
-  if (mode === "sets") return true;
-  const n = m.numSets;
-  if (typeof n === "number") return n > 1;
-  return isDoublesFormat(m);
+  return (m.scoringMode || "").toLowerCase() === "sets";
 }
 
-export function effectiveNumSets(m: MatchDto): number {
-  const n = m.numSets;
-  if (typeof n === "number" && n >= 1) return Math.min(5, Math.max(1, n));
-  return 3;
+/** Rows in the score grid for set-based matches (fixed at create time: 1, 3, or 5). */
+export function scoringGridRowsForNumSets(numSets: number | null | undefined): number {
+  const n = typeof numSets === "number" ? numSets : 1;
+  if (n === 1 || n === 3 || n === 5) return n;
+  return Math.min(5, Math.max(1, Math.round(n)));
+}
+
+export function scoringGridRowsForSubmit(m: MatchDto): number {
+  return scoringGridRowsForNumSets(m.numSets);
+}
+
+export function matchScoringSubtitle(m: MatchDto): string {
+  if (!matchUsesSetBasedScoring(m)) return "";
+  const g = effectiveGamesPerSet(m);
+  const rows = scoringGridRowsForSubmit(m);
+  if (rows === 1) return `1 set · First to ${g} games`;
+  if (rows === 3) return `Best of 3 sets · First to ${g} games`;
+  if (rows === 5) return `Best of 5 sets · First to ${g} games`;
+  return `First to ${g} games per set`;
 }
 
 export function effectiveGamesPerSet(m: MatchDto): number {

@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -25,8 +26,8 @@ type Mode = "instant" | "scheduled" | "recurring";
 type MatchTypeValue = "singles" | "doubles" | "mixed_doubles";
 type SkillValue = "any" | "beginner" | "intermediate" | "advanced";
 type VisibilityValue = "public" | "invite_only";
-type GenderRequirementValue = "any" | "male" | "female" | "mixed";
-type VerificationValue = "none" | "photo" | "id";
+type ScoringFormatValue = "simple" | "sets";
+type NumSetsPick = 1 | 3 | 5;
 
 type FormState = {
   mode: Mode;
@@ -43,14 +44,9 @@ type FormState = {
   skillLevel: SkillValue;
   visibility: VisibilityValue;
   tags: string[];
-  notes: string;
-  genderRequirement: GenderRequirementValue;
-  ageMinText: string;
-  ageMaxText: string;
-  skillRangeMinText: string;
-  skillRangeMaxText: string;
-  minRatingThresholdText: string;
-  verificationRequirement: VerificationValue;
+  scoringMode: ScoringFormatValue;
+  numSetsPick: NumSetsPick;
+  autoBalanceTeams: boolean;
 };
 
 const MATCH_TYPES: Array<{
@@ -71,6 +67,26 @@ const DEFAULT_MATCH_TITLES: Record<MatchTypeValue, string> = {
 };
 
 const STOCK_MATCH_TITLES = new Set(Object.values(DEFAULT_MATCH_TITLES));
+
+function scoringPresetTitle(matchType: MatchTypeValue, mode: ScoringFormatValue, numSets: NumSetsPick): string {
+  const fmt =
+    matchType === "singles"
+      ? "Singles"
+      : matchType === "mixed_doubles"
+        ? "Mixed Doubles"
+        : "Doubles";
+  if (mode === "simple") return DEFAULT_MATCH_TITLES[matchType];
+  if (numSets === 1) return `1-Set ${fmt}`;
+  if (numSets === 3) return `Best of 3 ${fmt}`;
+  return `Best of 5 ${fmt}`;
+}
+
+const SKILL_PREVIEW: Record<SkillValue, string> = {
+  any: "Any",
+  beginner: "Beginner",
+  intermediate: "Mid",
+  advanced: "Advanced",
+};
 
 const SKILL_OPTIONS: Array<{ value: SkillValue; label: string }> = [
   { value: "any", label: "🌍 Any Level" },
@@ -122,6 +138,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const [pickerField, setPickerField] = React.useState<"date" | "time" | null>(null);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [titleEditedByUser, setTitleEditedByUser] = React.useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(true);
   const [form, setForm] = React.useState<FormState>({
     mode: recurring ? "recurring" : "scheduled",
     matchType: "doubles",
@@ -137,15 +155,16 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     skillLevel: "any",
     visibility: "public",
     tags: [],
-    notes: "",
-    genderRequirement: "any",
-    ageMinText: "",
-    ageMaxText: "",
-    skillRangeMinText: "",
-    skillRangeMaxText: "",
-    minRatingThresholdText: "",
-    verificationRequirement: "none",
+    scoringMode: "simple",
+    numSetsPick: 1,
+    autoBalanceTeams: false,
   });
+
+  React.useEffect(() => {
+    if (titleEditedByUser) return;
+    const next = scoringPresetTitle(form.matchType, form.scoringMode, form.numSetsPick);
+    setForm((prev) => (prev.title === next ? prev : { ...prev, title: next }));
+  }, [form.matchType, form.scoringMode, form.numSetsPick, titleEditedByUser]);
 
   const steps = getSteps(form.mode);
   const currentStep = steps[stepIndex];
@@ -239,11 +258,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
     try {
       setSaving(true);
-      const ageMin = Number.parseInt(form.ageMinText.trim(), 10);
-      const ageMax = Number.parseInt(form.ageMaxText.trim(), 10);
-      const skillRangeMin = Number.parseInt(form.skillRangeMinText.trim(), 10);
-      const skillRangeMax = Number.parseInt(form.skillRangeMaxText.trim(), 10);
-      const minRatingThreshold = Number.parseFloat(form.minRatingThresholdText.trim());
+      const scoringMode = form.scoringMode;
+      const numSets = scoringMode === "sets" ? form.numSetsPick : 1;
       const created = await api.post<MatchDto>("/matches", {
         title: form.title.trim(),
         date: form.date,
@@ -257,25 +273,16 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         skillLevel: form.skillLevel,
         visibility: form.visibility,
         tags: form.tags,
-        notes: form.notes.trim() || undefined,
         isInstant: form.mode === "instant",
         maxPlayers,
         matchType: form.matchType,
         createdByEmail: USER_EMAIL,
         teamA: form.matchType !== "singles" && USER_EMAIL ? [USER_EMAIL] : [],
-        genderRequirement: form.genderRequirement,
-        verificationRequirement: form.verificationRequirement,
-        ...(form.ageMinText.trim() && Number.isFinite(ageMin) ? { ageMin } : {}),
-        ...(form.ageMaxText.trim() && Number.isFinite(ageMax) ? { ageMax } : {}),
-        ...(form.skillRangeMinText.trim() && Number.isFinite(skillRangeMin)
-          ? { skillRangeMin }
-          : {}),
-        ...(form.skillRangeMaxText.trim() && Number.isFinite(skillRangeMax)
-          ? { skillRangeMax }
-          : {}),
-        ...(form.minRatingThresholdText.trim() && Number.isFinite(minRatingThreshold)
-          ? { minRatingThreshold }
-          : {}),
+        scoringMode,
+        numSets,
+        gamesPerSet: 6,
+        tiebreakRule: "tiebreak_at_6",
+        autoBalanceTeams: form.matchType !== "singles" ? form.autoBalanceTeams : false,
       });
       showSnackbar(form.mode === "instant" ? "Looking for players ⚡" : "Match created! 🎾", {
         type: "success",
@@ -408,7 +415,10 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
             <Field
               label="Match Name"
               value={form.title}
-              onChangeText={(v) => update("title", v)}
+              onChangeText={(v) => {
+                setTitleEditedByUser(true);
+                update("title", v);
+              }}
               placeholder={DEFAULT_MATCH_TITLES[form.matchType]}
             />
 
@@ -493,6 +503,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         {currentStep === "players" ? (
           <>
             <Text style={styles.stepTitle}>Players & Skill 👥</Text>
+            <Text style={styles.stepSubtitle}>Who should join?</Text>
             <SectionLabel text="Skill Level" />
             <View style={styles.optionGrid2}>
               {SKILL_OPTIONS.map((skill) => (
@@ -539,106 +550,101 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               ))}
             </View>
 
-            <SectionLabel text="Player requirements (optional, Base44-style)" />
-            <Text style={styles.venueHint}>
-              Stricter joins: gender, age, skill band (1 = elite, 10 = beginner), min star rating, ID/photo.
-            </Text>
-            <View style={[styles.row, styles.rowWrap]}>
-              {(
-                [
-                  ["any", "Any gender"],
-                  ["male", "Male"],
-                  ["female", "Female"],
-                  ["mixed", "Mixed pairs"],
-                ] as const
-              ).map(([value, label]) => (
-                <Pressable
-                  key={value}
-                  style={[styles.chip, form.genderRequirement === value && styles.chipActive]}
-                  onPress={() => update("genderRequirement", value)}
-                >
-                  <Text style={[styles.chipText, form.genderRequirement === value && styles.chipTextActive]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.row}>
-              <View style={styles.flexOne}>
-                <Field
-                  label="Min age"
-                  value={form.ageMinText}
-                  onChangeText={(v) => update("ageMinText", v.replace(/[^\d]/g, ""))}
-                  placeholder="—"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.flexOne}>
-                <Field
-                  label="Max age"
-                  value={form.ageMaxText}
-                  onChangeText={(v) => update("ageMaxText", v.replace(/[^\d]/g, ""))}
-                  placeholder="—"
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
-            <View style={styles.row}>
-              <View style={styles.flexOne}>
-                <Field
-                  label="Skill min (1–10)"
-                  value={form.skillRangeMinText}
-                  onChangeText={(v) => update("skillRangeMinText", v.replace(/[^\d]/g, ""))}
-                  placeholder="—"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.flexOne}>
-                <Field
-                  label="Skill max (1–10)"
-                  value={form.skillRangeMaxText}
-                  onChangeText={(v) => update("skillRangeMaxText", v.replace(/[^\d]/g, ""))}
-                  placeholder="—"
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
-            <Field
-              label="Min average player rating (stars)"
-              value={form.minRatingThresholdText}
-              onChangeText={(v) => update("minRatingThresholdText", v.replace(/[^\d.]/g, ""))}
-              placeholder="e.g. 4"
-              keyboardType="decimal-pad"
-            />
-            <View style={styles.row}>
-              {(
-                [
-                  ["none", "No verify"],
-                  ["photo", "Photo ✓"],
-                  ["id", "ID ✓"],
-                ] as const
-              ).map(([value, label]) => (
-                <Pressable
-                  key={value}
-                  style={[styles.chip, form.verificationRequirement === value && styles.chipActive]}
-                  onPress={() => update("verificationRequirement", value)}
-                >
-                  <Text
-                    style={[styles.chipText, form.verificationRequirement === value && styles.chipTextActive]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <Pressable
+              style={styles.advancedToggle}
+              onPress={() => setShowAdvancedOptions((v) => !v)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.advancedToggleText}>Advanced options</Text>
+              <Ionicons
+                name={showAdvancedOptions ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={COLORS.iconMuted}
+              />
+            </Pressable>
 
-            <Field
-              label="Notes (optional)"
-              value={form.notes}
-              onChangeText={(v) => update("notes", v)}
-              placeholder="Court number, meeting point, etc."
-              multiline
-            />
+            {showAdvancedOptions ? (
+              <>
+                <Text style={styles.advancedCaps}>Scoring format</Text>
+                <View style={styles.row}>
+                  <Pressable
+                    style={[styles.flexOne, styles.choiceBtn, form.scoringMode === "simple" && styles.choiceBtnActive]}
+                    onPress={() => update("scoringMode", "simple")}
+                  >
+                    <Text
+                      style={[
+                        styles.choiceText,
+                        form.scoringMode === "simple" && styles.choiceTextActive,
+                      ]}
+                    >
+                      🎯 Simple
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.flexOne, styles.choiceBtn, form.scoringMode === "sets" && styles.choiceBtnActive]}
+                    onPress={() => update("scoringMode", "sets")}
+                  >
+                    <Text
+                      style={[styles.choiceText, form.scoringMode === "sets" && styles.choiceTextActive]}
+                    >
+                      🎾 Set-Based
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {form.scoringMode === "sets" ? (
+                  <>
+                    <Text style={styles.advancedCaps}>Sets</Text>
+                    <View style={styles.row}>
+                      {(
+                        [
+                          [1 as NumSetsPick, "1 Set"],
+                          [3 as NumSetsPick, "Best of 3"],
+                          [5 as NumSetsPick, "Best of 5"],
+                        ] as const
+                      ).map(([n, label]) => (
+                        <Pressable
+                          key={n}
+                          style={[
+                            styles.flexOne,
+                            styles.choiceBtn,
+                            form.numSetsPick === n && styles.choiceBtnActive,
+                          ]}
+                          onPress={() => {
+                            update("scoringMode", "sets");
+                            update("numSetsPick", n);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.choiceText,
+                              form.numSetsPick === n && styles.choiceTextActive,
+                            ]}
+                          >
+                            {label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
+
+                {form.matchType !== "singles" ? (
+                  <View style={styles.autoBalanceRow}>
+                    <View style={styles.flexOne}>
+                      <Text style={styles.autoBalanceTitle}>Auto-balance teams</Text>
+                      <Text style={styles.autoBalanceSub}>Balance skill levels automatically</Text>
+                    </View>
+                    <Switch
+                      value={form.autoBalanceTeams}
+                      onValueChange={(v) => update("autoBalanceTeams", v)}
+                      trackColor={{ false: COLORS.border, true: COLORS.primaryPale }}
+                      thumbColor={form.autoBalanceTeams ? COLORS.primary : COLORS.card}
+                    />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
 
             <View style={styles.previewCard}>
               <Text style={styles.previewKicker}>Match Preview</Text>
@@ -652,7 +658,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 📍 {userLocationLabel(form) || "Venue"}
                 {form.country.trim() ? ` · ${form.country.trim()}` : ""} ·{" "}
                 {form.matchType === "singles" ? "Singles" : form.matchType === "mixed_doubles" ? "Mixed Doubles" : "Doubles"} ·{" "}
-                {form.durationMinutes}min
+                {form.durationMinutes}min · 🎾 {SKILL_PREVIEW[form.skillLevel]}
               </Text>
             </View>
           </>
@@ -832,6 +838,7 @@ const styles = StyleSheet.create({
   progressDotActive: { backgroundColor: COLORS.primary },
   content: { paddingHorizontal: 16, paddingBottom: 20 },
   stepTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginTop: 8, marginBottom: 8 },
+  stepSubtitle: { fontSize: 14, fontWeight: "600", color: COLORS.textMuted, marginBottom: 12 },
   modeCard: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1053,4 +1060,30 @@ const styles = StyleSheet.create({
   previewKicker: { color: COLORS.primaryDark, fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
   previewTitle: { marginTop: 4, color: COLORS.text, fontSize: 15, fontWeight: "800" },
   previewMeta: { marginTop: 3, color: COLORS.textMuted, fontSize: 12, fontWeight: "600" },
+  advancedToggle: {
+    marginTop: 14,
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  advancedToggleText: { fontSize: 15, fontWeight: "800", color: COLORS.text },
+  advancedCaps: {
+    marginTop: 10,
+    marginBottom: 6,
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.textSubtle,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  autoBalanceRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  autoBalanceTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+  autoBalanceSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
 });
