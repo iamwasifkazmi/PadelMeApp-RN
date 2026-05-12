@@ -28,6 +28,8 @@ build/
 .idea
 .gradle
 local.properties
+# Release signing (never commit real passwords or upload keystore)
+keystore.properties
 *.iml
 *.hprof
 .cxx/
@@ -55,6 +57,9 @@ yarn-error.log
 
 # Bundle artifact
 *.jsbundle
+
+# Local release APK copies (build outputs stay under android/app/build)
+dist/
 
 # Ruby / CocoaPods
 **/Pods/

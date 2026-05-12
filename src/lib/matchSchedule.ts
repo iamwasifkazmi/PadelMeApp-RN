@@ -59,12 +59,12 @@ export function scheduledNonInstantSlotIsExpired(
   return start + graceMs < nowMs;
 }
 
-/** Open / full games only: hide once the slot has started (matches backend list filter). */
+/** Open games only: hide once the slot has passed (matches backend). Full / in-play rows stay. */
 export function matchAppearsOnDiscoveryListBySchedule(match: MatchDto): boolean {
   if (match.isInstant) return true;
   const raw = match.status;
   const st = (raw == null || String(raw).trim() === "" ? "open" : String(raw).trim()).toLowerCase();
-  if (st !== "open" && st !== "full") return true;
+  if (st !== "open") return true;
   return !scheduledNonInstantSlotIsExpired({
     date: match.date,
     timeLabel: String(match.timeLabel || "").trim(),
