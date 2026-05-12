@@ -334,9 +334,9 @@ export function MatchChatScreen({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
-      enabled={Platform.OS === "ios"}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : headerHeight}
+      enabled
     >
       <FlatList
         ref={listRef}
@@ -349,6 +349,7 @@ export function MatchChatScreen({
         onContentSizeChange={() => {
           if (nearBottomRef.current) listRef.current?.scrollToEnd({ animated: true });
         }}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item, index }) => {
           const mine =
             item.senderEmail.trim().toLowerCase() === USER_EMAIL.trim().toLowerCase();
