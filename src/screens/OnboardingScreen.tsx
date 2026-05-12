@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { CommonActions } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
@@ -23,8 +24,9 @@ const OB = {
 } as const;
 
 function OnboardingSkeleton() {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 28) }]}>
       <SkeletonBlock height={28} width="52%" rounded={8} />
       <View style={{ height: 10 }} />
       <SkeletonBlock height={14} width="70%" rounded={8} />
@@ -43,6 +45,7 @@ function OnboardingSkeleton() {
 
 export function OnboardingScreen({ navigation }: { navigation: any }) {
   const { showSnackbar } = useSnackbar();
+  const insets = useSafeAreaInsets();
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -150,7 +153,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 28) }]}>
       <View style={styles.progressRow}>
         {[1, 2, 3].map((s) => (
           <View
@@ -301,7 +304,7 @@ const SKILL_OPTIONS = [
 ];
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: OB.bg, paddingHorizontal: 20, paddingTop: 28, paddingBottom: 26 },
+  container: { flex: 1, backgroundColor: OB.bg, paddingHorizontal: 20, paddingTop: 0, paddingBottom: 26 },
   progressRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
   progressDot: { width: 8, height: 8, borderRadius: 8, backgroundColor: OB.border },
   progressDotActive: { width: 24, backgroundColor: OB.orange },

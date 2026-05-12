@@ -144,10 +144,7 @@ export function RootNavigator() {
       <Stack.Screen
         name="CreateMatch"
         component={CreateMatchScreen}
-        options={{
-          title: "Create match",
-          contentStyle: { paddingTop: 12 },
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />

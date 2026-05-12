@@ -198,8 +198,11 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     });
   };
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const update = React.useCallback(
+    <K extends keyof FormState>(key: K, value: FormState[K]) =>
+      setForm((prev) => ({ ...prev, [key]: value })),
+    [],
+  );
 
   const toggleTag = (tag: string) => {
     setForm((prev) => ({
@@ -325,34 +328,38 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     return isSameLocalCalendarDay(form.date, new Date()) ? new Date() : undefined;
   }, [pickerField, form.date]);
 
-  const onPickerValueChange = (_event: unknown, selected?: Date) => {
-    if (!pickerField || !selected) return;
-    const startToday = startOfLocalDay(new Date());
-    if (pickerField === "date") {
-      const d = selected < startToday ? startToday : selected;
-      let nextDate = formatLocalDate(d);
-      let nextTime = form.timeLabel;
-      if (isSameLocalCalendarDay(nextDate, new Date())) {
-        const combined = parseLocalDateTime(nextDate, nextTime);
-        const now = new Date();
-        if (combined.getTime() < now.getTime()) nextTime = formatTime(now);
+  const onPickerValueChange = React.useCallback(
+    (_event: unknown, selected?: Date) => {
+      if (!pickerField || !selected) return;
+      const startToday = startOfLocalDay(new Date());
+      if (pickerField === "date") {
+        const d = selected < startToday ? startToday : selected;
+        let nextDate = formatLocalDate(d);
+        let nextTime = form.timeLabel;
+        if (isSameLocalCalendarDay(nextDate, new Date())) {
+          const combined = parseLocalDateTime(nextDate, nextTime);
+          const now = new Date();
+          if (combined.getTime() < now.getTime()) nextTime = formatTime(now);
+        }
+        setForm((prev) => ({ ...prev, date: nextDate, timeLabel: nextTime }));
+        if (Platform.OS === "android") setPickerField(null);
+        return;
       }
-      update("date", nextDate);
-      update("timeLabel", nextTime);
-      return;
-    }
-    const combined = parseLocalDateTime(form.date, formatTime(selected));
-    const now = new Date();
-    update("timeLabel", formatTime(combined < now ? now : combined));
-  };
+      const combined = parseLocalDateTime(form.date, formatTime(selected));
+      const now = new Date();
+      update("timeLabel", formatTime(combined < now ? now : combined));
+      if (Platform.OS === "android") setPickerField(null);
+    },
+    [pickerField, form.date, form.timeLabel, update],
+  );
 
-  const onPickerDismiss = () => {
+  const onPickerDismiss = React.useCallback(() => {
     if (Platform.OS !== "ios") setPickerField(null);
-  };
+  }, []);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
         <Pressable style={styles.backBtn} onPress={onBack}>
           <Ionicons name="arrow-back" size={17} color={COLORS.text} />
         </Pressable>
@@ -834,7 +841,7 @@ function Field({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingHorizontal: 16, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
+  header: { paddingHorizontal: 16, paddingTop: 0, flexDirection: "row", alignItems: "center", gap: 10 },
   backBtn: {
     width: 34,
     height: 34,

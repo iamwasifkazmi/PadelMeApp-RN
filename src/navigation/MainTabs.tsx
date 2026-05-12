@@ -2,6 +2,7 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { DiscoverScreen, HomeScreen, MessagesScreen, ProfileScreen } from "../screens";
 import { MainTabParamList } from "./types";
@@ -73,7 +74,8 @@ export function MainTabs() {
   }, [USER_EMAIL]);
   return (
     <>
-      <Tab.Navigator
+      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+        <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: COLORS.primary,
@@ -127,6 +129,7 @@ export function MainTabs() {
           }}
         />
       </Tab.Navigator>
+      </SafeAreaView>
 
       <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => setCreateOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setCreateOpen(false)}>

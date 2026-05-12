@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { UserDto } from "../lib/types";
@@ -27,8 +28,9 @@ type FriendsResponseDto = {
 };
 
 function PlayerProfileSkeleton() {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingHorizontal: 16, paddingTop: Math.max(insets.top, 12) }]}>
       <View style={styles.topBar}>
         <SkeletonBlock height={34} width={34} rounded={17} />
         <SkeletonBlock height={16} width="38%" rounded={8} />
@@ -62,6 +64,7 @@ export function PlayerProfileScreen({
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const MY_USER_ID = getCurrentUserId();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState(false);
   const [user, setUser] = React.useState<UserDto | null>(null);
@@ -161,7 +164,7 @@ export function PlayerProfileScreen({
   if (loading) return <PlayerProfileSkeleton />;
   if (!user)
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingHorizontal: 16, paddingTop: Math.max(insets.top, 12) }]}>
         <Text style={styles.empty}>Player not found.</Text>
       </View>
     );
@@ -211,7 +214,10 @@ export function PlayerProfileScreen({
         : "—";
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 12) }]}
+    >
       <View style={styles.topBar}>
         <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={16} color={COLORS.text} />
@@ -412,8 +418,8 @@ function Stat({ title, value }: { title: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, paddingHorizontal: 16, paddingTop: 12 },
-  content: { paddingBottom: 120 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  content: { paddingHorizontal: 16, paddingBottom: 120 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   backBtn: {
     width: 34,

@@ -77,7 +77,8 @@ function App() {
     <Provider store={store}>
       <SafeAreaProvider>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.bg} />
-        <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+        {/* Top inset: native stack headers handle it; tabs/auth use their own top (see MainTabs, auth screens). */}
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
           <SnackbarProvider>
             <NavigationContainer
               ref={navigationRef}
