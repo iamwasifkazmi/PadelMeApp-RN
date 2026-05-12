@@ -146,7 +146,7 @@ export function RootNavigator() {
         component={CreateMatchScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+      <Stack.Screen name="MatchDetail" component={MatchDetailScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen
         name="Notifications"

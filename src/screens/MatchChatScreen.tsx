@@ -334,9 +334,9 @@ export function MatchChatScreen({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
-      enabled
+      enabled={Platform.OS === "ios"}
     >
       <FlatList
         ref={listRef}
@@ -439,7 +439,7 @@ export function MatchChatScreen({
         }
       />
 
-      <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View style={styles.composerWrap}>
         {typingLabel ? (
           <View style={styles.liveMetaRow}>
             <Text style={styles.typingText}>{typingLabel}</Text>
@@ -686,7 +686,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 10,
     marginBottom: 0,
   },
   liveMetaRow: { paddingBottom: 4, paddingLeft: 4 },

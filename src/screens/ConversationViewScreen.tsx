@@ -356,9 +356,9 @@ export function ConversationViewScreen({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
-      enabled
+      enabled={Platform.OS === "ios"}
     >
       <FlatList
         ref={listRef}
@@ -541,8 +541,9 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.card,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    paddingTop: 10,
+    paddingBottom: 10,
+    marginBottom: 0,
   },
   liveMetaRow: { paddingBottom: 2 },
   typingText: { fontSize: 11, color: COLORS.primary, fontWeight: "700" },

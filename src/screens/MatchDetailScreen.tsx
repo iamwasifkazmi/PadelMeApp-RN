@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchResultPanel } from "../components/MatchResultPanel";
@@ -214,6 +215,7 @@ export function MatchDetailScreen({
   route: { params: { id: string; openConfirmScore?: boolean } };
   navigation: any;
 }) {
+  const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const id = route.params.id;
@@ -531,7 +533,7 @@ export function MatchDetailScreen({
 
   if (!match) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 12), paddingHorizontal: 16 }]}>
         <Text style={styles.emptyText}>Match not found.</Text>
       </View>
     );
@@ -629,7 +631,7 @@ export function MatchDetailScreen({
     !emailListed(match.invitedEmails, USER_EMAIL)
   ) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 10), paddingHorizontal: 16 }]}>
         <View style={styles.topRow}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={16} color={COLORS.textMuted} />
@@ -650,7 +652,7 @@ export function MatchDetailScreen({
     <>
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top + 8, 16) }]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.primary} />
       }
@@ -1191,7 +1193,7 @@ function getStatusStyle(status: MatchStatusValue) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 16, paddingBottom: 110 },
+  content: { paddingHorizontal: 16, paddingBottom: 110 },
   topRow: { marginBottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start" },
   backText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "600" },
