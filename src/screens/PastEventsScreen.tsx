@@ -40,14 +40,13 @@ export function PastEventsScreen() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [a, b, c, comps] = await Promise.all([
+      const [completedMatches, comps] = await Promise.all([
         api.get<MatchDto[]>("/matches?status=completed"),
-        api.get<MatchDto[]>("/matches?status=cancelled"),
-        api.get<MatchDto[]>("/matches?status=abandoned"),
         api.get<CompetitionDto[]>("/competitions"),
       ]);
 
-      const myMatches = [...a, ...b, ...c]
+      /** Cancelled / abandoned matches stay in the DB for notifications and detail screens, but are omitted from this "results" timeline. */
+      const myMatches = completedMatches
         .filter((m) => m.players.includes(USER_EMAIL) || (m as any).createdByEmail === USER_EMAIL)
         .map((m) => ({
           kind: "match" as const,
@@ -60,7 +59,7 @@ export function PastEventsScreen() {
         }));
 
       const myCompetitions = comps
-        .filter((c) => c.status === "completed" || c.status === "cancelled")
+        .filter((c) => c.status === "completed")
         .filter((c) => c.hostEmail === USER_EMAIL || c.participants.includes(USER_EMAIL))
         .map((c) => ({
           kind: "competition" as const,
@@ -96,7 +95,7 @@ export function PastEventsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Past Events</Text>
-      <Text style={styles.subtitle}>Completed and archived matches</Text>
+      <Text style={styles.subtitle}>Completed matches and competitions</Text>
       <FlatList
         data={items}
         keyExtractor={(i) => i.id}

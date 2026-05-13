@@ -445,7 +445,7 @@ export function ProfileScreen() {
             <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("PastEvents")}>
               <View>
                 <Text style={styles.rowTitle}>See all history</Text>
-                <Text style={styles.rowMeta}>Matches and competitions timeline</Text>
+                <Text style={styles.rowMeta}>Completed matches and competitions</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>

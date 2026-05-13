@@ -1,6 +1,8 @@
 import React from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { launchImageLibrary } from "react-native-image-picker";
 import { MatchDto } from "../lib/types";
@@ -75,6 +78,8 @@ export function SubmitMatchScoreModal(props: {
     onSubmit,
     maxEvidencePhotos = MAX_EVIDENCE_PHOTOS,
   } = props;
+
+  const insets = useSafeAreaInsets();
 
   const isDoubles = isDoublesFormat(match);
   const teamALabel = isDoubles ? "Team A" : "You / side A";
@@ -157,19 +162,29 @@ export function SubmitMatchScoreModal(props: {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={mStyles.overlay}>
         <Pressable style={mStyles.backdrop} onPress={onClose} />
-        <View style={mStyles.sheet}>
-          <View style={mStyles.sheetHeader}>
-            <Text style={mStyles.sheetTitle}>Submit Match Score</Text>
-            <Pressable hitSlop={12} onPress={onClose} accessibilityLabel="Close">
-              <Ionicons name="close" size={22} color={COLORS.textMuted} />
-            </Pressable>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={mStyles.kav}
+          keyboardVerticalOffset={Platform.OS === "ios" ? Math.max(insets.top, 12) : 0}
+        >
+          <View style={mStyles.sheet}>
+            <View style={mStyles.sheetHeader}>
+              <Text style={mStyles.sheetTitle}>Submit Match Score</Text>
+              <Pressable hitSlop={12} onPress={onClose} accessibilityLabel="Close">
+                <Ionicons name="close" size={22} color={COLORS.textMuted} />
+              </Pressable>
+            </View>
 
-          {useSets && matchScoringSubtitle(match) ? (
-            <Text style={mStyles.sheetHint}>{matchScoringSubtitle(match)}</Text>
-          ) : null}
+            {useSets && matchScoringSubtitle(match) ? (
+              <Text style={mStyles.sheetHint}>{matchScoringSubtitle(match)}</Text>
+            ) : null}
 
-          <ScrollView style={mStyles.sheetBody} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={mStyles.sheetBody}
+              contentContainerStyle={mStyles.sheetBodyContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
             {useSets ? (
               <View style={mStyles.setTable}>
                 <View style={mStyles.setHeadRow}>
@@ -254,16 +269,17 @@ export function SubmitMatchScoreModal(props: {
                 <Text style={mStyles.winnerChipText}>{teamBLabel}</Text>
               </Pressable>
             </View>
-          </ScrollView>
 
-          <Pressable
-            style={[mStyles.primaryFull, (!canSubmit || busy) && mStyles.primaryFullDisabled]}
-            disabled={!canSubmit || busy}
-            onPress={() => void handleSubmit()}
-          >
-            <Text style={mStyles.primaryFullText}>{busy ? "Submitting…" : "Submit Score"}</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              style={[mStyles.primaryFull, (!canSubmit || busy) && mStyles.primaryFullDisabled]}
+              disabled={!canSubmit || busy}
+              onPress={() => void handleSubmit()}
+            >
+              <Text style={mStyles.primaryFullText}>{busy ? "Submitting…" : "Submit Score"}</Text>
+            </Pressable>
+          </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -298,6 +314,8 @@ export function ConfirmMatchResultModal(props: {
     onReject,
     onDispute,
   } = props;
+
+  const insets = useSafeAreaInsets();
 
   const [rejecting, setRejecting] = React.useState(false);
 
@@ -335,15 +353,25 @@ export function ConfirmMatchResultModal(props: {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={mStyles.overlay}>
         <Pressable style={mStyles.backdrop} onPress={onClose} />
-        <View style={mStyles.sheet}>
-          <View style={mStyles.sheetHeader}>
-            <Text style={mStyles.sheetTitle}>Confirm Match Result</Text>
-            <Pressable hitSlop={12} onPress={onClose} accessibilityLabel="Close">
-              <Ionicons name="close" size={22} color={COLORS.textMuted} />
-            </Pressable>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={mStyles.kav}
+          keyboardVerticalOffset={Platform.OS === "ios" ? Math.max(insets.top, 12) : 0}
+        >
+          <View style={mStyles.sheet}>
+            <View style={mStyles.sheetHeader}>
+              <Text style={mStyles.sheetTitle}>Confirm Match Result</Text>
+              <Pressable hitSlop={12} onPress={onClose} accessibilityLabel="Close">
+                <Ionicons name="close" size={22} color={COLORS.textMuted} />
+              </Pressable>
+            </View>
 
-          <ScrollView style={mStyles.sheetBody} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={mStyles.sheetBody}
+              contentContainerStyle={mStyles.sheetBodyContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
             {!canValidate ? (
               <View style={mStyles.warnBox}>
                 <Text style={mStyles.warnText}>
@@ -441,7 +469,8 @@ export function ConfirmMatchResultModal(props: {
               <Text style={mStyles.rejectLinkText}>Reject — keep playing</Text>
             </Pressable>
           ) : null}
-        </View>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -450,6 +479,7 @@ export function ConfirmMatchResultModal(props: {
 const mStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.45)" },
+  kav: { width: "100%", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
@@ -476,7 +506,8 @@ const mStyles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
   },
-  sheetBody: { maxHeight: 400 },
+  sheetBody: { flexShrink: 1, maxHeight: 480 },
+  sheetBodyContent: { flexGrow: 1, paddingBottom: 8 },
   setTable: { marginBottom: 12 },
   setHeadRow: { flexDirection: "row", marginBottom: 8, alignItems: "center", gap: 8 },
   setHeadIdx: {

@@ -111,12 +111,12 @@ export function InvitePlayersScreen() {
     const q = search.trim().toLowerCase();
     const invitedSet = new Set(
       invites
-        .filter((i) => !i.receiverEmail.startsWith("share."))
+        .filter((i) => !i.receiverEmail.toLowerCase().startsWith("share."))
         .map((i) => i.receiverEmail.toLowerCase()),
     );
     return users.filter((u) => {
       const label = `${u.fullName || ""} ${u.email}`.toLowerCase();
-      if (invitedSet.has(u.email)) return false;
+      if (invitedSet.has(u.email.toLowerCase())) return false;
       return q ? label.includes(q) : true;
     });
   }, [users, invites, search]);

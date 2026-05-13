@@ -28,6 +28,15 @@ function navigateForNotification(
     navigation.navigate("ConversationView", { id: conversationId });
     return;
   }
+  const isCompetitionNotif =
+    type === "competition_invite" ||
+    (n.relatedEntityType || "").toLowerCase() === "competition";
+  const compId =
+    isCompetitionNotif && n.relatedEntityId?.trim() ? n.relatedEntityId.trim() : "";
+  if (compId) {
+    navigation.navigate("CompetitionDetail", { id: compId });
+    return;
+  }
   if (matchId) {
     navigation.navigate("MatchDetail", { id: matchId });
   }
