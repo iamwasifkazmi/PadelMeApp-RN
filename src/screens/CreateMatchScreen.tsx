@@ -510,6 +510,15 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               ))}
             </ScrollView>
+            {form.mode !== "instant" ? (
+              <View style={styles.scheduledPolicyBox}>
+                <Ionicons name="information-circle-outline" size={18} color={COLORS.infoText} style={styles.scheduledPolicyIcon} />
+                <Text style={styles.scheduledPolicyText}>
+                  If this game fills but no one starts it within 24 hours after the scheduled start time, it will be
+                  cancelled automatically and everyone on the roster will be notified.
+                </Text>
+              </View>
+            ) : null}
           </>
         ) : null}
 
@@ -938,6 +947,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     marginBottom: 8,
+  },
+  scheduledPolicyBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: COLORS.infoSoft,
+    borderWidth: 1,
+    borderColor: COLORS.infoBorder,
+  },
+  scheduledPolicyIcon: { marginTop: 1 },
+  scheduledPolicyText: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 12,
+    lineHeight: 17,
   },
   countryChipsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 4, paddingRight: 8 },
   countryChip: {

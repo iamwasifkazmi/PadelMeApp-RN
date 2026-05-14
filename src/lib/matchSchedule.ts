@@ -33,6 +33,32 @@ export function matchScheduledStartUtcMs(match: { date: string | Date | number; 
   return scheduledStartUtcMs(dateStr, String(match.timeLabel || "").trim());
 }
 
+const MS_MIN = 60 * 1000;
+const MS_HOUR = 60 * MS_MIN;
+const MS_24H = 24 * MS_HOUR;
+
+/** Auto-cancel deadline when roster is full but the match was never started (server policy). */
+export function fullRosterAutoCancelDeadlineUtcMs(match: {
+  date: string | Date | number;
+  timeLabel: string;
+  isInstant?: boolean;
+}): number {
+  if (match.isInstant) return NaN;
+  const start = matchScheduledStartUtcMs(match);
+  if (Number.isNaN(start)) return NaN;
+  return start + MS_24H;
+}
+
+/** Human-readable time until `deadlineMs` (UTC epoch), e.g. "3 hours", "45 minutes". */
+export function formatDurationUntil(deadlineMs: number, nowMs = Date.now()): string {
+  const left = deadlineMs - nowMs;
+  if (left <= 0) return "moments";
+  const h = Math.floor(left / MS_HOUR);
+  const m = Math.ceil((left % MS_HOUR) / MS_MIN);
+  if (h >= 1) return `${h} hour${h === 1 ? "" : "s"}`;
+  return `${Math.max(1, m)} minute${m === 1 ? "" : "s"}`;
+}
+
 const STALE_CANCEL_GRACE_MS = 120_000;
 const JOIN_GRACE_MS = 120_000;
 
