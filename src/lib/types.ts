@@ -102,6 +102,9 @@ export type UserDto = {
   id: string;
   email: string;
   fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  dateOfBirth?: string | null;
   location?: string | null;
   locationLat?: number | null;
   locationLng?: number | null;

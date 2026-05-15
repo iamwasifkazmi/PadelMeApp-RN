@@ -1,5 +1,14 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
@@ -11,6 +20,7 @@ import { store } from "../store/store";
 import { COLORS } from "../theme/colors";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
+import { ageFromUtcDateOfBirth, utcNoonFromParts } from "../lib/ageFromDob";
 
 /** Onboarding uses MiPadel brand: black / navy surfaces + orange accents (not default light gray shell). */
 const OB = {
@@ -22,6 +32,24 @@ const OB = {
   orange: COLORS.primary,
   orangeTint: "rgba(255, 92, 26, 0.14)",
 } as const;
+
+const MIN_ONBOARDING_AGE = 13;
+
+function defaultDobDate(): Date {
+  const ref = new Date();
+  return utcNoonFromParts(ref.getUTCFullYear() - 25, 5, 15);
+}
+
+function maxDobDate(): Date {
+  const d = new Date();
+  d.setUTCFullYear(d.getUTCFullYear() - MIN_ONBOARDING_AGE, d.getUTCMonth(), d.getUTCDate());
+  return utcNoonFromParts(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+function minDobDate(): Date {
+  const ref = new Date();
+  return utcNoonFromParts(ref.getUTCFullYear() - 100, 0, 1);
+}
 
 function OnboardingSkeleton() {
   const insets = useSafeAreaInsets();
@@ -49,19 +77,27 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
   const USER_EMAIL = getCurrentUserEmail();
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
-  const [step, setStep] = React.useState<1 | 2 | 3>(1);
+  const [step, setStep] = React.useState<1 | 2 | 3 | 4>(1);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
-  const [fullName, setFullName] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [dobDate, setDobDate] = React.useState(defaultDobDate);
   const [locationName, setLocationName] = React.useState("");
   const [locationLat, setLocationLat] = React.useState<number | null>(null);
   const [locationLng, setLocationLng] = React.useState<number | null>(null);
   const [skillLabel, setSkillLabel] = React.useState("intermediate");
+  const [androidDobOpen, setAndroidDobOpen] = React.useState(false);
+
+  const computedAge = React.useMemo(() => ageFromUtcDateOfBirth(dobDate), [dobDate]);
 
   React.useEffect(() => {
     let mounted = true;
     api
       .get<{
         fullName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        dateOfBirth?: string | null;
         location?: string | null;
         locationName?: string | null;
         locationLat?: number | null;
@@ -71,7 +107,24 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`)
       .then((u) => {
         if (!mounted) return;
-        setFullName(u.fullName || "");
+        const fn = (u.firstName || "").trim();
+        const ln = (u.lastName || "").trim();
+        if (fn || ln) {
+          setFirstName(fn);
+          setLastName(ln);
+        } else if (u.fullName?.trim()) {
+          const parts = u.fullName.trim().split(/\s+/);
+          setFirstName(parts[0] || "");
+          setLastName(parts.slice(1).join(" ") || "");
+        }
+        if (u.dateOfBirth) {
+          const parsed = new Date(u.dateOfBirth);
+          if (!Number.isNaN(parsed.getTime())) {
+            setDobDate(
+              utcNoonFromParts(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()),
+            );
+          }
+        }
         setLocationName((u.locationName || u.location || "").trim());
         setLocationLat(u.locationLat ?? null);
         setLocationLng(u.locationLng ?? null);
@@ -90,9 +143,19 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       setSaving(true);
       const skillNumeric =
         skillLabel === "advanced" ? 8 : skillLabel === "intermediate" ? 5 : 2;
+      const y = dobDate.getUTCFullYear();
+      const mo = dobDate.getUTCMonth();
+      const d = dobDate.getUTCDate();
+      const dobUtc = utcNoonFromParts(y, mo, d);
+      const ageYears = ageFromUtcDateOfBirth(dobUtc);
+      const fullNameCombined = `${firstName.trim()} ${lastName.trim()}`.trim();
       await api.patch("/users/me", {
         email: USER_EMAIL,
-        fullName: fullName.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dateOfBirth: dobUtc.toISOString(),
+        age: ageYears,
+        fullName: fullNameCombined,
         location: locationName.trim() || null,
         locationName: locationName.trim() || null,
         locationLat,
@@ -105,7 +168,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
       if (auth.token && auth.user?.email) {
         await persistSession({
           token: auth.token,
-          user: { ...auth.user, isNewUser: false },
+          user: { ...auth.user, isNewUser: false, fullName: fullNameCombined },
         });
       }
       navigation.dispatch(
@@ -137,16 +200,19 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
 
   if (loading) return <OnboardingSkeleton />;
 
+  const dobValid = computedAge >= MIN_ONBOARDING_AGE && computedAge <= 100;
   const canContinue =
     step === 1
-      ? fullName.trim().length >= 2
+      ? firstName.trim().length >= 1 && lastName.trim().length >= 1 && dobValid
       : step === 2
         ? Boolean(skillLabel)
-        : hasUserGeo({ locationLat, locationLng });
+        : step === 3
+          ? hasUserGeo({ locationLat, locationLng })
+          : true;
 
   const next = () => {
-    if (step < 3) {
-      setStep((s) => (s + 1) as 1 | 2 | 3);
+    if (step < 4) {
+      setStep((s) => (s + 1) as 1 | 2 | 3 | 4);
       return;
     }
     complete();
@@ -155,7 +221,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 28) }]}>
       <View style={styles.progressRow}>
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <View
             key={s}
             style={[
@@ -167,75 +233,159 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
         ))}
       </View>
 
-      {step === 1 ? (
-        <View style={styles.stepWrap}>
-          <Text style={styles.stepEmoji}>👋</Text>
-          <Text style={styles.title}>What's your name?</Text>
-          <Text style={styles.subtitle}>This is how other players will see you</Text>
-          <Field
-            label="Your name"
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Enter your name"
-          />
-        </View>
-      ) : null}
-
-      {step === 2 ? (
-        <View style={styles.stepWrap}>
-          <Text style={styles.stepEmoji}>🎾</Text>
-          <Text style={styles.title}>Your Padel level?</Text>
-          <Text style={styles.subtitle}>We'll match you with the right players</Text>
-          <View style={styles.skillList}>
-            {SKILL_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                style={[
-                  styles.skillCard,
-                  skillLabel === opt.value && styles.skillCardActive,
-                ]}
-                onPress={() => setSkillLabel(opt.value)}
-              >
-                <Text style={styles.skillEmoji}>{opt.emoji}</Text>
-                <View style={styles.flexOne}>
-                  <Text style={[styles.skillName, skillLabel === opt.value && styles.skillNameActive]}>
-                    {opt.label}
-                  </Text>
-                  <Text style={styles.skillDesc}>{opt.desc}</Text>
-                </View>
-                {skillLabel === opt.value ? (
-                  <View style={styles.skillTick}>
-                    <View style={styles.skillTickInner} />
-                  </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {step === 1 ? (
+          <View style={styles.stepWrap}>
+            <Text style={styles.stepEmoji}>👋</Text>
+            <Text style={styles.title}>About you</Text>
+            <Text style={styles.subtitle}>First name, last name, and date of birth</Text>
+            <View style={styles.nameRow}>
+              <View style={styles.nameCol}>
+                <Field
+                  label="First name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="First name"
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.nameCol}>
+                <Field
+                  label="Last name"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Last name"
+                  autoCapitalize="words"
+                />
+              </View>
+            </View>
+            <Text style={styles.fieldLabel}>Date of birth</Text>
+            {Platform.OS === "ios" ? (
+              <View style={styles.dobPickerWrap}>
+                <DateTimePicker
+                  value={dobDate}
+                  mode="date"
+                  display="spinner"
+                  themeVariant="dark"
+                  minimumDate={minDobDate()}
+                  maximumDate={maxDobDate()}
+                  onChange={(_, date) => {
+                    if (date) {
+                      setDobDate(
+                        utcNoonFromParts(date.getFullYear(), date.getMonth(), date.getDate()),
+                      );
+                    }
+                  }}
+                />
+              </View>
+            ) : (
+              <View style={styles.androidDobBlock}>
+                <Text style={styles.androidDobValue}>
+                  {dobDate.toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </Text>
+                <Pressable style={styles.androidDobBtn} onPress={() => setAndroidDobOpen(true)}>
+                  <Text style={styles.androidDobBtnText}>Choose date</Text>
+                </Pressable>
+                {androidDobOpen ? (
+                  <DateTimePicker
+                    value={dobDate}
+                    mode="date"
+                    display="default"
+                    minimumDate={minDobDate()}
+                    maximumDate={maxDobDate()}
+                    onChange={(_, date) => {
+                      setAndroidDobOpen(false);
+                      if (date) {
+                        setDobDate(
+                          utcNoonFromParts(date.getFullYear(), date.getMonth(), date.getDate()),
+                        );
+                      }
+                    }}
+                  />
                 ) : null}
-              </Pressable>
-            ))}
+              </View>
+            )}
+            <View style={styles.agePill}>
+              <Text style={styles.agePillLabel}>Age</Text>
+              <Text style={styles.agePillValue}>{computedAge} years</Text>
+            </View>
+            {!dobValid ? (
+              <Text style={styles.dobHint}>
+                You must be at least {MIN_ONBOARDING_AGE} years old to use MiPadel.
+              </Text>
+            ) : null}
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      {step === 3 ? (
-        <View style={styles.stepWrap}>
-          <Text style={styles.stepEmoji}>📍</Text>
-          <Text style={styles.title}>Where are you based?</Text>
-          <Text style={styles.subtitle}>We need exact map coordinates — search for your city or club</Text>
-          <Text style={styles.locationChosen}>
-            {userLocationLabel({ locationName, locationLat, locationLng }) || "No place selected yet"}
-          </Text>
-          {hasUserGeo({ locationLat, locationLng }) ? (
-            <Text style={styles.coordsMini}>
-              {locationLat?.toFixed(5)}, {locationLng?.toFixed(5)}
+        {step === 2 ? (
+          <View style={styles.stepWrap}>
+            <Text style={styles.stepEmoji}>🎾</Text>
+            <Text style={styles.title}>Your Padel level?</Text>
+            <Text style={styles.subtitle}>We'll match you with the right players</Text>
+            <View style={styles.skillList}>
+              {SKILL_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt.value}
+                  style={[styles.skillCard, skillLabel === opt.value && styles.skillCardActive]}
+                  onPress={() => setSkillLabel(opt.value)}
+                >
+                  <Text style={styles.skillEmoji}>{opt.emoji}</Text>
+                  <View style={styles.flexOne}>
+                    <Text style={[styles.skillName, skillLabel === opt.value && styles.skillNameActive]}>
+                      {opt.label}
+                    </Text>
+                    <Text style={styles.skillDesc}>{opt.desc}</Text>
+                  </View>
+                  {skillLabel === opt.value ? (
+                    <View style={styles.skillTick}>
+                      <View style={styles.skillTickInner} />
+                    </View>
+                  ) : null}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {step === 3 ? (
+          <View style={styles.stepWrap}>
+            <Text style={styles.stepEmoji}>📍</Text>
+            <Text style={styles.title}>Where are you based?</Text>
+            <Text style={styles.subtitle}>We need exact map coordinates — search for your city or club</Text>
+            <Text style={styles.locationChosen}>
+              {userLocationLabel({ locationName, locationLat, locationLng }) || "No place selected yet"}
             </Text>
-          ) : null}
-          <Pressable
-            style={styles.pickLocationBtn}
-            onPress={() => setLocationPickerOpen(true)}
-          >
-            <Ionicons name="search-outline" size={14} color={OB.orange} />
-            <Text style={styles.pickLocationBtnText}>Search & select location</Text>
-          </Pressable>
-        </View>
-      ) : null}
+            {hasUserGeo({ locationLat, locationLng }) ? (
+              <Text style={styles.coordsMini}>
+                {locationLat?.toFixed(5)}, {locationLng?.toFixed(5)}
+              </Text>
+            ) : null}
+            <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
+              <Ionicons name="search-outline" size={14} color={OB.orange} />
+              <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {step === 4 ? (
+          <View style={styles.stepWrap}>
+            <Text style={styles.stepEmoji}>✨</Text>
+            <Text style={styles.title}>You're all set</Text>
+            <Text style={styles.subtitle}>
+              Tap below to save your profile and start playing. You can edit details anytime in Profile.
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
 
       <Pressable
         style={[styles.cta, (!canContinue || saving) && styles.disabled]}
@@ -243,7 +393,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
         disabled={!canContinue || saving}
       >
         <Text style={styles.ctaText}>
-          {saving ? "Saving..." : step === 3 ? "Let's Play 🎾" : "Continue"}
+          {saving ? "Saving..." : step === 4 ? "Let's Play 🎾" : "Continue"}
         </Text>
       </Pressable>
 
@@ -272,25 +422,25 @@ function Field({
   value,
   onChangeText,
   placeholder,
-  leftIcon,
+  autoCapitalize,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  leftIcon?: React.ReactNode;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
   return (
     <View style={{ marginBottom: 10 }}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <View style={styles.inputWrap}>
-        {leftIcon ? <View style={styles.leftIcon}>{leftIcon}</View> : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={OB.muted}
-          style={[styles.input, leftIcon ? styles.inputWithIcon : null]}
+          autoCapitalize={autoCapitalize || "none"}
+          style={styles.input}
         />
       </View>
     </View>
@@ -305,14 +455,18 @@ const SKILL_OPTIONS = [
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: OB.bg, paddingHorizontal: 20, paddingTop: 0, paddingBottom: 26 },
+  scroll: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 12 },
   progressRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 16 },
   progressDot: { width: 8, height: 8, borderRadius: 8, backgroundColor: OB.border },
   progressDotActive: { width: 24, backgroundColor: OB.orange },
   progressDotDone: { backgroundColor: OB.orange },
-  stepWrap: { flex: 1, justifyContent: "center" },
+  stepWrap: { flexGrow: 1, justifyContent: "center", paddingVertical: 8 },
   stepEmoji: { textAlign: "center", fontSize: 36, marginBottom: 8 },
   title: { fontSize: 29, fontWeight: "800", color: OB.text, textAlign: "center" },
   subtitle: { marginTop: 4, marginBottom: 18, color: OB.muted, textAlign: "center", fontSize: 13 },
+  nameRow: { flexDirection: "row", gap: 10 },
+  nameCol: { flex: 1 },
   fieldLabel: { marginBottom: 6, color: OB.muted, fontSize: 12, fontWeight: "600" },
   inputWrap: {
     backgroundColor: OB.surface,
@@ -322,7 +476,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  leftIcon: { marginLeft: 12, marginRight: -2 },
   input: {
     flex: 1,
     paddingHorizontal: 12,
@@ -330,9 +483,49 @@ const styles = StyleSheet.create({
     color: OB.text,
     fontSize: 16,
   },
-  inputWithIcon: {
-    paddingLeft: 10,
+  dobPickerWrap: {
+    backgroundColor: OB.surface,
+    borderWidth: 2,
+    borderColor: OB.border,
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 12,
   },
+  androidDobBlock: {
+    backgroundColor: OB.surface,
+    borderWidth: 2,
+    borderColor: OB.border,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    gap: 10,
+  },
+  androidDobValue: { color: OB.text, fontSize: 16, fontWeight: "700", textAlign: "center" },
+  androidDobBtn: {
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: OB.orange,
+    backgroundColor: OB.orangeTint,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  androidDobBtnText: { color: OB.orange, fontWeight: "700", fontSize: 14 },
+  agePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: OB.orangeTint,
+    borderWidth: 1,
+    borderColor: OB.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  agePillLabel: { color: OB.muted, fontSize: 13, fontWeight: "600" },
+  agePillValue: { color: OB.orange, fontSize: 17, fontWeight: "800" },
+  dobHint: { color: COLORS.dangerText, fontSize: 12, textAlign: "center", lineHeight: 17 },
   skillList: { gap: 10 },
   skillCard: {
     borderWidth: 2,
@@ -393,4 +586,3 @@ const styles = StyleSheet.create({
   ctaText: { color: COLORS.card, fontWeight: "700", fontSize: 16 },
   disabled: { opacity: 0.6 },
 });
-
