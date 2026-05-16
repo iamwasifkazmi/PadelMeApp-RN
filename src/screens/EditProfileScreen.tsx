@@ -22,6 +22,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 import { PadelSkillLevelGrid } from "../components/PadelSkillLevelGrid";
@@ -964,10 +965,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: COLORS.bg,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: CHIP_PAD_V_SM + 3,
   },
   chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  chipText: { color: COLORS.text, fontSize: 11, fontWeight: "600" },
+  chipText: { color: COLORS.text, fontSize: 11, fontWeight: "600", ...androidChipText(11) },
   chipTextActive: { color: COLORS.primaryDark },
   daysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
   dayBtn: {

@@ -9,6 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { getCurrentUserEmail } from "../store";
 import { conversationTitleForViewer } from "../lib/conversationDisplay";
 import { COLORS } from "../theme/colors";
+import { androidChipText, chipPillShellSm } from "../theme/chipAndroid";
 
 export function MessagesScreen() {
   const USER_EMAIL = getCurrentUserEmail();
@@ -155,7 +156,9 @@ export function MessagesScreen() {
                 )}
               </View>
               <View style={styles.previewRow}>
-                <Text style={styles.typeChip}>{item.type === "direct" ? "DM" : item.type}</Text>
+                <View style={styles.typeChip}>
+                  <Text style={styles.typeChipText}>{item.type === "direct" ? "DM" : item.type}</Text>
+                </View>
                 <Text style={styles.preview} numberOfLines={1}>
                 {item.lastMessageText || "No messages yet"}
                 </Text>
@@ -269,14 +272,15 @@ const styles = StyleSheet.create({
   timeText: { fontSize: 10, color: COLORS.textMuted },
   previewRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 5 },
   typeChip: {
-    fontSize: 10,
+    ...chipPillShellSm,
     backgroundColor: COLORS.border,
-    color: COLORS.textSubtle,
     paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 999,
+  },
+  typeChipText: {
+    fontSize: 10,
+    color: COLORS.textSubtle,
     textTransform: "capitalize",
-    overflow: "hidden",
+    ...androidChipText(10),
   },
   preview: { flex: 1, fontSize: 12, color: COLORS.textMuted },
   empty: { marginTop: 24, alignItems: "center" },

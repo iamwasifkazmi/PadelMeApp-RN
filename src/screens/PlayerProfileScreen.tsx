@@ -9,6 +9,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, getCurrentUserId } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText } from "../theme/chipAndroid";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
@@ -346,9 +347,11 @@ export function PlayerProfileScreen({
                       <Text style={styles.resultTitle} numberOfLines={1}>
                         {r.title || "Match"}
                       </Text>
-                      <Text style={[styles.resultBadge, won ? styles.resultBadgeWin : styles.resultBadgeLoss]}>
-                        {won ? "W" : "L"}
-                      </Text>
+                      <View style={[styles.resultBadge, won ? styles.resultBadgeWin : styles.resultBadgeLoss]}>
+                        <Text style={[styles.resultBadgeText, won ? styles.resultBadgeTextWin : styles.resultBadgeTextLoss]}>
+                          {won ? "W" : "L"}
+                        </Text>
+                      </View>
                     </View>
                     <Text style={styles.resultMeta}>
                       {new Date(r.date).toLocaleDateString(undefined, {
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   levelWrap: { width: "100%", marginBottom: 2 },
   badge: { borderRadius: 999, backgroundColor: COLORS.border, paddingHorizontal: 10, paddingVertical: 5 },
   badgePrimary: { backgroundColor: COLORS.primarySoftAlt },
-  badgeText: { color: COLORS.textSubtle, fontSize: 11, fontWeight: "700", textTransform: "capitalize" },
+  badgeText: { color: COLORS.textSubtle, fontSize: 11, fontWeight: "700", textTransform: "capitalize", ...androidChipText(11) },
   badgeTextPrimary: { color: COLORS.primary, textTransform: "none" },
   privateBox: {
     marginTop: 10,
@@ -522,15 +525,16 @@ const styles = StyleSheet.create({
   resultTitle: { flex: 1, color: COLORS.text, fontSize: 13, fontWeight: "700" },
   resultMeta: { marginTop: 4, color: COLORS.textMuted, fontSize: 11 },
   resultBadge: {
-    fontSize: 11,
-    fontWeight: "800",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     overflow: "hidden",
   },
-  resultBadgeWin: { color: COLORS.successText, backgroundColor: COLORS.successSoft },
-  resultBadgeLoss: { color: COLORS.textMuted, backgroundColor: COLORS.bg },
+  resultBadgeText: { fontSize: 11, fontWeight: "800", ...androidChipText(11) },
+  resultBadgeTextWin: { color: COLORS.successText },
+  resultBadgeTextLoss: { color: COLORS.textMuted },
+  resultBadgeWin: { backgroundColor: COLORS.successSoft },
+  resultBadgeLoss: { backgroundColor: COLORS.bg },
   cardText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 18, marginBottom: 2, textTransform: "capitalize" },
   tagsRow: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tagChip: {
@@ -541,6 +545,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  tagChipText: { color: COLORS.text, fontSize: 11, fontWeight: "600" },
+  tagChipText: { color: COLORS.text, fontSize: 11, fontWeight: "600", ...androidChipText(11) },
   empty: { marginTop: 24, textAlign: "center", color: COLORS.textMuted },
 });

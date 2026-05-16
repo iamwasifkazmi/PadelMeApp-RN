@@ -14,6 +14,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const PICK_OPTIONS = {
@@ -372,9 +373,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     backgroundColor: COLORS.bgMuted,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: CHIP_PAD_V_SM,
   },
-  statusPillText: { color: COLORS.textMuted, fontWeight: "600", fontSize: 11 },
+  statusPillText: { color: COLORS.textMuted, fontWeight: "600", fontSize: 11, ...androidChipText(11) },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 16,

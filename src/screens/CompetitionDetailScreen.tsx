@@ -16,6 +16,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
+import { androidChipText, chipPillShellSm } from "../theme/chipAndroid";
 
 export function CompetitionDetailScreen({
   route,
@@ -147,9 +148,15 @@ export function CompetitionDetailScreen({
       >
         <View style={styles.hero}>
           <View style={styles.badgeRow}>
-            <Text style={styles.statusBadge}>{item.status.replaceAll("_", " ")}</Text>
-            <Text style={styles.metaBadge}>{item.type === "league" ? "League" : "Tournament"}</Text>
-            <Text style={styles.metaBadge}>{item.format.replaceAll("_", " ")}</Text>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusBadgeText}>{item.status.replaceAll("_", " ")}</Text>
+            </View>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText}>{item.type === "league" ? "League" : "Tournament"}</Text>
+            </View>
+            <View style={styles.metaBadge}>
+              <Text style={styles.metaBadgeText}>{item.format.replaceAll("_", " ")}</Text>
+            </View>
           </View>
           <Text style={styles.title}>{item.name}</Text>
           {!!item.description && <Text style={styles.description}>{item.description}</Text>}
@@ -475,30 +482,30 @@ const styles = StyleSheet.create({
   },
   badgeRow: { flexDirection: "row", gap: 5, flexWrap: "wrap", marginBottom: 7 },
   statusBadge: {
+    ...chipPillShellSm,
+    backgroundColor: COLORS.primarySoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+  },
+  statusBadgeText: {
     fontSize: 9,
     fontWeight: "700",
     textTransform: "capitalize",
     color: COLORS.primaryDark,
-    backgroundColor: COLORS.primarySoft,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(9),
   },
   metaBadge: {
+    ...chipPillShellSm,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  metaBadgeText: {
     fontSize: 9,
     fontWeight: "700",
     textTransform: "capitalize",
     color: COLORS.textMuted,
-    backgroundColor: COLORS.bg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(9),
   },
   title: { fontSize: 18, fontWeight: "800", color: COLORS.text },
   description: { marginTop: 4, fontSize: 11, color: COLORS.textMuted, lineHeight: 16 },

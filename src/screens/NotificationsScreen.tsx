@@ -8,6 +8,7 @@ import { NotificationDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 import type { RootStackParamList } from "../navigation/types";
 
 function navigateForNotification(
@@ -264,9 +265,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primaryPale,
     paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingVertical: CHIP_PAD_V_XS,
   },
-  newPillText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 9 },
+  newPillText: { color: COLORS.primaryDark, fontWeight: "800", fontSize: 9, ...androidChipText(9) },
   cardBody: { marginTop: 2, fontSize: 11, color: COLORS.textMuted },
   cardTime: { marginTop: 4, fontSize: 10, color: COLORS.textMuted },
   trailingWrap: { alignItems: "center", justifyContent: "space-between", minHeight: 34 },

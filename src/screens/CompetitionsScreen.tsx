@@ -9,6 +9,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { SUBSCRIPTION_PLAN_KEY } from "./SubscriptionGateScreen";
 import { COLORS } from "../theme/colors";
+import { androidChipText, chipPillShellSm, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 
 export function CompetitionsScreen() {
   const navigation = useNavigation<any>();
@@ -129,7 +130,9 @@ export function CompetitionsScreen() {
                   <Text style={styles.premiumTitle}>Premium Package</Text>
                   <Text style={styles.premiumSub}>Unlimited tournaments · Better prize controls</Text>
                 </View>
-                <Text style={styles.premiumTag}>PRO</Text>
+                <View style={styles.premiumTag}>
+                  <Text style={styles.premiumTagText}>PRO</Text>
+                </View>
               </Pressable>
             ) : null}
 
@@ -188,7 +191,9 @@ export function CompetitionsScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={[styles.statusPill, statusPillStyle(item.status)]}>{capitalize(item.status)}</Text>
+              <View style={[styles.statusPill, statusPillBgStyle(item.status)]}>
+                <Text style={[styles.statusPillText, statusPillTextStyle(item.status)]}>{capitalize(item.status)}</Text>
+              </View>
             </View>
             <View style={styles.cardBottomRow}>
               <Text style={styles.metaFoot}>
@@ -260,15 +265,23 @@ function TabButton({
     <Pressable style={[styles.tabBtn, active && styles.tabBtnActive]} onPress={onPress}>
       <Ionicons name={icon as any} size={13} color={active ? COLORS.text : COLORS.textMuted} />
       <Text style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>{label}</Text>
-      <Text style={[styles.tabCount, active && styles.tabCountActive]}>{count}</Text>
+      <View style={[styles.tabCount, active && styles.tabCountActive]}>
+        <Text style={[styles.tabCountText, active && styles.tabCountTextActive]}>{count}</Text>
+      </View>
     </Pressable>
   );
 }
 
-function statusPillStyle(status: string) {
-  if (status === "completed") return styles.statusPillDone;
-  if (status === "in_progress") return styles.statusPillLive;
-  return styles.statusPillOpen;
+function statusPillBgStyle(status: string) {
+  if (status === "completed") return styles.statusPillDoneBg;
+  if (status === "in_progress") return styles.statusPillLiveBg;
+  return styles.statusPillOpenBg;
+}
+
+function statusPillTextStyle(status: string) {
+  if (status === "completed") return styles.statusPillDoneText;
+  if (status === "in_progress") return styles.statusPillLiveText;
+  return styles.statusPillOpenText;
 }
 
 function capitalize(value: string) {
@@ -384,14 +397,14 @@ const styles = StyleSheet.create({
   premiumTitle: { color: COLORS.warningText, fontSize: 11, fontWeight: "800" },
   premiumSub: { color: COLORS.warningText, opacity: 0.9, fontSize: 9, marginTop: 1 },
   premiumTag: {
+    ...chipPillShellSm,
+    backgroundColor: COLORS.card,
+  },
+  premiumTagText: {
     fontSize: 9,
     fontWeight: "800",
     color: COLORS.warningText,
-    backgroundColor: COLORS.card,
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(9),
   },
   quickTiles: { flexDirection: "row", gap: 7, marginBottom: 9 },
   quickTile: {
@@ -436,17 +449,16 @@ const styles = StyleSheet.create({
   tabBtnText: { color: COLORS.textSoft, fontWeight: "700", fontSize: 11 },
   tabBtnTextActive: { color: COLORS.text },
   tabCount: {
-    fontSize: 9,
-    color: COLORS.textMuted,
-    backgroundColor: COLORS.bg,
     borderRadius: 999,
     paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingVertical: CHIP_PAD_V_XS,
     borderWidth: 1,
     borderColor: COLORS.border,
-    overflow: "hidden",
+    backgroundColor: COLORS.bg,
   },
-  tabCountActive: { color: COLORS.primaryDark, borderColor: COLORS.borderStrong, backgroundColor: COLORS.primarySoft },
+  tabCountActive: { borderColor: COLORS.borderStrong, backgroundColor: COLORS.primarySoft },
+  tabCountText: { fontSize: 9, color: COLORS.textMuted, ...androidChipText(9) },
+  tabCountTextActive: { color: COLORS.primaryDark },
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -469,33 +481,26 @@ const styles = StyleSheet.create({
   cardTitleWrap: { flex: 1 },
   name: { fontSize: 12, fontWeight: "700", color: COLORS.text },
   metaLine: { marginTop: 1, fontSize: 10, color: COLORS.textMuted, textTransform: "capitalize" },
-  statusPill: {
-    fontSize: 9,
-    fontWeight: "700",
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
-    textTransform: "capitalize",
-  },
-  statusPillOpen: {
-    color: COLORS.primaryDark,
+  statusPill: chipPillShellSm,
+  statusPillText: { fontSize: 9, fontWeight: "700", textTransform: "capitalize", ...androidChipText(9) },
+  statusPillOpenBg: {
     backgroundColor: COLORS.primarySoft,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
   },
-  statusPillLive: {
-    color: COLORS.successText,
+  statusPillOpenText: { color: COLORS.primaryDark },
+  statusPillLiveBg: {
     backgroundColor: COLORS.successSoft,
     borderWidth: 1,
     borderColor: COLORS.success,
   },
-  statusPillDone: {
-    color: COLORS.textMuted,
+  statusPillLiveText: { color: COLORS.successText },
+  statusPillDoneBg: {
     backgroundColor: COLORS.bg,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  statusPillDoneText: { color: COLORS.textMuted },
   cardBottomRow: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   metaFoot: { fontSize: 10, color: COLORS.textMuted },
   emptyCard: {

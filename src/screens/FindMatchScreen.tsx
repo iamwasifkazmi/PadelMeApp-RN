@@ -16,6 +16,7 @@ import { MatchDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, chipPillShellSm } from "../theme/chipAndroid";
 import { displayMatchTitle } from "../lib/matchDisplay";
 import { dateKeyUtcFromMatchDate, matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
 
@@ -242,7 +243,11 @@ export function FindMatchScreen() {
             >
               <View style={styles.matchTop}>
                 <View style={styles.badges}>
-                  {item.match.isInstant ? <Text style={styles.nowPill}>⚡ NOW</Text> : null}
+                  {item.match.isInstant ? (
+                    <View style={styles.nowPill}>
+                      <Text style={styles.nowPillText}>⚡ NOW</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.whenText}>
                     {new Date(item.match.date).toLocaleDateString()} · {item.match.timeLabel}
                   </Text>
@@ -261,14 +266,20 @@ export function FindMatchScreen() {
               </Text>
               <View style={styles.metaChips}>
                 {item.match.skillLevel && item.match.skillLevel !== "any" ? (
-                  <Text style={styles.metaChip}>Skill {item.match.skillLevel}</Text>
+                  <View style={styles.metaChip}>
+                    <Text style={styles.metaChipText}>Skill {item.match.skillLevel}</Text>
+                  </View>
                 ) : null}
                 {item.match.matchType ? (
-                  <Text style={styles.metaChip}>{item.match.matchType === "singles" ? "1v1" : item.match.matchType === "mixed_doubles" ? "Mixed" : "2v2"}</Text>
+                  <View style={styles.metaChip}>
+                    <Text style={styles.metaChipText}>
+                      {item.match.matchType === "singles" ? "1v1" : item.match.matchType === "mixed_doubles" ? "Mixed" : "2v2"}
+                    </Text>
+                  </View>
                 ) : null}
-                <Text style={styles.metaChip}>
-                  {spots} spots left
-                </Text>
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaChipText}>{spots} spots left</Text>
+                </View>
               </View>
             </Pressable>
           );
@@ -475,7 +486,7 @@ const styles = StyleSheet.create({
   topTabTextActive: { color: COLORS.card },
   countPill: { borderRadius: 999, backgroundColor: COLORS.primarySoft, paddingHorizontal: 6, paddingVertical: 1 },
   countPillActive: { backgroundColor: "rgba(255,255,255,0.28)" },
-  countText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark },
+  countText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark, ...androidChipText(10) },
   countTextActive: { color: COLORS.card },
   filterStripWrap: { maxHeight: 40 },
   filterStrip: { gap: 7, paddingBottom: 8, alignItems: "center" },
@@ -492,7 +503,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   filterChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  filterChipText: { color: COLORS.textSubtle, fontSize: 10, fontWeight: "700" },
+  filterChipText: { color: COLORS.textSubtle, fontSize: 10, fontWeight: "700", ...androidChipText(10) },
   filterChipTextActive: { color: COLORS.primaryDark },
   clearChip: {
     borderRadius: 999,
@@ -506,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 3,
   },
-  clearChipText: { fontSize: 11, fontWeight: "700", color: COLORS.dangerText },
+  clearChipText: { fontSize: 11, fontWeight: "700", color: COLORS.dangerText, ...androidChipText(11) },
   liveCard: {
     marginTop: 1,
     marginBottom: 8,
@@ -535,15 +546,12 @@ const styles = StyleSheet.create({
   },
   matchTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   badges: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  nowPill: {
-    borderRadius: 999,
-    backgroundColor: COLORS.warningSoft,
+  nowPill: { ...chipPillShellSm, backgroundColor: COLORS.warningSoft },
+  nowPillText: {
     color: COLORS.warningText,
     fontSize: 10,
     fontWeight: "800",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(10),
   },
   whenText: { fontSize: 11, color: COLORS.textMuted, fontWeight: "600", flexShrink: 1 },
   viewBtn: {
@@ -559,16 +567,16 @@ const styles = StyleSheet.create({
   matchMeta: { marginTop: 3, fontSize: 12, color: COLORS.textMuted },
   metaChips: { marginTop: 8, flexDirection: "row", flexWrap: "wrap", gap: 6 },
   metaChip: {
-    borderRadius: 999,
+    ...chipPillShellSm,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.primarySoft,
+  },
+  metaChipText: {
     color: COLORS.primaryDark,
     fontSize: 10,
     fontWeight: "700",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(10),
   },
   empty: { alignItems: "center", marginTop: 30 },
   emptyTitle: { fontSize: 15, color: COLORS.text, fontWeight: "700" },

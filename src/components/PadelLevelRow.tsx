@@ -6,6 +6,7 @@ import {
   padelSkillAccentForNumeric,
 } from "../lib/padelSkill";
 import { COLORS } from "../theme/colors";
+import { androidChipText } from "../theme/chipAndroid";
 
 type Props = {
   skillLevel?: number | null;
@@ -107,8 +108,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  levelChipText: { color: COLORS.card, fontSize: 12, fontWeight: "800" },
-  levelChipTextCompact: { color: COLORS.card, fontSize: 13, fontWeight: "800" },
+  levelChipText: { color: COLORS.card, fontSize: 12, fontWeight: "800", ...androidChipText(12) },
+  levelChipTextCompact: { color: COLORS.card, fontSize: 13, fontWeight: "800", ...androidChipText(13) },
   tierLine: { fontSize: 12, fontWeight: "700", flexShrink: 1 },
   tierLineCompact: {
     fontSize: 11,

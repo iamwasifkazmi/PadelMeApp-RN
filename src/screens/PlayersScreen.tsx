@@ -8,6 +8,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primarySoft,
     borderColor: COLORS.borderStrong,
   },
-  filterChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSubtle },
+  filterChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textSubtle, ...androidChipText(12) },
   filterChipTextSelected: { color: COLORS.primaryDark, fontWeight: "700" },
   filterHint: {
     fontSize: 11,
@@ -418,10 +419,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: CHIP_PAD_V_SM,
     borderRadius: 999,
   },
-  friendBadgeText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark, letterSpacing: 0.2 },
+  friendBadgeText: { fontSize: 10, fontWeight: "800", color: COLORS.primaryDark, letterSpacing: 0.2, ...androidChipText(10) },
   skillWrap: { marginTop: 6, alignSelf: "flex-start" },
   metaLine: { marginTop: 4, fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   rowActions: { marginTop: 8, flexDirection: "row", gap: 6 },

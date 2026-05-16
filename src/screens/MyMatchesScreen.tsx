@@ -14,6 +14,7 @@ import { api } from "../lib/api";
 import { MatchDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V } from "../theme/chipAndroid";
 import { displayMatchTitle } from "../lib/matchDisplay";
 import { matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
 import { emailsMatch } from "../lib/matchPendingScore";
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
   },
   chipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  chipText: { fontSize: 13, fontWeight: "700", color: COLORS.text },
+  chipText: { fontSize: 13, fontWeight: "700", color: COLORS.text, ...androidChipText(13) },
   chipTextOn: { color: COLORS.primaryDark },
   hint: {
     paddingHorizontal: 16,
@@ -240,9 +241,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primarySoft,
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: CHIP_PAD_V,
   },
-  statusPillText: { fontSize: 11, fontWeight: "700", color: COLORS.primaryDark },
+  statusPillText: { fontSize: 11, fontWeight: "700", color: COLORS.primaryDark, ...androidChipText(11) },
   meta: { marginTop: 6, fontSize: 13, color: COLORS.textMuted, fontWeight: "600" },
   metaSmall: { marginTop: 4, fontSize: 12, color: COLORS.textSubtle },
   chevRow: { alignItems: "flex-end", marginTop: 4 },

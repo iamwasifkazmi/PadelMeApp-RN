@@ -20,6 +20,7 @@ import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 import { LocationSearchModal } from "../components/LocationSearchModal";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText } from "../theme/chipAndroid";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 type Mode = "instant" | "scheduled" | "recurring";
@@ -928,7 +929,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  chipText: { color: COLORS.text, fontWeight: "700", fontSize: 12 },
+  chipText: { color: COLORS.text, fontWeight: "700", fontSize: 12, ...androidChipText(12) },
   chipTextActive: { color: COLORS.primaryDark },
   dateField: {
     backgroundColor: COLORS.card,
@@ -976,7 +977,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   countryChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  countryChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600" },
+  countryChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600", ...androidChipText(12) },
   countryChipTextActive: { color: COLORS.primaryDark },
   venueHint: {
     color: COLORS.text,
@@ -1033,7 +1034,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   tagChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  tagChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600" },
+  tagChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600", ...androidChipText(12) },
   tagChipTextActive: { color: COLORS.primaryDark },
   bottomBar: {
     position: "absolute",
@@ -1173,6 +1174,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: "center",
     width: "100%",
+    ...androidChipText(11),
   },
   setsChipTextActive: { color: COLORS.primaryDark },
   autoBalanceRow: {

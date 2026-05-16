@@ -9,6 +9,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, useAuth } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V } from "../theme/chipAndroid";
 import type { RootStackParamList } from "../navigation/types";
 import { pendingPostAuthInviteToken } from "../navigation/pendingPostAuthInvite";
 
@@ -216,10 +217,14 @@ export function AcceptInviteScreen() {
                   <Text style={styles.previewSub}>{invite.eventSummary.subtitle}</Text>
                 ) : null}
                 <View style={styles.typeRow}>
-                  <Text style={styles.typePill}>
-                    {invite.eventSummary.kind === "match" ? "Match" : "Competition"}
-                  </Text>
-                  <Text style={styles.statusPill}>{invite.status}</Text>
+                  <View style={styles.typePill}>
+                    <Text style={styles.typePillText}>
+                      {invite.eventSummary.kind === "match" ? "Match" : "Competition"}
+                    </Text>
+                  </View>
+                  <View style={styles.statusPill}>
+                    <Text style={styles.statusPillText}>{invite.status}</Text>
+                  </View>
                 </View>
               </>
             ) : (
@@ -277,27 +282,31 @@ const styles = StyleSheet.create({
   typePill: {
     alignSelf: "flex-start",
     backgroundColor: COLORS.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: CHIP_PAD_V,
+    borderRadius: 8,
+  },
+  typePillText: {
     color: COLORS.primaryDark,
     fontWeight: "700",
     fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    overflow: "hidden",
+    ...androidChipText(12),
   },
   statusPill: {
     alignSelf: "flex-start",
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
+    paddingHorizontal: 10,
+    paddingVertical: CHIP_PAD_V,
+    borderRadius: 8,
+  },
+  statusPillText: {
     color: COLORS.textMuted,
     fontWeight: "700",
     fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    overflow: "hidden",
     textTransform: "capitalize",
+    ...androidChipText(12),
   },
   row: { flexDirection: "row", gap: 10, marginTop: 16 },
   btnPrimary: {

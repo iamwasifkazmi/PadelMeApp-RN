@@ -16,6 +16,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { launchImageLibrary } from "react-native-image-picker";
 import { MatchDto } from "../lib/types";
 import { COLORS } from "../theme/colors";
+import { androidChipText } from "../theme/chipAndroid";
 import {
   formatSubmittedScoreDisplay,
   emailsMatch,
@@ -614,7 +615,7 @@ const mStyles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primarySoft,
   },
-  winnerChipText: { fontSize: 13, fontWeight: "700", color: COLORS.text },
+  winnerChipText: { fontSize: 13, fontWeight: "700", color: COLORS.text, ...androidChipText(13) },
   warnBox: {
     backgroundColor: COLORS.dangerSoft,
     borderWidth: 1,

@@ -19,6 +19,7 @@ import { MatchDto, PlayerRecentFormDto, UserDto } from "../lib/types";
 import { ScreenSkeleton } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, chipPillShellSm } from "../theme/chipAndroid";
 import { userLocationLabel } from "../lib/userLocation";
 import { displayMatchTitle } from "../lib/matchDisplay";
 import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
@@ -693,9 +694,17 @@ export function MatchDetailScreen({
 
       <View style={styles.heroCard}>
         <View style={styles.badgeRow}>
-          {match.isInstant ? <Text style={styles.instantPill}>⚡ Instant</Text> : null}
-          <Text style={styles.skillPill}>{match.skillLevel || "any"}</Text>
-          <Text style={[styles.statusPill, getStatusStyle(status)]}>{statusLabel(status)}</Text>
+          {match.isInstant ? (
+            <View style={styles.instantPill}>
+              <Text style={styles.instantPillText}>⚡ Instant</Text>
+            </View>
+          ) : null}
+          <View style={styles.skillPill}>
+            <Text style={styles.skillPillText}>{match.skillLevel || "any"}</Text>
+          </View>
+          <View style={[styles.statusPill, getStatusBgStyle(status)]}>
+            <Text style={[styles.statusPillText, getStatusTextStyle(status)]}>{statusLabel(status)}</Text>
+          </View>
         </View>
         <Text style={styles.title}>{displayMatchTitle(match)}</Text>
         <InfoRow icon="calendar-outline" value={new Date(match.date).toLocaleDateString()} />
@@ -727,9 +736,9 @@ export function MatchDetailScreen({
         {match.tags?.length ? (
           <View style={styles.tagsRow}>
             {match.tags.map((tag) => (
-              <Text key={tag} style={styles.tagChip}>
-                {tag}
-              </Text>
+              <View key={tag} style={styles.tagChip}>
+                <Text style={styles.tagChipText}>{tag}</Text>
+              </View>
             ))}
           </View>
         ) : null}
@@ -1217,14 +1226,24 @@ function statusLabel(status: MatchStatusValue) {
   return "Open";
 }
 
-function getStatusStyle(status: MatchStatusValue) {
-  if (status === "completed") return styles.statusCompleted;
-  if (status === "in_progress") return styles.statusProgress;
-  if (status === "awaiting_score" || status === "pending_validation") return styles.statusProgress;
-  if (status === "cancelled") return styles.statusCancelled;
-  if (status === "disputed") return styles.statusDisputed;
-  if (status === "full") return styles.statusFull;
-  return styles.statusOpen;
+function getStatusBgStyle(status: MatchStatusValue) {
+  if (status === "completed") return styles.statusCompletedBg;
+  if (status === "in_progress") return styles.statusProgressBg;
+  if (status === "awaiting_score" || status === "pending_validation") return styles.statusProgressBg;
+  if (status === "cancelled") return styles.statusCancelledBg;
+  if (status === "disputed") return styles.statusDisputedBg;
+  if (status === "full") return styles.statusFullBg;
+  return styles.statusOpenBg;
+}
+
+function getStatusTextStyle(status: MatchStatusValue) {
+  if (status === "completed") return styles.statusCompletedText;
+  if (status === "in_progress") return styles.statusProgressText;
+  if (status === "awaiting_score" || status === "pending_validation") return styles.statusProgressText;
+  if (status === "cancelled") return styles.statusCancelledText;
+  if (status === "disputed") return styles.statusDisputedText;
+  if (status === "full") return styles.statusFullText;
+  return styles.statusOpenText;
 }
 
 const styles = StyleSheet.create({
@@ -1254,41 +1273,35 @@ const styles = StyleSheet.create({
   pendingLine: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginTop: 6 },
   pendingMeta: { fontSize: 11, color: COLORS.textSubtle, marginTop: 6 },
   badgeRow: { flexDirection: "row", gap: 6, marginBottom: 8, flexWrap: "wrap" },
-  instantPill: {
-    borderRadius: 999,
-    backgroundColor: COLORS.warningSoft,
+  instantPill: { ...chipPillShellSm, backgroundColor: COLORS.warningSoft },
+  instantPillText: {
     color: COLORS.warningText,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
     fontSize: 10,
     fontWeight: "800",
-    overflow: "hidden",
+    ...androidChipText(10),
   },
-  skillPill: {
-    borderRadius: 999,
-    backgroundColor: COLORS.primarySoft,
+  skillPill: { ...chipPillShellSm, backgroundColor: COLORS.primarySoft },
+  skillPillText: {
     color: COLORS.primaryDark,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
     fontSize: 10,
     fontWeight: "800",
-    overflow: "hidden",
     textTransform: "capitalize",
+    ...androidChipText(10),
   },
-  statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 10,
-    fontWeight: "800",
-    overflow: "hidden",
-  },
-  statusOpen: { backgroundColor: COLORS.successSoft, color: COLORS.successText },
-  statusFull: { backgroundColor: COLORS.warningSoft, color: COLORS.warningText },
-  statusProgress: { backgroundColor: COLORS.infoSoft, color: COLORS.infoText },
-  statusCompleted: { backgroundColor: COLORS.border, color: COLORS.textSubtle },
-  statusDisputed: { backgroundColor: COLORS.warningSoft, color: COLORS.warningText },
-  statusCancelled: { backgroundColor: COLORS.dangerSoft, color: COLORS.dangerText },
+  statusPill: chipPillShellSm,
+  statusPillText: { fontSize: 10, fontWeight: "800", ...androidChipText(10) },
+  statusOpenBg: { backgroundColor: COLORS.successSoft },
+  statusOpenText: { color: COLORS.successText },
+  statusFullBg: { backgroundColor: COLORS.warningSoft },
+  statusFullText: { color: COLORS.warningText },
+  statusProgressBg: { backgroundColor: COLORS.infoSoft },
+  statusProgressText: { color: COLORS.infoText },
+  statusCompletedBg: { backgroundColor: COLORS.border },
+  statusCompletedText: { color: COLORS.textSubtle },
+  statusDisputedBg: { backgroundColor: COLORS.warningSoft },
+  statusDisputedText: { color: COLORS.warningText },
+  statusCancelledBg: { backgroundColor: COLORS.dangerSoft },
+  statusCancelledText: { color: COLORS.dangerText },
   inviteLockEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
   cancelBanner: {
     backgroundColor: COLORS.dangerSoft,
@@ -1350,16 +1363,16 @@ const styles = StyleSheet.create({
   infoText: { color: COLORS.textSubtle, fontSize: 13, flex: 1 },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   tagChip: {
-    borderRadius: 999,
+    ...chipPillShellSm,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.primarySoft,
+  },
+  tagChipText: {
     color: COLORS.primaryDark,
     fontSize: 10,
     fontWeight: "700",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    overflow: "hidden",
+    ...androidChipText(10),
   },
   teamsCard: {
     backgroundColor: COLORS.card,
@@ -1477,7 +1490,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   winnerChipOn: { backgroundColor: COLORS.primarySoft, borderColor: COLORS.borderStrong },
-  winnerChipText: { fontWeight: "700", color: COLORS.text, fontSize: 13 },
+  winnerChipText: { fontWeight: "700", color: COLORS.text, fontSize: 13, ...androidChipText(13) },
   warnText: { fontSize: 12, color: COLORS.warningText, fontWeight: "600" },
   startFixHint: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17, marginTop: 4 },
   chatBtn: {

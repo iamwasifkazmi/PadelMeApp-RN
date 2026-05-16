@@ -22,6 +22,7 @@ import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
 import { userLocationLabel } from "../lib/userLocation";
@@ -1055,10 +1056,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EED27D",
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: CHIP_PAD_V,
   },
   instantTimeChipActive: { backgroundColor: "#FFE68A", borderColor: "#DDAE2A" },
-  instantTimeChipText: { color: "#6A5200", opacity: 0.9, fontSize: 10, fontWeight: "700" },
+  instantTimeChipText: { color: "#6A5200", opacity: 0.9, fontSize: 10, fontWeight: "700", ...androidChipText(10) },
   instantTimeChipTextActive: { opacity: 1 },
   instantBtn: {
     height: 42,
@@ -1109,20 +1110,20 @@ const styles = StyleSheet.create({
     borderColor: COLORS.success,
     backgroundColor: COLORS.successSoft,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: CHIP_PAD_V,
     maxWidth: 120,
   },
-  statusTagSoftText: { color: COLORS.successText, fontSize: 10, fontWeight: "700" },
+  statusTagSoftText: { color: COLORS.successText, fontSize: 10, fontWeight: "700", ...androidChipText(10) },
   progressTag: {
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primarySoft,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: CHIP_PAD_V,
     maxWidth: 120,
   },
-  progressTagText: { color: COLORS.primaryDark, fontSize: 10, fontWeight: "700" },
+  progressTagText: { color: COLORS.primaryDark, fontSize: 10, fontWeight: "700", ...androidChipText(10) },
   metaRows: { marginTop: 2, gap: 1 },
   cardEndChevron: { position: "absolute", right: 10, top: 11 },
   levelPill: {
@@ -1131,18 +1132,24 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderStrong,
     backgroundColor: COLORS.primarySoft,
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: CHIP_PAD_V_SM,
   },
-  levelPillText: { color: COLORS.primaryDark, fontSize: 9, fontWeight: "700", textTransform: "capitalize" },
+  levelPillText: {
+    color: COLORS.primaryDark,
+    fontSize: 9,
+    fontWeight: "700",
+    textTransform: "capitalize",
+    ...androidChipText(9),
+  },
   inviteOnlyTag: {
     borderRadius: 999,
     backgroundColor: COLORS.borderMuted,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingVertical: CHIP_PAD_V_SM,
   },
-  inviteOnlyText: { color: COLORS.textMuted, fontSize: 9, fontWeight: "700" },
+  inviteOnlyText: { color: COLORS.textMuted, fontSize: 9, fontWeight: "700", ...androidChipText(9) },
   playersCountMini: { flexDirection: "row", alignItems: "center", gap: 3 },
   playersCountMiniText: { fontSize: 10, color: COLORS.textMuted, fontWeight: "600" },
   matchTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 2 },

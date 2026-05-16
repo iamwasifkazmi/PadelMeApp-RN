@@ -16,6 +16,7 @@ import { api } from "../lib/api";
 import { CommunityPostDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { androidChipText } from "../theme/chipAndroid";
 import { useSnackbar } from "../components/Snackbar";
 
 type KindFilter = "all" | "feedback" | "idea" | "general";
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primarySoftAlt,
   },
-  filterChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted },
+  filterChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted, ...androidChipText(12) },
   filterChipTextOn: { color: COLORS.primaryDark },
   composeCard: {
     marginHorizontal: 16,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   miniChipOn: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryPale },
-  miniChipText: { fontSize: 11, fontWeight: "600", color: COLORS.textMuted },
+  miniChipText: { fontSize: 11, fontWeight: "600", color: COLORS.textMuted, ...androidChipText(11) },
   miniChipTextOn: { color: COLORS.primaryDark },
   titleInput: {
     borderWidth: 1,

@@ -9,6 +9,7 @@ import { clearPersistedSession, getCurrentUserEmail, getCurrentUserName } from "
 import { signOutGoogleSilently } from "../lib/googleAuth";
 import { signOutAppleSilently } from "../lib/appleAuth";
 import { COLORS } from "../theme/colors";
+import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { userLocationLabel } from "../lib/userLocation";
 
 const TAG_EMOJI: Record<string, string> = {
@@ -345,9 +346,9 @@ export function ProfileScreen() {
                   <Text style={styles.achievementText}>{a.label}</Text>
                   <Text style={styles.rowMeta}>{a.desc}</Text>
                 </View>
-                <Text style={[styles.achievementTag, styles.achievementTagOn]}>
-                  EARNED
-                </Text>
+                <View style={[styles.achievementTag, styles.achievementTagOn]}>
+                  <Text style={[styles.achievementTagText, styles.achievementTagTextOn]}>EARNED</Text>
+                </View>
               </View>
             ))}
             {lockedAchievements.map((a) => (
@@ -357,9 +358,9 @@ export function ProfileScreen() {
                   <Text style={styles.achievementText}>{a.label}</Text>
                   <Text style={styles.rowMeta}>{a.desc}</Text>
                 </View>
-                <Text style={[styles.achievementTag, styles.achievementTagOff]}>
-                  LOCKED
-                </Text>
+                <View style={[styles.achievementTag, styles.achievementTagOff]}>
+                  <Text style={[styles.achievementTagText, styles.achievementTagTextOff]}>LOCKED</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -630,10 +631,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
   },
-  tagChipText: { color: COLORS.primaryDark, fontSize: 12, fontWeight: "700" },
+  tagChipText: { color: COLORS.primaryDark, fontSize: 12, fontWeight: "700", ...androidChipText(12) },
   heroBadges: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
   badge: { backgroundColor: COLORS.border, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.textSubtle, textTransform: "capitalize" },
+  badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.textSubtle, textTransform: "capitalize", ...androidChipText(11) },
   heroButtons: { flexDirection: "row", gap: 8, marginTop: 12 },
   heroCta: {
     flexDirection: "row",
@@ -707,7 +708,7 @@ const styles = StyleSheet.create({
   trustChip: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1 },
   trustChipOn: { backgroundColor: COLORS.infoSoft, borderColor: COLORS.infoBorder },
   trustChipOff: { backgroundColor: COLORS.bg, borderColor: COLORS.border },
-  trustChipText: { fontSize: 11, fontWeight: "700" },
+  trustChipText: { fontSize: 11, fontWeight: "700", ...androidChipText(11) },
   trustChipTextOn: { color: COLORS.infoText },
   trustChipTextOff: { color: COLORS.textMuted },
   rowBtn: {
@@ -737,9 +738,16 @@ const styles = StyleSheet.create({
   },
   achievementText: { flex: 1, fontSize: 12, color: COLORS.text, fontWeight: "600" },
   achievementEmoji: { fontSize: 18 },
-  achievementTag: { fontSize: 10, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, overflow: "hidden" },
-  achievementTagOn: { backgroundColor: COLORS.primarySoftAlt, color: COLORS.primaryDark },
-  achievementTagOff: { backgroundColor: COLORS.border, color: COLORS.textMuted },
+  achievementTag: {
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: CHIP_PAD_V_SM,
+  },
+  achievementTagOn: { backgroundColor: COLORS.primarySoftAlt },
+  achievementTagOff: { backgroundColor: COLORS.border },
+  achievementTagText: { fontSize: 10, fontWeight: "800", ...androidChipText(10) },
+  achievementTagTextOn: { color: COLORS.primaryDark },
+  achievementTagTextOff: { color: COLORS.textMuted },
   eloBig: { fontSize: 32, fontWeight: "800", color: COLORS.primary, marginBottom: 8 },
   progressTrack: { height: 8, borderRadius: 999, backgroundColor: COLORS.border, overflow: "hidden" },
   progressFill: { height: 8, borderRadius: 999, backgroundColor: COLORS.primary },
