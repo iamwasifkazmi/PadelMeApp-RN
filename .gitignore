@@ -24,6 +24,8 @@ DerivedData
 
 # Android/IntelliJ
 #
+releases/
+*.apk
 build/
 .idea
 .gradle
