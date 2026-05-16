@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -97,30 +96,6 @@ function matchDtoDateIso(m: MatchDto): string {
   if (typeof raw === "string") return raw;
   if (raw instanceof Date) return raw.toISOString();
   return "";
-}
-
-/** In-app popup aligned with notification copy for system cancellations. */
-function cancelledMatchAlertCopy(m: MatchDto): { title: string; message: string } {
-  const title = "Match cancelled";
-  const by = (m.cancelledBy || "").trim();
-  const quotedTitle = `"${(m.title || "This match").trim()}"`;
-
-  if (by === "system:full-roster-no-start-24h") {
-    return {
-      title,
-      message: `${quotedTitle} was cancelled automatically—the roster was full but no one started the match within 24 hours after the scheduled time. This is the same update as in your notifications.`,
-    };
-  }
-  if (by === "system:auto-past-slot") {
-    return {
-      title,
-      message: `${quotedTitle} was cancelled automatically—the scheduled date and time had passed while spots were still open. This is the same update as in your notifications.`,
-    };
-  }
-  return {
-    title,
-    message: `${quotedTitle} is no longer active. If you were on the roster, check your notifications for details.`,
-  };
 }
 
 function matchEligibilitySummary(m: MatchDto): string | null {
@@ -264,12 +239,8 @@ export function MatchDetailScreen({
   const pendingScoreDraftSyncKey = React.useRef("");
   const [submitScoreModalOpen, setSubmitScoreModalOpen] = React.useState(false);
   const [confirmScoreModalOpen, setConfirmScoreModalOpen] = React.useState(false);
-  const [cancelDialog, setCancelDialog] = React.useState<{ title: string; message: string } | null>(null);
-  const cancelAlertKeyRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    cancelAlertKeyRef.current = null;
-    setCancelDialog(null);
     setScoreA("");
     setScoreB("");
     setEvidencePhotoUris([]);
@@ -335,15 +306,6 @@ export function MatchDetailScreen({
   React.useEffect(() => {
     load(false);
   }, [load]);
-
-  React.useEffect(() => {
-    if (!match || match.status !== "cancelled") return;
-    const key = `${match.id}|${match.cancelledAt ?? ""}|${match.cancelledBy ?? ""}`;
-    if (cancelAlertKeyRef.current === key) return;
-    cancelAlertKeyRef.current = key;
-    const { title, message } = cancelledMatchAlertCopy(match);
-    setCancelDialog({ title, message });
-  }, [match?.id, match?.status, match?.cancelledBy, match?.cancelledAt]);
 
   React.useEffect(() => {
     if (!match) return;
@@ -1231,30 +1193,6 @@ export function MatchDetailScreen({
       onReject={() => void onRejectPendingScore()}
       onDispute={() => void onDisputeScore()}
     />
-    <Modal
-      visible={cancelDialog != null}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setCancelDialog(null)}
-    >
-      <Pressable style={styles.cancelDialogBackdrop} onPress={() => setCancelDialog(null)}>
-        <Pressable style={styles.cancelDialogCard} onPress={() => undefined}>
-          <View style={styles.cancelDialogAccent}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.primaryDark} />
-          </View>
-          <Text style={styles.cancelDialogTitle}>{cancelDialog?.title}</Text>
-          <Text style={styles.cancelDialogSubtitle}>{cancelDialog?.message}</Text>
-          <View style={styles.cancelDialogActions}>
-            <Pressable style={styles.cancelDialogSecondary} onPress={() => setCancelDialog(null)}>
-              <Text style={styles.cancelDialogSecondaryText}>Close</Text>
-            </Pressable>
-            <Pressable style={styles.cancelDialogDismiss} onPress={() => setCancelDialog(null)}>
-              <Text style={styles.cancelDialogDismissText}>Got it</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
     </>
   );
 }
@@ -1591,53 +1529,4 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.65 },
   emptyText: { marginTop: 24, color: COLORS.textMuted, textAlign: "center" },
   pendingActions: { gap: 8, marginTop: 10 },
-  cancelDialogBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(17,24,39,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  cancelDialogCard: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 18,
-  },
-  cancelDialogAccent: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "flex-start",
-    marginBottom: 4,
-  },
-  cancelDialogTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text, letterSpacing: -0.2 },
-  cancelDialogSubtitle: { marginTop: 8, color: COLORS.textMuted, fontSize: 14, lineHeight: 21 },
-  cancelDialogActions: { flexDirection: "row", gap: 8, marginTop: 18 },
-  cancelDialogSecondary: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    backgroundColor: COLORS.card,
-  },
-  cancelDialogSecondaryText: { color: COLORS.text, fontWeight: "700", fontSize: 15 },
-  cancelDialogDismiss: {
-    flex: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    backgroundColor: COLORS.primary,
-  },
-  cancelDialogDismissText: { color: COLORS.card, fontWeight: "700", fontSize: 15 },
 });

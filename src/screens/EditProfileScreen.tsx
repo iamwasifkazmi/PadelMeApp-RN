@@ -24,6 +24,9 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
+import { PadelSkillLevelGrid } from "../components/PadelSkillLevelGrid";
+import { PadelSkillLevelSummary } from "../components/PadelSkillLevelSummary";
+import { padelSkillApiLabel } from "../lib/padelSkill";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
@@ -294,7 +297,7 @@ export function EditProfileScreen() {
         photoUrl: form.photoUrl.trim() || null,
         photoVerified: form.photoVerified,
         skillLevel: Number(form.skillLevel),
-        skillLabel: skillLabelFromNumeric(Number(form.skillLevel)),
+        skillLabel: padelSkillApiLabel(Number(form.skillLevel)),
         skillConfidence: form.skillConfidence || null,
         preferredPosition: form.preferredPosition || null,
         availabilityDays: form.availabilityDays,
@@ -515,24 +518,17 @@ export function EditProfileScreen() {
         <SectionCard
           emoji="🎾"
           title="Your Padel Level"
-          subtitle="Required: level (1 = pro, 10 = beginner), confidence, and court position"
+          subtitle="Select your level — 1 = Pro, 10 = Just starting. Also set confidence and court position."
           onLayout={(y) => setSectionOffset(1, y)}
         >
           <FieldLabel text="Padel level (1–10)" required />
-          <View style={styles.levelGrid}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <Pressable
-                key={n}
-                style={[styles.levelBtn, form.skillLevel === n && styles.levelBtnActive]}
-                onPress={() => setForm((p) => ({ ...p, skillLevel: n, skillLabel: skillLabelFromNumeric(n) }))}
-              >
-                <Text style={[styles.levelBtnText, form.skillLevel === n && styles.levelBtnTextActive]}>{n}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.levelSummary}>
-            {skillCategory(form.skillLevel)} · {skillLongLabel(form.skillLevel)}
-          </Text>
+          <PadelSkillLevelGrid
+            value={form.skillLevel}
+            onChange={(n) =>
+              setForm((p) => ({ ...p, skillLevel: n, skillLabel: padelSkillApiLabel(n) }))
+            }
+          />
+          <PadelSkillLevelSummary skillLevel={form.skillLevel} />
 
           <FieldLabel text="Confidence on court" required />
           <View style={styles.chipsRow}>
@@ -843,34 +839,6 @@ function Field({
   );
 }
 
-function skillLabelFromNumeric(value: number): "beginner" | "intermediate" | "advanced" {
-  if (value <= 3) return "advanced";
-  if (value <= 6) return "intermediate";
-  return "beginner";
-}
-
-function skillCategory(value: number) {
-  if (value <= 3) return "Advanced";
-  if (value <= 6) return "Intermediate";
-  return "Beginner";
-}
-
-function skillLongLabel(value: number) {
-  const labels: Record<number, string> = {
-    1: "Pro",
-    2: "Expert",
-    3: "Advanced+",
-    4: "Advanced",
-    5: "Intermediate+",
-    6: "Intermediate",
-    7: "Beginner+",
-    8: "Beginner",
-    9: "Novice",
-    10: "Just starting",
-  };
-  return labels[value] || "Intermediate";
-}
-
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -1001,32 +969,6 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
   chipText: { color: COLORS.text, fontSize: 11, fontWeight: "600" },
   chipTextActive: { color: COLORS.primaryDark },
-  levelGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  levelBtn: {
-    width: "18%",
-    minWidth: 48,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.bg,
-  },
-  levelBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  levelBtnText: { color: COLORS.text, fontWeight: "800", fontSize: 13 },
-  levelBtnTextActive: { color: COLORS.card },
-  levelSummary: {
-    textAlign: "center",
-    fontSize: 11,
-    color: COLORS.textMuted,
-    backgroundColor: COLORS.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 8,
-    marginBottom: 10,
-  },
   daysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
   dayBtn: {
     width: 42,

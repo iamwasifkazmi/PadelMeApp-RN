@@ -2,6 +2,11 @@
  * 1–10 inverted scale (matches Base44 `EditProfile`): 1 = Pro, 10 = Just starting.
  * Tier text colours follow Base44 `SKILL_CATEGORY_COLOR` (Tailwind 600 hex).
  */
+
+/** Base44 `--secondary` ~ hsl(160, 15%, 93%) — summary bar under level grid */
+export const PADEL_SKILL_SUMMARY_BG = "#EDF1EF";
+/** Base44 `--muted-foreground` ~ hsl(160, 10%, 45%) */
+export const PADEL_SKILL_SUMMARY_MUTED = "#6B7F78";
 export const PADEL_SKILL_LABELS: Record<number, string> = {
   1: "Pro",
   2: "Expert",
@@ -49,6 +54,11 @@ export function clampPadelSkillLevel(n: number | null | undefined): number | nul
   const x = Math.round(n);
   if (x < 1 || x > 10) return null;
   return x;
+}
+
+/** API `skillLabel` enum from numeric 1–10. */
+export function padelSkillApiLabel(n: number): PadelSkillTier {
+  return padelSkillTierFromNumeric(n);
 }
 
 /** e.g. "Advanced · Advanced+" */

@@ -210,6 +210,23 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
           ? hasUserGeo({ locationLat, locationLng })
           : true;
 
+  const applyDobSelection = React.useCallback((selected: Date) => {
+    setDobDate(
+      utcNoonFromParts(selected.getFullYear(), selected.getMonth(), selected.getDate()),
+    );
+  }, []);
+
+  const onDobValueChange = React.useCallback(
+    (selected: Date) => {
+      if (selected) applyDobSelection(selected);
+    },
+    [applyDobSelection],
+  );
+
+  const onAndroidDobDismiss = React.useCallback(() => {
+    setAndroidDobOpen(false);
+  }, []);
+
   const next = () => {
     if (step < 4) {
       setStep((s) => (s + 1) as 1 | 2 | 3 | 4);
@@ -274,13 +291,7 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
                   themeVariant="dark"
                   minimumDate={minDobDate()}
                   maximumDate={maxDobDate()}
-                  onChange={(_, date) => {
-                    if (date) {
-                      setDobDate(
-                        utcNoonFromParts(date.getFullYear(), date.getMonth(), date.getDate()),
-                      );
-                    }
-                  }}
+                  onValueChange={onDobValueChange}
                 />
               </View>
             ) : (
@@ -302,14 +313,11 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
                     display="default"
                     minimumDate={minDobDate()}
                     maximumDate={maxDobDate()}
-                    onChange={(_, date) => {
+                    onValueChange={(date) => {
                       setAndroidDobOpen(false);
-                      if (date) {
-                        setDobDate(
-                          utcNoonFromParts(date.getFullYear(), date.getMonth(), date.getDate()),
-                        );
-                      }
+                      onDobValueChange(date);
                     }}
+                    onDismiss={onAndroidDobDismiss}
                   />
                 ) : null}
               </View>

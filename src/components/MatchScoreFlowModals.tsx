@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -80,6 +81,24 @@ export function SubmitMatchScoreModal(props: {
   } = props;
 
   const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!visible) {
+      setKeyboardHeight(0);
+      return;
+    }
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvt, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [visible]);
 
   const isDoubles = isDoublesFormat(match);
   const teamALabel = isDoubles ? "Team A" : "You / side A";
@@ -162,12 +181,13 @@ export function SubmitMatchScoreModal(props: {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={mStyles.overlay}>
         <Pressable style={mStyles.backdrop} onPress={onClose} />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={mStyles.kav}
-          keyboardVerticalOffset={Platform.OS === "ios" ? Math.max(insets.top, 12) : 0}
-        >
-          <View style={mStyles.sheet}>
+        <View style={mStyles.kav}>
+          <View
+            style={[
+              mStyles.sheet,
+              { marginBottom: keyboardHeight, paddingBottom: Math.max(insets.bottom, 12) },
+            ]}
+          >
             <View style={mStyles.sheetHeader}>
               <Text style={mStyles.sheetTitle}>Submit Match Score</Text>
               <Pressable hitSlop={12} onPress={onClose} accessibilityLabel="Close">
@@ -184,6 +204,7 @@ export function SubmitMatchScoreModal(props: {
               contentContainerStyle={mStyles.sheetBodyContent}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator
             >
             {useSets ? (
               <View style={mStyles.setTable}>
@@ -269,17 +290,19 @@ export function SubmitMatchScoreModal(props: {
                 <Text style={mStyles.winnerChipText}>{teamBLabel}</Text>
               </Pressable>
             </View>
-
-            <Pressable
-              style={[mStyles.primaryFull, (!canSubmit || busy) && mStyles.primaryFullDisabled]}
-              disabled={!canSubmit || busy}
-              onPress={() => void handleSubmit()}
-            >
-              <Text style={mStyles.primaryFullText}>{busy ? "Submitting…" : "Submit Score"}</Text>
-            </Pressable>
           </ScrollView>
+
+            <View style={mStyles.sheetFooter}>
+              <Pressable
+                style={[mStyles.primaryFull, (!canSubmit || busy) && mStyles.primaryFullDisabled]}
+                disabled={!canSubmit || busy}
+                onPress={() => void handleSubmit()}
+              >
+                <Text style={mStyles.primaryFullText}>{busy ? "Submitting…" : "Submit Score"}</Text>
+              </Pressable>
+            </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </View>
     </Modal>
   );
@@ -486,8 +509,7 @@ const mStyles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: 18,
     paddingTop: 14,
-    paddingBottom: 28,
-    maxHeight: "88%",
+    maxHeight: "92%",
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -506,8 +528,14 @@ const mStyles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
   },
-  sheetBody: { flexShrink: 1, maxHeight: 480 },
-  sheetBodyContent: { flexGrow: 1, paddingBottom: 8 },
+  sheetBody: { flexShrink: 1, flexGrow: 0, maxHeight: 420 },
+  sheetBodyContent: { flexGrow: 1 },
+  sheetFooter: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
+    backgroundColor: COLORS.card,
+  },
   setTable: { marginBottom: 12 },
   setHeadRow: { flexDirection: "row", marginBottom: 8, alignItems: "center", gap: 8 },
   setHeadIdx: {
@@ -569,7 +597,6 @@ const mStyles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 4,
   },
   primaryFullDisabled: { opacity: 0.45 },
   primaryFullText: { color: "#fff", fontSize: 16, fontWeight: "800" },

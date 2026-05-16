@@ -28,6 +28,7 @@ import { userLocationLabel } from "../lib/userLocation";
 import { displayMatchTitle } from "../lib/matchDisplay";
 import { emailsMatch, shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
 import { matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
+import { homeGreetingName, userNeedsOnboarding } from "../lib/profileOnboarding";
 
 type FriendRequestDto = {
   id: string;
@@ -240,6 +241,16 @@ export function HomeScreen() {
     load();
   }, [load]);
 
+  React.useEffect(() => {
+    if (loading || !me) return;
+    if (!userNeedsOnboarding(me)) return;
+    const parent = navigation.getParent?.();
+    const root = parent?.getParent?.() ?? parent ?? navigation;
+    if (typeof root.navigate === "function") {
+      root.navigate("Onboarding");
+    }
+  }, [loading, me, navigation]);
+
   const onRefresh = React.useCallback(() => {
     load({ refresh: true });
   }, [load]);
@@ -308,9 +319,9 @@ export function HomeScreen() {
   if (loading) return <HomeSkeleton />;
 
   const meName = me?.fullName || getCurrentUserName();
-  const firstName = meName.split(" ")[0] || "Player";
+  const greetingName = homeGreetingName(me ?? undefined);
   const meLocation = userLocationLabel(me ?? {});
-  const meAvatarInitial = meName.slice(0, 1).toUpperCase() || "P";
+  const meAvatarInitial = (me?.firstName || meName).slice(0, 1).toUpperCase() || "P";
 
   const viewerOnRoster = (m: MatchDto) => (m.players || []).some((p) => emailsMatch(p, USER_EMAIL));
 
@@ -400,10 +411,14 @@ export function HomeScreen() {
               </View>
             )}
           </Pressable>
-          <View>
-            <Text style={styles.greeting}>Hi {firstName} 👋</Text>
+          <View style={styles.headerGreetingCol}>
+            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+              Hi {greetingName} 👋
+            </Text>
             {meLocation ? (
-              <Text style={styles.greetingSub}>📍 {meLocation}</Text>
+              <Text style={styles.greetingSub} numberOfLines={1} ellipsizeMode="tail">
+                📍 {meLocation}
+              </Text>
             ) : (
               <Pressable onPress={() => navigation.navigate("EditProfile")}>
                 <Text style={styles.greetingAction}>📍 Set your location →</Text>
@@ -999,7 +1014,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 110 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 14, alignItems: "center" },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
+  headerGreetingCol: { flex: 1, minWidth: 0 },
   userAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.text, alignItems: "center", justifyContent: "center" },
   userAvatarImage: { width: 42, height: 42, borderRadius: 21 },
   userAvatarText: { color: COLORS.card, fontWeight: "700" },

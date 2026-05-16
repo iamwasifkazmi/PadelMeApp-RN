@@ -17,7 +17,7 @@ type Props = {
 };
 
 /**
- * Base44-style summary: orange chip with level number; tier colour for "Advanced · Advanced+".
+ * Orange level chip; tier line uses Base44 category accent colour.
  */
 export function PadelLevelRow({ skillLevel, fallbackLabel, compact, compactAlign = "start" }: Props) {
   const n = clampPadelSkillLevel(skillLevel);
@@ -79,7 +79,6 @@ export function PadelLevelRow({ skillLevel, fallbackLabel, compact, compactAlign
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  /** Narrow cards (e.g. home player carousel): chip above label — avoids horizontal overflow. */
   compactCol: {
     width: "100%",
     gap: 5,
@@ -113,7 +112,6 @@ const styles = StyleSheet.create({
   tierLine: { fontSize: 12, fontWeight: "700", flexShrink: 1 },
   tierLineCompact: {
     fontSize: 11,
-    fontWeight: "700",
     lineHeight: 14,
     width: "100%",
   },
