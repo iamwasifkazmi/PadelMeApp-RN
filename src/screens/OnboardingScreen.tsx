@@ -198,7 +198,22 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
     }
   };
 
-  if (loading) return <OnboardingSkeleton />;
+  const applyDobSelection = React.useCallback((selected: Date) => {
+    setDobDate(
+      utcNoonFromParts(selected.getFullYear(), selected.getMonth(), selected.getDate()),
+    );
+  }, []);
+
+  const onDobValueChange = React.useCallback(
+    (_event: unknown, selected?: Date) => {
+      if (selected) applyDobSelection(selected);
+    },
+    [applyDobSelection],
+  );
+
+  const onAndroidDobDismiss = React.useCallback(() => {
+    setAndroidDobOpen(false);
+  }, []);
 
   const dobValid = computedAge >= MIN_ONBOARDING_AGE && computedAge <= 100;
   const canContinue =
@@ -210,23 +225,6 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
           ? hasUserGeo({ locationLat, locationLng })
           : true;
 
-  const applyDobSelection = React.useCallback((selected: Date) => {
-    setDobDate(
-      utcNoonFromParts(selected.getFullYear(), selected.getMonth(), selected.getDate()),
-    );
-  }, []);
-
-  const onDobValueChange = React.useCallback(
-    (selected: Date) => {
-      if (selected) applyDobSelection(selected);
-    },
-    [applyDobSelection],
-  );
-
-  const onAndroidDobDismiss = React.useCallback(() => {
-    setAndroidDobOpen(false);
-  }, []);
-
   const next = () => {
     if (step < 4) {
       setStep((s) => (s + 1) as 1 | 2 | 3 | 4);
@@ -234,6 +232,8 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
     }
     complete();
   };
+
+  if (loading) return <OnboardingSkeleton />;
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 28) }]}>
@@ -313,9 +313,9 @@ export function OnboardingScreen({ navigation }: { navigation: any }) {
                     display="default"
                     minimumDate={minDobDate()}
                     maximumDate={maxDobDate()}
-                    onValueChange={(date) => {
+                    onValueChange={(_event, date) => {
                       setAndroidDobOpen(false);
-                      onDobValueChange(date);
+                      onDobValueChange(_event, date);
                     }}
                     onDismiss={onAndroidDobDismiss}
                   />
