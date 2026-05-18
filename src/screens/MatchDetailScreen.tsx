@@ -806,7 +806,7 @@ export function MatchDetailScreen({
           </Text>
           <Text style={styles.pendingMeta}>
             Submitted by {match.scoreSubmittedBy || "—"}. Use{" "}
-            <Text style={{ fontWeight: "800" }}>Confirm Score</Text> below (Base44-style).
+            <Text style={{ fontWeight: "800" }}>Confirm Score</Text> below.
           </Text>
           {match.evidenceUrl ? (
             <EvidenceAttachmentsPreview blob={match.evidenceUrl} />
@@ -819,8 +819,7 @@ export function MatchDetailScreen({
       emailsMatch(match.scoreSubmittedBy, USER_EMAIL) ? (
         <View style={styles.waitingScoreBanner}>
           <Text style={styles.waitingScoreText}>
-            You proposed this score — you can edit it below until a team captain or the organiser confirms (same as
-            Base44).
+            You proposed this score — you can edit it below until a team captain or the organiser confirms it.
           </Text>
         </View>
       ) : null}
