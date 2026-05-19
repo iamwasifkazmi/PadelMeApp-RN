@@ -12,7 +12,6 @@ import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { UserAvatar } from "../components/UserAvatar";
 import { formatDistanceAway } from "../lib/padelSkill";
-import { PLAYERS_COUNTRY_FILTER_CHIPS } from "../lib/profileCountries";
 import { isDirectDmBetween, normEmail } from "../lib/emailNorm";
 
 type DistanceFilter = "any" | "5" | "10" | "20" | "30";
@@ -101,8 +100,9 @@ export function PlayersScreen() {
   const navigation = useNavigation<any>();
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
-  const [loading, setLoading] = React.useState(true);
+  const [initialLoading, setInitialLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
+  const hasLoadedOnceRef = React.useRef(false);
   const [query, setQuery] = React.useState("");
   const [distance, setDistance] = React.useState<DistanceFilter>("any");
   const [gender, setGender] = React.useState<GenderFilter>("all");
@@ -112,10 +112,11 @@ export function PlayersScreen() {
   const [friendEmails, setFriendEmails] = React.useState<Set<string>>(() => new Set());
   const [openingChatEmail, setOpeningChatEmail] = React.useState<string | null>(null);
 
-  const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
+  const load = React.useCallback(async (opts?: { refresh?: boolean; silent?: boolean }) => {
     const isRefresh = opts?.refresh === true;
+    const silent = opts?.silent === true;
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!silent) setInitialLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("viewerEmail", USER_EMAIL);
@@ -140,13 +141,19 @@ export function PlayersScreen() {
     } catch {
       setPlayers([]);
     } finally {
+      hasLoadedOnceRef.current = true;
       if (isRefresh) setRefreshing(false);
-      else setLoading(false);
+      else if (!silent) setInitialLoading(false);
     }
   }, [USER_EMAIL, ability, country, distance, gender, query]);
 
   React.useEffect(() => {
-    load();
+    const silent = hasLoadedOnceRef.current;
+    const delayMs = silent ? 400 : 0;
+    const t = setTimeout(() => {
+      load({ silent });
+    }, delayMs);
+    return () => clearTimeout(t);
   }, [load]);
 
   const syncFriendEmails = React.useCallback(async () => {
@@ -208,7 +215,7 @@ export function PlayersScreen() {
     [USER_EMAIL, navigation, openingChatEmail, showSnackbar, friendEmails],
   );
 
-  if (loading) return <PlayersSkeleton />;
+  if (initialLoading) return <PlayersSkeleton />;
 
   return (
     <View style={styles.container}>
@@ -252,20 +259,35 @@ export function PlayersScreen() {
           />
         ))}
       </FilterChipRow>
-      <FilterChipRow title="Country">
-        {PLAYERS_COUNTRY_FILTER_CHIPS.map((c) => (
-          <FilterChip
-            key={c.value || "any"}
-            label={c.label}
-            selected={country === c.value}
-            onPress={() => setCountry(c.value)}
+      <View style={styles.filterBlock}>
+        <Text style={styles.filterTitle}>Country</Text>
+        <View style={styles.countrySearchWrap}>
+          <Ionicons name="globe-outline" size={17} color={COLORS.iconMuted} />
+          <TextInput
+            style={styles.countrySearchInput}
+            value={country}
+            onChangeText={setCountry}
+            placeholder="Filter by country (e.g. UK, Spain)"
+            placeholderTextColor={COLORS.iconMuted}
+            autoCapitalize="words"
+            autoCorrect={false}
+            returnKeyType="search"
           />
-        ))}
-      </FilterChipRow>
-      {country ? (
+          {country.trim().length > 0 ? (
+            <Pressable
+              onPress={() => setCountry("")}
+              hitSlop={8}
+              accessibilityLabel="Clear country filter"
+            >
+              <Ionicons name="close-circle" size={18} color={COLORS.iconMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+      {country.trim() ? (
         <Text style={styles.filterHint}>
-          Matches profiles with this country set in Edit profile, or—if they have not set it—location text containing
-          this name. Widen to “Any country” if results are thin.
+          Showing players whose profile country or location matches “{country.trim()}”. Clear the field to search all
+          countries.
         </Text>
       ) : null}
       {distance !== "any" ? (
@@ -370,6 +392,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 8,
     color: COLORS.text,
+  },
+  countrySearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+  },
+  countrySearchInput: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    paddingVertical: 0,
   },
   filterBlock: { marginBottom: 10 },
   filterTitle: {

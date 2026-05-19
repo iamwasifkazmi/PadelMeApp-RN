@@ -25,23 +25,37 @@ export function viewerCanValidatePendingScore(
   return true;
 }
 
-/** Base44-style display: "6–1, 3–6, 7–5" from comma-separated team strings. */
+/** Display: "6–2, 1–6, 4–6" from comma-separated per-team set strings. */
 export function formatSubmittedScoreDisplay(scoreTeamA: string, scoreTeamB: string): string {
-  const as = (scoreTeamA || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const bs = (scoreTeamB || "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!as.length && !bs.length) return "—";
-  if (as.length <= 1 && bs.length <= 1) {
-    const a = as[0] ?? scoreTeamA?.trim() ?? "";
-    const b = bs[0] ?? scoreTeamB?.trim() ?? "";
-    if (!a || !b) return "—";
-    return `${a} – ${b}`;
-  }
-  const n = Math.max(as.length, bs.length);
-  const parts: string[] = [];
+  const as = (scoreTeamA || "").split(",").map((s) => s.trim());
+  const bs = (scoreTeamB || "").split(",").map((s) => s.trim());
+  const n = Math.max(as.length, bs.length, 1);
+  const pairs: { line: string; isUnused: boolean }[] = [];
   for (let i = 0; i < n; i++) {
-    parts.push(`${as[i] ?? "—"}–${bs[i] ?? "—"}`);
+    const aRaw = as[i] ?? "";
+    const bRaw = bs[i] ?? "";
+    const aNum = aRaw === "" ? NaN : Number(aRaw);
+    const bNum = bRaw === "" ? NaN : Number(bRaw);
+    const isUnused =
+      (aRaw === "" || aNum === 0) && (bRaw === "" || bNum === 0) && !Number.isNaN(aNum) && !Number.isNaN(bNum);
+    const aDisp = aRaw !== "" ? aRaw : "0";
+    const bDisp = bRaw !== "" ? bRaw : "0";
+    pairs.push({ line: `${aDisp}–${bDisp}`, isUnused });
   }
-  return parts.join(", ");
+  while (pairs.length > 1 && pairs[pairs.length - 1].isUnused) {
+    pairs.pop();
+  }
+  const lines = pairs.map((p) => p.line).filter((line) => line !== "—–—");
+  if (!lines.length) return "—";
+  if (lines.length === 1) {
+    const [one] = lines;
+    if (one.includes("–")) {
+      const [a, b] = one.split("–");
+      if (a && b && a !== "0" && b !== "0") return `${a} – ${b}`;
+    }
+    return one;
+  }
+  return lines.join(", ");
 }
 
 export function matchUsesSetBasedScoring(m: MatchDto): boolean {

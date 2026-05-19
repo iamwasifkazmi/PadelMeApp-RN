@@ -26,6 +26,8 @@ import { validateMatchRosterForUi } from "../lib/matchEligibilityUi";
 import { isDoublesFormat } from "../lib/matchFormat";
 import { parseEvidenceBlob, serializeEvidenceBlob } from "../lib/matchEvidence";
 import {
+  formatSubmittedScoreDisplay,
+  matchUsesSetBasedScoring,
   viewerCanValidatePendingScore,
   shouldShowConfirmScoreCta,
 } from "../lib/matchPendingScore";
@@ -802,8 +804,19 @@ export function MatchDetailScreen({
         <View style={styles.pendingCard}>
           <Text style={styles.sectionTitle}>Proposed score</Text>
           <Text style={styles.pendingLine}>
-            Team A: {match.pendingScoreTeamA} · Team B: {match.pendingScoreTeamB}
+            {formatSubmittedScoreDisplay(match.pendingScoreTeamA, match.pendingScoreTeamB || "")}
           </Text>
+          {matchUsesSetBasedScoring(match) ? (
+            <Text style={styles.pendingSetLegend}>
+              {displayTeamA.length || displayTeamB.length
+                ? `${displayTeamA
+                    .map((e) => usersMap[e]?.fullName || e.split("@")[0])
+                    .join(" & ") || "Team A"} vs ${
+                    displayTeamB.map((e) => usersMap[e]?.fullName || e.split("@")[0]).join(" & ") || "Team B"
+                  } · each set is Team A–Team B`
+                : "Each set is shown as Team A–Team B"}
+            </Text>
+          ) : null}
           <Text style={styles.pendingMeta}>
             Submitted by {match.scoreSubmittedBy || "—"}. Use{" "}
             <Text style={{ fontWeight: "800" }}>Confirm Score</Text> below.
@@ -1269,7 +1282,8 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  pendingLine: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginTop: 6 },
+  pendingLine: { fontSize: 18, fontWeight: "800", color: COLORS.text, marginTop: 6, letterSpacing: 0.2 },
+  pendingSetLegend: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, lineHeight: 15 },
   pendingMeta: { fontSize: 11, color: COLORS.textSubtle, marginTop: 6 },
   badgeRow: { flexDirection: "row", gap: 6, marginBottom: 8, flexWrap: "wrap" },
   instantPill: { ...chipPillShellSm, backgroundColor: COLORS.warningSoft },
