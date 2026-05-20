@@ -34,6 +34,31 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [resendBusy, setResendBusy] = React.useState(false);
+  const [cooldown, setCooldown] = React.useState(0);
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => {
+      setCooldown((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
+
+  const onResendOtp = async () => {
+    if (!email.trim() || resendBusy || cooldown > 0) return;
+    try {
+      setResendBusy(true);
+      await api.post("/auth/resend-reset-otp", { email: email.trim().toLowerCase() });
+      setCooldown(45);
+      setCode("");
+      showSnackbar("A new reset code has been sent to your email.", { type: "success" });
+    } catch {
+      showSnackbar("Could not resend OTP right now.", { type: "error" });
+    } finally {
+      setResendBusy(false);
+    }
+  };
 
   const onReset = async () => {
     if (!email.trim() || !code.trim() || newPassword.length < 8) {
@@ -127,6 +152,19 @@ export function ResetPasswordScreen({ navigation, route }: { navigation: any; ro
 
           <Pressable style={[styles.cta, { backgroundColor: colors.primary }, loading && styles.disabled]} onPress={onReset} disabled={loading}>
             {loading ? <ActivityIndicator color={colors.card} /> : <Text style={[styles.ctaText, { color: colors.card }]}>Reset Password</Text>}
+          </Pressable>
+          <Pressable
+            style={[
+              styles.secondaryBtn,
+              { borderColor: colors.borderMuted, backgroundColor: colors.card },
+              (resendBusy || cooldown > 0) && styles.disabled,
+            ]}
+            onPress={onResendOtp}
+            disabled={resendBusy || cooldown > 0}
+          >
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
+              {resendBusy ? "Sending..." : cooldown > 0 ? `Resend OTP in ${cooldown}s` : "Resend OTP"}
+            </Text>
           </Pressable>
 
           <Pressable style={styles.footerLinkRow} onPress={() => navigation.navigate("Login")}>
@@ -269,6 +307,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   ctaText: { color: COLORS.card, fontSize: 15, fontWeight: "700" },
+  secondaryBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+    backgroundColor: COLORS.card,
+  },
+  secondaryBtnText: { color: COLORS.text, fontSize: 14, fontWeight: "700" },
   disabled: { opacity: 0.6 },
   footerLinkRow: {
     marginTop: 12,

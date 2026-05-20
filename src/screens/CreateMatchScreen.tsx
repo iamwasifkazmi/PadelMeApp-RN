@@ -18,6 +18,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { MatchDto, UserDto } from "../lib/types";
 import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 import { LocationSearchModal } from "../components/LocationSearchModal";
+import { VenuePicker } from "../components/VenuePicker";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { androidChipText } from "../theme/chipAndroid";
@@ -85,14 +86,14 @@ function scoringPresetTitle(matchType: MatchTypeValue, mode: ScoringFormatValue,
 const SKILL_PREVIEW: Record<SkillValue, string> = {
   any: "Any",
   beginner: "Beginner",
-  intermediate: "Mid",
+  intermediate: "Intermediate",
   advanced: "Advanced",
 };
 
 const SKILL_OPTIONS: Array<{ value: SkillValue; label: string }> = [
   { value: "any", label: "🌍 Any Level" },
   { value: "beginner", label: "🌱 Beginner" },
-  { value: "intermediate", label: "⚡ Mid" },
+  { value: "intermediate", label: "⚡ Intermediate" },
   { value: "advanced", label: "🏆 Advanced" },
 ];
 
@@ -138,6 +139,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const [stepIndex, setStepIndex] = React.useState(0);
   const [pickerField, setPickerField] = React.useState<"date" | "time" | null>(null);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
+  const [venuePickerOpen, setVenuePickerOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [titleEditedByUser, setTitleEditedByUser] = React.useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(true);
@@ -462,7 +464,11 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
             ) : null}
             <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
               <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
-              <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+              <Text style={styles.pickLocationBtnText}>Search address (map pin)</Text>
+            </Pressable>
+            <Pressable style={styles.pickVenueBtn} onPress={() => setVenuePickerOpen(true)}>
+              <Ionicons name="tennisball-outline" size={14} color={COLORS.primaryDark} />
+              <Text style={styles.pickLocationBtnText}>Search padel courts</Text>
             </Pressable>
           </>
         ) : null}
@@ -788,6 +794,23 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
           }));
         }}
       />
+      <VenuePicker
+        visible={venuePickerOpen}
+        onClose={() => setVenuePickerOpen(false)}
+        onPick={(v) => {
+          if (v.lat == null || v.lng == null) {
+            showSnackbar("Pick a court with map coordinates, or use address search.", { type: "error" });
+            return;
+          }
+          setForm((p) => ({
+            ...p,
+            locationName: v.name,
+            locationAddress: v.address,
+            locationLat: v.lat,
+            locationLng: v.lng,
+          }));
+        }}
+      />
     </View>
   );
 }
@@ -987,6 +1010,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   coordsHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 6 },
+  pickVenueBtn: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.primaryPale,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 10,
+    paddingVertical: 9,
+  },
   pickLocationBtn: {
     marginTop: 3,
     marginBottom: 8,

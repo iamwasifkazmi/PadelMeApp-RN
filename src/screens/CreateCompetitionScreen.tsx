@@ -7,6 +7,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { LocationSearchModal } from "../components/LocationSearchModal";
+import { VenuePicker } from "../components/VenuePicker";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
@@ -84,6 +85,7 @@ export function CreateCompetitionScreen({
   const loading = false;
   const [activeDateField, setActiveDateField] = React.useState<"startDate" | "endDate" | null>(null);
   const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
+  const [venuePickerOpen, setVenuePickerOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const defaultType: CompetitionTypeValue =
     route?.params?.defaultType === "tournament" ? "tournament" : "league";
@@ -171,6 +173,22 @@ export function CreateCompetitionScreen({
         numSets: form.scoringMode === "sets" ? form.numSets : 1,
         gamesPerSet: form.scoringMode === "sets" ? form.gamesPerSet : 6,
         tiebreakRule: form.scoringMode === "sets" ? form.tiebreakRule : undefined,
+        weeklyDay: isLeague ? form.weeklyDay || undefined : undefined,
+        leagueWeeks: isLeague ? form.leagueWeeks : undefined,
+        teamStructure: form.teamStructure,
+        genderRequirement: form.genderRequirement,
+        ageMin: form.ageMin ? Number(form.ageMin) : undefined,
+        ageMax: form.ageMax ? Number(form.ageMax) : undefined,
+        skillRangeMin: form.skillRangeMin ? Number(form.skillRangeMin) : undefined,
+        skillRangeMax: form.skillRangeMax ? Number(form.skillRangeMax) : undefined,
+        minRatingThreshold: form.minRatingThreshold ? Number(form.minRatingThreshold) : undefined,
+        verificationRequirement: form.verificationRequirement,
+        pointsWin: form.pointsWin,
+        pointsLoss: form.pointsLoss,
+        pointsDraw: form.pointsDraw,
+        allowDraws: form.allowDraws,
+        prizeType: form.prizeType,
+        prizeDescription: form.prizeDescription.trim() || undefined,
       });
       showSnackbar("Competition created! 🏆", { type: "success" });
       navigation.replace("CompetitionDetail", { id: created.id });
@@ -267,7 +285,11 @@ export function CreateCompetitionScreen({
         ) : null}
         <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
           <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
-          <Text style={styles.pickLocationBtnText}>Search & select location</Text>
+          <Text style={styles.pickLocationBtnText}>Search address (map pin)</Text>
+        </Pressable>
+        <Pressable style={styles.pickVenueBtn} onPress={() => setVenuePickerOpen(true)}>
+          <Ionicons name="tennisball-outline" size={14} color={COLORS.primaryDark} />
+          <Text style={styles.pickLocationBtnText}>Search padel courts</Text>
         </Pressable>
         <View style={styles.row2}>
           <View style={styles.flexOne}>
@@ -709,6 +731,23 @@ export function CreateCompetitionScreen({
           }));
         }}
       />
+      <VenuePicker
+        visible={venuePickerOpen}
+        onClose={() => setVenuePickerOpen(false)}
+        onPick={(v) => {
+          if (v.lat == null || v.lng == null) {
+            showSnackbar("Pick a court with map coordinates, or use address search.", { type: "error" });
+            return;
+          }
+          setForm((p) => ({
+            ...p,
+            locationName: v.name,
+            locationAddress: v.address,
+            locationLat: v.lat,
+            locationLng: v.lng,
+          }));
+        }}
+      />
     </ScrollView>
   );
 }
@@ -921,6 +960,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   coordsHint: { color: COLORS.textMuted, fontSize: 11, marginBottom: 8 },
+  pickVenueBtn: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: COLORS.primaryPale,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 10,
+    paddingVertical: 9,
+  },
   pickLocationBtn: {
     marginTop: 2,
     marginBottom: 8,

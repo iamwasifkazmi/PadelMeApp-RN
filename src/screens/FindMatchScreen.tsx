@@ -179,7 +179,7 @@ export function FindMatchScreen() {
       >
         {[
           { v: "beginner", l: "🌱 Beginner" },
-          { v: "intermediate", l: "⚡ Mid" },
+          { v: "intermediate", l: "⚡ Intermediate" },
           { v: "advanced", l: "🏆 Advanced" },
         ].map((item) => (
           <FilterChip

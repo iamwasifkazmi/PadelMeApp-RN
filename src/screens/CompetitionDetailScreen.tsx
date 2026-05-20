@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
-import { CompetitionDetailDto } from "../lib/types";
+import { CompetitionDetailDto, CompetitionMatchDto } from "../lib/types";
+import { CompetitionMatchScoreModal } from "../components/CompetitionMatchScoreModal";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { useSnackbar } from "../components/Snackbar";
@@ -35,6 +36,10 @@ export function CompetitionDetailScreen({
   const [joining, setJoining] = React.useState(false);
   const [showPaySheet, setShowPaySheet] = React.useState(false);
   const [tab, setTab] = React.useState<"bracket" | "standings" | "players">("bracket");
+  const [scoreModal, setScoreModal] = React.useState<{
+    mode: "submit" | "validate" | "host";
+    match: CompetitionMatchDto;
+  } | null>(null);
 
   const load = React.useCallback(async (opts?: { refresh?: boolean; silent?: boolean }) => {
     const silent = opts?.silent === true;
@@ -58,18 +63,23 @@ export function CompetitionDetailScreen({
 
   React.useEffect(() => {
     if (!item) return;
-    const showBracket = item.type === "tournament" && item.format === "knockout";
-    setTab(showBracket ? "bracket" : "standings");
+    const bracket =
+      item.type === "tournament" &&
+      item.format !== "round_robin" &&
+      item.format !== "group_knockout";
+    setTab(bracket ? "bracket" : "standings");
   }, [item]);
 
-  const advanceBracket = async () => {
+  const startCompetition = async () => {
     try {
       setBusy(true);
-      await api.post(`/competitions/${id}/advance-bracket`);
-      showSnackbar("Bracket advance queued", { type: "success" });
+      const res = await api.post<{ message?: string }>(`/competitions/${id}/start`, {
+        email: USER_EMAIL,
+      });
+      showSnackbar(res.message || "Competition started! 🏆", { type: "success" });
       await load({ silent: true });
     } catch {
-      showSnackbar("Could not advance bracket", { type: "error" });
+      showSnackbar("Could not start competition", { type: "error" });
     } finally {
       setBusy(false);
     }
@@ -136,8 +146,47 @@ export function CompetitionDetailScreen({
   const isFull = playerCount >= maxPlayers;
   const entryFee = item.entryFee ?? 0;
   const computedPool = entryFee > 0 ? entryFee * playerCount * 0.975 : 0;
-  const showBracketTab = item.type === "tournament" && item.format === "knockout";
-  const standings = buildStandings(item.participants, item.matches);
+  const showBracketTab =
+    item.type === "tournament" &&
+    item.format !== "round_robin" &&
+    item.format !== "group_knockout";
+  const showStandingsTab =
+    item.type === "league" || item.format === "round_robin" || item.format === "group_knockout";
+  const isDoubles =
+    item.teamStructure === "doubles" || item.teamStructure === "mixed_doubles";
+  const standings = buildStandings(item.participants, item.matches, {
+    pointsWin: item.pointsWin ?? 3,
+    pointsLoss: item.pointsLoss ?? 0,
+    pointsDraw: item.pointsDraw ?? 1,
+  });
+
+  const matchParticipantEmails = (m: CompetitionMatchDto) => {
+    if ((m.teamAEmails?.length ?? 0) > 0 || (m.teamBEmails?.length ?? 0) > 0) {
+      return [...(m.teamAEmails || []), ...(m.teamBEmails || [])];
+    }
+    return [m.player1Email, m.player2Email].filter(Boolean) as string[];
+  };
+
+  const canSubmitScore = (m: CompetitionMatchDto) => {
+    if (m.status === "confirmed" || !m.player1Email || !m.player2Email) return false;
+    if (m.player2Name === "BYE") return false;
+    const emails = matchParticipantEmails(m).map((e) => e.toLowerCase());
+    return emails.includes(USER_EMAIL.toLowerCase()) && m.status === "scheduled";
+  };
+
+  const canValidateScore = (m: CompetitionMatchDto) => {
+    if (m.status !== "pending_validation") return false;
+    if (m.submittedBy?.toLowerCase() === USER_EMAIL.toLowerCase()) return false;
+    const emails = matchParticipantEmails(m).map((e) => e.toLowerCase());
+    return emails.includes(USER_EMAIL.toLowerCase());
+  };
+
+  const canHostScore = (m: CompetitionMatchDto) =>
+    isHost &&
+    m.status !== "confirmed" &&
+    !!m.player1Email &&
+    !!m.player2Email &&
+    m.player2Name !== "BYE";
 
   return (
     <View style={styles.container}>
@@ -221,10 +270,18 @@ export function CompetitionDetailScreen({
             </Pressable>
           )}
 
-          {isHost && registrationOpen && (
-            <Pressable style={[styles.secondaryAction, busy && styles.actionDisabled]} onPress={advanceBracket} disabled={busy}>
+          {isHost && registrationOpen && playerCount >= 2 && (
+            <Pressable
+              style={[styles.secondaryAction, busy && styles.actionDisabled]}
+              onPress={startCompetition}
+              disabled={busy}
+            >
               <Ionicons name="git-branch-outline" size={15} color={COLORS.text} />
-              <Text style={styles.secondaryActionText}>Start Tournament & Generate Bracket</Text>
+              <Text style={styles.secondaryActionText}>
+                {item.type === "league"
+                  ? "Start League & Generate Week 1 Fixtures"
+                  : "Start Tournament & Generate Bracket"}
+              </Text>
             </Pressable>
           )}
 
@@ -259,9 +316,16 @@ export function CompetitionDetailScreen({
               <Text style={[styles.tabBtnText, tab === "bracket" && styles.tabBtnTextActive]}>Bracket</Text>
             </Pressable>
           )}
-          <Pressable style={[styles.tabBtn, tab === "standings" && styles.tabBtnActive]} onPress={() => setTab("standings")}>
-            <Text style={[styles.tabBtnText, tab === "standings" && styles.tabBtnTextActive]}>Standings</Text>
-          </Pressable>
+          {showStandingsTab && (
+            <Pressable style={[styles.tabBtn, tab === "standings" && styles.tabBtnActive]} onPress={() => setTab("standings")}>
+              <Text style={[styles.tabBtnText, tab === "standings" && styles.tabBtnTextActive]}>Standings</Text>
+            </Pressable>
+          )}
+          {!showStandingsTab && !showBracketTab && (
+            <Pressable style={[styles.tabBtn, tab === "standings" && styles.tabBtnActive]} onPress={() => setTab("standings")}>
+              <Text style={[styles.tabBtnText, tab === "standings" && styles.tabBtnTextActive]}>Standings</Text>
+            </Pressable>
+          )}
           <Pressable style={[styles.tabBtn, tab === "players" && styles.tabBtnActive]} onPress={() => setTab("players")}>
             <Text style={[styles.tabBtnText, tab === "players" && styles.tabBtnTextActive]}>
               Players ({playerCount})
@@ -283,11 +347,39 @@ export function CompetitionDetailScreen({
                         {m.player1Name || "TBD"} vs {m.player2Name || "TBD"}
                       </Text>
                       <Text style={styles.matchMeta}>{m.status.replaceAll("_", " ")}</Text>
-                      {(m.scorePlayer1 || m.scorePlayer2) && (
+                      {(m.status === "confirmed" ? m.scorePlayer1 : m.submittedScoreP1 || m.scorePlayer1) && (
                         <Text style={styles.matchScore}>
-                          {m.scorePlayer1 || "0"} - {m.scorePlayer2 || "0"}
+                          {m.status === "confirmed"
+                            ? `${m.scorePlayer1 || "0"} - ${m.scorePlayer2 || "0"}`
+                            : `${m.submittedScoreP1 || "0"} - ${m.submittedScoreP2 || "0"} (pending)`}
                         </Text>
                       )}
+                      <View style={styles.matchActions}>
+                        {canSubmitScore(m) && (
+                          <Pressable
+                            style={styles.matchActionBtn}
+                            onPress={() => setScoreModal({ mode: "submit", match: m })}
+                          >
+                            <Text style={styles.matchActionText}>Submit</Text>
+                          </Pressable>
+                        )}
+                        {canValidateScore(m) && (
+                          <Pressable
+                            style={[styles.matchActionBtn, styles.matchActionValidate]}
+                            onPress={() => setScoreModal({ mode: "validate", match: m })}
+                          >
+                            <Text style={styles.matchActionTextValidate}>Validate</Text>
+                          </Pressable>
+                        )}
+                        {canHostScore(m) && (
+                          <Pressable
+                            style={styles.matchActionBtn}
+                            onPress={() => setScoreModal({ mode: "host", match: m })}
+                          >
+                            <Text style={styles.matchActionText}>Organiser score</Text>
+                          </Pressable>
+                        )}
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -298,6 +390,55 @@ export function CompetitionDetailScreen({
 
         {tab === "standings" && (
           <View style={styles.section}>
+            {item.type === "league" && (item.currentWeek ?? 0) > 0 && (
+              <Text style={styles.weekHint}>
+                Week {item.currentWeek} of {item.leagueWeeks ?? "?"}
+                {item.weeklyDay ? ` · Fixtures on ${item.weeklyDay}` : ""}
+              </Text>
+            )}
+            {item.matches.length > 0 && showStandingsTab ? (
+              item.matches.map((m) => (
+                <View key={m.id} style={styles.matchCard}>
+                  <Text style={styles.matchTitle}>
+                    {m.roundName || `Round ${m.round}`}: {m.player1Name || "TBD"} vs {m.player2Name || "TBD"}
+                  </Text>
+                  <Text style={styles.matchMeta}>{m.status.replaceAll("_", " ")}</Text>
+                  {(m.scorePlayer1 || m.submittedScoreP1) && (
+                    <Text style={styles.matchScore}>
+                      {m.status === "confirmed"
+                        ? `${m.scorePlayer1} - ${m.scorePlayer2}`
+                        : `${m.submittedScoreP1} - ${m.submittedScoreP2} (pending)`}
+                    </Text>
+                  )}
+                  <View style={styles.matchActions}>
+                    {canSubmitScore(m) && (
+                      <Pressable
+                        style={styles.matchActionBtn}
+                        onPress={() => setScoreModal({ mode: "submit", match: m })}
+                      >
+                        <Text style={styles.matchActionText}>Submit</Text>
+                      </Pressable>
+                    )}
+                    {canValidateScore(m) && (
+                      <Pressable
+                        style={[styles.matchActionBtn, styles.matchActionValidate]}
+                        onPress={() => setScoreModal({ mode: "validate", match: m })}
+                      >
+                        <Text style={styles.matchActionTextValidate}>Validate</Text>
+                      </Pressable>
+                    )}
+                    {canHostScore(m) && (
+                      <Pressable
+                        style={styles.matchActionBtn}
+                        onPress={() => setScoreModal({ mode: "host", match: m })}
+                      >
+                        <Text style={styles.matchActionText}>Organiser score</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              ))
+            ) : null}
             {standings.length === 0 ? (
               <Text style={styles.emptyText}>Standings will appear after completed matches.</Text>
             ) : (
@@ -338,6 +479,17 @@ export function CompetitionDetailScreen({
           </View>
         )}
       </ScrollView>
+
+      <CompetitionMatchScoreModal
+        visible={!!scoreModal}
+        mode={scoreModal?.mode || "submit"}
+        competitionId={id}
+        match={scoreModal?.match || null}
+        userEmail={USER_EMAIL}
+        isDoubles={isDoubles}
+        onClose={() => setScoreModal(null)}
+        onDone={() => load({ silent: true })}
+      />
 
       <Modal visible={showPaySheet} transparent animationType="fade" onRequestClose={() => setShowPaySheet(false)}>
         <View style={styles.payOverlay}>
@@ -386,29 +538,35 @@ function groupByRound(matches: CompetitionDetailDto["matches"]) {
     .map(([round, grouped]) => ({ round, matches: grouped }));
 }
 
-function buildStandings(participants: string[], matches: CompetitionDetailDto["matches"]) {
+function buildStandings(
+  participants: string[],
+  matches: CompetitionDetailDto["matches"],
+  pts: { pointsWin: number; pointsLoss: number; pointsDraw: number },
+) {
   const table = new Map<string, { email: string; points: number; wins: number; losses: number; draws: number }>();
   for (const p of participants) {
     table.set(p, { email: p, points: 0, wins: 0, losses: 0, draws: 0 });
   }
   for (const m of matches) {
-    if (m.status !== "completed") continue;
+    if (m.status !== "completed" && m.status !== "confirmed") continue;
     if (!m.player1Email || !m.player2Email) continue;
     if (!table.has(m.player1Email)) table.set(m.player1Email, { email: m.player1Email, points: 0, wins: 0, losses: 0, draws: 0 });
     if (!table.has(m.player2Email)) table.set(m.player2Email, { email: m.player2Email, points: 0, wins: 0, losses: 0, draws: 0 });
 
     const p1 = table.get(m.player1Email)!;
     const p2 = table.get(m.player2Email)!;
-    if (m.winnerEmail === m.player1Email) {
+    if (m.winnerEmail === m.player1Email || m.winnerTeam === "team_a") {
       p1.wins += 1;
-      p1.points += 3;
+      p1.points += pts.pointsWin;
       p2.losses += 1;
+      p2.points += pts.pointsLoss;
       continue;
     }
-    if (m.winnerEmail === m.player2Email) {
+    if (m.winnerEmail === m.player2Email || m.winnerTeam === "team_b") {
       p2.wins += 1;
-      p2.points += 3;
+      p2.points += pts.pointsWin;
       p1.losses += 1;
+      p1.points += pts.pointsLoss;
       continue;
     }
 
@@ -417,17 +575,19 @@ function buildStandings(participants: string[], matches: CompetitionDetailDto["m
     if (!Number.isNaN(s1) && !Number.isNaN(s2)) {
       if (s1 > s2) {
         p1.wins += 1;
-        p1.points += 3;
+        p1.points += pts.pointsWin;
         p2.losses += 1;
+        p2.points += pts.pointsLoss;
       } else if (s2 > s1) {
         p2.wins += 1;
-        p2.points += 3;
+        p2.points += pts.pointsWin;
         p1.losses += 1;
+        p1.points += pts.pointsLoss;
       } else {
         p1.draws += 1;
         p2.draws += 1;
-        p1.points += 1;
-        p2.points += 1;
+        p1.points += pts.pointsDraw;
+        p2.points += pts.pointsDraw;
       }
     }
   }
@@ -575,6 +735,19 @@ const styles = StyleSheet.create({
   matchTitle: { fontSize: 12, color: COLORS.text, fontWeight: "700" },
   matchMeta: { marginTop: 2, fontSize: 10, color: COLORS.textMuted, textTransform: "capitalize" },
   matchScore: { marginTop: 2, fontSize: 11, color: COLORS.primaryDark, fontWeight: "700" },
+  matchActions: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  matchActionBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    backgroundColor: COLORS.bg,
+  },
+  matchActionValidate: { borderColor: COLORS.warning, backgroundColor: COLORS.warningSoft },
+  matchActionText: { fontSize: 10, fontWeight: "700", color: COLORS.text },
+  matchActionTextValidate: { fontSize: 10, fontWeight: "700", color: COLORS.warningText },
+  weekHint: { fontSize: 11, color: COLORS.textMuted, marginBottom: 8 },
   standingRow: {
     flexDirection: "row",
     alignItems: "center",

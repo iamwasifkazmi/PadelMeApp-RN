@@ -285,30 +285,51 @@ export type CompetitionDto = {
   hostEmail?: string | null;
   entryFee?: number | null;
   prizePool?: number | null;
+  prizeType?: string | null;
+  prizeDescription?: string | null;
   scoringMode?: string | null;
   numSets?: number | null;
   gamesPerSet?: number | null;
   tiebreakRule?: string | null;
+  weeklyDay?: string | null;
+  leagueWeeks?: number | null;
+  currentWeek?: number | null;
+  teamStructure?: string | null;
+  verificationRequirement?: string | null;
+  isVerifiedOnly?: boolean | null;
+  pointsWin?: number | null;
+  pointsLoss?: number | null;
+  pointsDraw?: number | null;
+  allowDraws?: boolean | null;
   createdAt: string;
 };
 
+export type CompetitionMatchDto = {
+  id: string;
+  round: number;
+  roundName?: string | null;
+  status: string;
+  player1Email?: string | null;
+  player1Name?: string | null;
+  player2Email?: string | null;
+  player2Name?: string | null;
+  teamAEmails?: string[];
+  teamBEmails?: string[];
+  scorePlayer1?: string | null;
+  scorePlayer2?: string | null;
+  submittedScoreP1?: string | null;
+  submittedScoreP2?: string | null;
+  submittedBy?: string | null;
+  confirmedBy?: string | null;
+  winnerEmail?: string | null;
+  winnerTeam?: string | null;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+  matchOrder?: number | null;
+};
+
 export type CompetitionDetailDto = CompetitionDto & {
-  matches: Array<{
-    id: string;
-    round: number;
-    roundName?: string | null;
-    status: string;
-    player1Email?: string | null;
-    player1Name?: string | null;
-    player2Email?: string | null;
-    player2Name?: string | null;
-    scorePlayer1?: string | null;
-    scorePlayer2?: string | null;
-    winnerEmail?: string | null;
-    winnerTeam?: string | null;
-    scheduledDate?: string | null;
-    scheduledTime?: string | null;
-  }>;
+  matches: CompetitionMatchDto[];
 };
 
 export type MatchChatMessageDto = {

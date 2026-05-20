@@ -70,6 +70,7 @@ export function VerifyEmailOtpScreen({ route, navigation }: { route?: any; navig
       setResendBusy(true);
       await api.post("/auth/resend-register-otp", { email: email.trim().toLowerCase() });
       setCooldown(45);
+      setCode("");
       showSnackbar("A new verification code has been sent to your email.", { type: "success" });
     } catch {
       showSnackbar("Could not resend OTP right now.", { type: "error" });

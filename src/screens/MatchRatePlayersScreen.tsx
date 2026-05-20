@@ -26,6 +26,7 @@ export function MatchRatePlayersScreen({
   const [match, setMatch] = React.useState<MatchDto | null>(null);
   const [usersMap, setUsersMap] = React.useState<Record<string, UserDto>>({});
   const [scores, setScores] = React.useState<Record<string, number>>({});
+  const [alreadyRated, setAlreadyRated] = React.useState<Set<string>>(new Set());
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -45,13 +46,17 @@ export function MatchRatePlayersScreen({
       const existing = await api.get<{ ratedEmail: string; overall: number }[]>(
         `/ratings/match/${matchId}?raterEmail=${encodeURIComponent(USER_EMAIL)}`,
       );
+      const ratedSet = new Set<string>();
       const initial: Record<string, number> = {};
-      for (const e of existing) {
-        initial[e.ratedEmail] = e.overall;
+      for (const row of existing) {
+        const key = others.find((e) => emailsMatch(e, row.ratedEmail)) ?? row.ratedEmail;
+        ratedSet.add(key);
+        initial[key] = row.overall;
       }
       for (const e of others) {
         if (initial[e] == null) initial[e] = 5;
       }
+      setAlreadyRated(ratedSet);
       setScores(initial);
     } catch {
       setMatch(null);
@@ -69,9 +74,16 @@ export function MatchRatePlayersScreen({
     [match, USER_EMAIL],
   );
 
+  const pendingOthers = React.useMemo(
+    () => others.filter((email) => !alreadyRated.has(email)),
+    [others, alreadyRated],
+  );
+
+  const allAlreadyRated = others.length > 0 && pendingOthers.length === 0;
+
   const onSubmit = async () => {
-    if (!match || others.length === 0) return;
-    const ratings = others.map((email) => ({
+    if (!match || pendingOthers.length === 0) return;
+    const ratings = pendingOthers.map((email) => ({
       ratedEmail: email,
       overall: scores[email] ?? 5,
     }));
@@ -84,8 +96,14 @@ export function MatchRatePlayersScreen({
       await api.post("/ratings/match", { matchId: match.id, raterEmail: USER_EMAIL, ratings });
       showSnackbar("Thanks — ratings saved!", { type: "success" });
       navigation.goBack();
-    } catch {
-      showSnackbar("Could not save ratings", { type: "error" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("already rated")) {
+        showSnackbar("You already rated players for this match", { type: "error" });
+        navigation.goBack();
+      } else {
+        showSnackbar("Could not save ratings", { type: "error" });
+      }
     } finally {
       setSaving(false);
     }
@@ -110,6 +128,21 @@ export function MatchRatePlayersScreen({
     );
   }
 
+  if (allAlreadyRated) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
+        <Text style={styles.doneTitle}>Ratings submitted</Text>
+        <Text style={styles.doneSubtitle}>
+          You already rated everyone for this match. Ratings can’t be changed, like Uber after a trip.
+        </Text>
+        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backBtnText}>Back to match</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
@@ -118,19 +151,24 @@ export function MatchRatePlayersScreen({
         </Pressable>
         <Text style={styles.title}>Rate players</Text>
       </View>
-      <Text style={styles.subtitle}>Uber-style stars (1–5) for everyone you played with.</Text>
+      <Text style={styles.subtitle}>Uber-style stars (1–5) for everyone you played with. One submission per match.</Text>
 
       {others.map((email) => {
         const u = usersMap[email];
         const name = u?.fullName || email.split("@")[0];
         const v = scores[email] ?? 5;
+        const locked = alreadyRated.has(email);
         return (
           <View key={email} style={styles.card}>
             <Text style={styles.playerName}>{name}</Text>
+            {locked ? (
+              <Text style={styles.lockedHint}>Rated — locked</Text>
+            ) : null}
             <View style={styles.starRow}>
               {STARS.map((n) => (
                 <Pressable
                   key={n}
+                  disabled={locked}
                   onPress={() => setScores((s) => ({ ...s, [email]: n }))}
                   style={styles.starHit}
                 >
@@ -147,8 +185,8 @@ export function MatchRatePlayersScreen({
       })}
 
       <Pressable
-        style={[styles.primaryBtn, saving && styles.disabled]}
-        disabled={saving || others.length === 0}
+        style={[styles.primaryBtn, (saving || pendingOthers.length === 0) && styles.disabled]}
+        disabled={saving || pendingOthers.length === 0}
         onPress={() => onSubmit().catch(() => undefined)}
       >
         <Text style={styles.primaryBtnText}>{saving ? "Saving…" : "Submit ratings"}</Text>
@@ -188,4 +226,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.65 },
   backBtn: { marginTop: 16, paddingVertical: 10 },
   backBtnText: { color: COLORS.primary, fontWeight: "700" },
+  doneTitle: { fontSize: 20, fontWeight: "800", color: COLORS.text, marginTop: 12 },
+  doneSubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginTop: 8, lineHeight: 20 },
+  lockedHint: { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
 });

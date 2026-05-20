@@ -34,9 +34,9 @@ const GENDER_CHIPS: { value: GenderFilter; label: string }[] = [
 
 const ABILITY_CHIPS: { value: AbilityFilter; label: string }[] = [
   { value: "all", label: "Any level" },
-  { value: "advanced", label: "Advanced" },
-  { value: "intermediate", label: "Intermediate" },
   { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
 ];
 
 function FilterChipRow({

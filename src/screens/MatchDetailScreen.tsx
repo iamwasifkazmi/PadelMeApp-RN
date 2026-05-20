@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "../lib/api";
@@ -242,6 +243,9 @@ export function MatchDetailScreen({
   const pendingScoreDraftSyncKey = React.useRef("");
   const [submitScoreModalOpen, setSubmitScoreModalOpen] = React.useState(false);
   const [confirmScoreModalOpen, setConfirmScoreModalOpen] = React.useState(false);
+  const [myRatingsForMatch, setMyRatingsForMatch] = React.useState<{ ratedEmail: string; overall: number }[]>(
+    [],
+  );
 
   React.useEffect(() => {
     setScoreA("");
@@ -275,6 +279,24 @@ export function MatchDetailScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when that snapshot changes
   }, [teamsSyncKey]);
 
+  const loadMyRatings = React.useCallback(
+    async (matchId: string, players: string[]) => {
+      if (!players.some((e) => emailsMatch(e, USER_EMAIL))) {
+        setMyRatingsForMatch([]);
+        return;
+      }
+      try {
+        const rows = await api.get<{ ratedEmail: string; overall: number }[]>(
+          `/ratings/match/${matchId}?raterEmail=${encodeURIComponent(USER_EMAIL)}`,
+        );
+        setMyRatingsForMatch(rows);
+      } catch {
+        setMyRatingsForMatch([]);
+      }
+    },
+    [USER_EMAIL],
+  );
+
   const load = React.useCallback(
     async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
@@ -296,19 +318,33 @@ export function MatchDetailScreen({
           });
           setUsersMap(map);
         }
+        if (m.status === "completed") {
+          await loadMyRatings(m.id, m.players);
+        } else {
+          setMyRatingsForMatch([]);
+        }
       } catch {
         setMatch(null);
+        setMyRatingsForMatch([]);
       } finally {
         if (isRefresh) setRefreshing(false);
         else setLoading(false);
       }
     },
-    [id],
+    [id, loadMyRatings],
   );
 
   React.useEffect(() => {
     load(false);
   }, [load]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (match?.status === "completed") {
+        loadMyRatings(match.id, match.players).catch(() => undefined);
+      }
+    }, [match?.id, match?.status, match?.players, loadMyRatings]),
+  );
 
   React.useEffect(() => {
     if (!match) return;
@@ -551,6 +587,17 @@ export function MatchDetailScreen({
   const isFull = match.players.length >= match.maxPlayers;
   const spotsLeft = Math.max(0, match.maxPlayers - match.players.length);
   const status = match.status as MatchStatusValue;
+  const ratingOpponents = match.players.filter((e) => !emailsMatch(e, USER_EMAIL));
+  const ratedOpponentEmails = new Set(
+    myRatingsForMatch.map((r) => {
+      const canon = ratingOpponents.find((e) => emailsMatch(e, r.ratedEmail));
+      return canon ?? r.ratedEmail;
+    }),
+  );
+  const hasRatedAllOpponents =
+    ratingOpponents.length > 0 && ratingOpponents.every((e) => ratedOpponentEmails.has(e));
+  const canRatePlayers =
+    joined && status === "completed" && ratingOpponents.length > 0 && !hasRatedAllOpponents;
   const hostEmail = match.hostEmail ?? null;
   const isOrganizer = Boolean(hostEmail && emailsMatch(hostEmail, USER_EMAIL));
   const teamAEmails = match.teamA || [];
@@ -1165,7 +1212,7 @@ export function MatchDetailScreen({
           </Pressable>
         ) : null}
 
-        {joined && status === "completed" && match.players.filter((e) => !emailsMatch(e, USER_EMAIL)).length > 0 ? (
+        {canRatePlayers ? (
           <Pressable
             style={[styles.secondaryBtn, busy && styles.disabled]}
             disabled={busy}
@@ -1173,6 +1220,13 @@ export function MatchDetailScreen({
           >
             <Text style={styles.secondaryBtnText}>Rate players ⭐</Text>
           </Pressable>
+        ) : null}
+
+        {joined && status === "completed" && hasRatedAllOpponents ? (
+          <View style={styles.ratingsDoneRow}>
+            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+            <Text style={styles.ratingsDoneText}>Ratings submitted</Text>
+          </View>
         ) : null}
 
         {status === "completed" && (match.scoreTeamA || match.scoreTeamB) && !hasTeams ? (
@@ -1541,6 +1595,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 11,
   },
+  ratingsDoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  ratingsDoneText: { fontSize: 14, fontWeight: "600", color: COLORS.textMuted },
   confirmScoreBtn: {
     borderRadius: 14,
     backgroundColor: "#15803d",
