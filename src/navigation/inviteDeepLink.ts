@@ -1,4 +1,11 @@
-import { inviteWebHostname } from "../config/deepLinks";
+import { inviteWebHostnames } from "../config/deepLinks";
+
+function isInviteWebHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (inviteWebHostnames().some((known) => known.toLowerCase() === h)) return true;
+  /** Cloud Run custom domains end with .run.app */
+  return h.endsWith(".run.app");
+}
 
 /** Parse invite token from custom scheme, HTTPS invite URLs, ?token=, or /invite/ paths. */
 export function parseInviteDeepLink(url: string | null | undefined): string | null {
@@ -17,8 +24,7 @@ export function parseInviteDeepLink(url: string | null | undefined): string | nu
     ) {
       return decodeURIComponent(u.pathname.replace(/^\//, ""));
     }
-    const host = inviteWebHostname();
-    if ((u.protocol === "https:" || u.protocol === "http:") && u.hostname === host) {
+    if ((u.protocol === "https:" || u.protocol === "http:") && isInviteWebHost(u.hostname)) {
       const m = u.pathname.match(/^\/invite\/([^/]+)/);
       if (m?.[1]) return decodeURIComponent(m[1]);
     }

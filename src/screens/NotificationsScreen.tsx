@@ -11,6 +11,22 @@ import { COLORS } from "../theme/colors";
 import { androidChipText, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 import type { RootStackParamList } from "../navigation/types";
 
+type NotificationNavTarget =
+  | { kind: "accept_invite"; inviteId: string }
+  | { kind: "default" };
+
+function resolveNotificationNav(n: NotificationDto): NotificationNavTarget {
+  const type = (n.type || "").toLowerCase();
+  if (
+    (type === "match_invite" || type === "competition_invite") &&
+    (n.relatedEntityType || "").toLowerCase() === "invite" &&
+    n.relatedEntityId?.trim()
+  ) {
+    return { kind: "accept_invite", inviteId: n.relatedEntityId.trim() };
+  }
+  return { kind: "default" };
+}
+
 function navigateForNotification(
   navigation: NativeStackNavigationProp<RootStackParamList>,
   n: NotificationDto,
@@ -100,6 +116,16 @@ export function NotificationsScreen() {
       }
     } catch {
       /* still try to navigate */
+    }
+    const nav = resolveNotificationNav(item);
+    if (nav.kind === "accept_invite") {
+      try {
+        const rec = await api.get<{ token: string }>(`/invites/record/${nav.inviteId}`);
+        navigation.navigate("AcceptInvite", { token: rec.token });
+        return;
+      } catch {
+        /* fall through to match/competition */
+      }
     }
     navigateForNotification(navigation, { ...item, isRead: true });
   };

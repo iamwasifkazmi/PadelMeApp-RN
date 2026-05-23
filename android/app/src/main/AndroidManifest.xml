@@ -41,18 +41,18 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="mipadel" android:host="invite" />
         </intent-filter>
-        <!-- HTTPS invite links; host must match src/config/deepLinks.ts INVITE_WEB_ORIGIN -->
+        <!-- HTTPS invite links; host must match src/config/domain.ts PRODUCTION_ORIGIN -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" android:host="mipadel.co.uk" android:pathPrefix="/invite" />
+            <data android:scheme="https" android:host="padelme-backend-781275999853.europe-west2.run.app" android:pathPrefix="/invite" />
         </intent-filter>
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="http" android:host="mipadel.co.uk" android:pathPrefix="/invite" />
+            <data android:scheme="https" android:host="mipadel.co.uk" android:pathPrefix="/invite" />
         </intent-filter>
       </activity>
     </application>

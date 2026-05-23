@@ -57,7 +57,7 @@ function buildInviteShareMessage(token: string, title?: string) {
   const line = title ? `${title}\n\n` : "";
   const web = buildWebInviteUrl(token);
   const app = buildInviteDeepLink(token);
-  return `${line}Join in MiPadel:\n${web}\n\nOpen in app:\n${app}\n\nToken: ${token}`;
+  return `${line}You're invited to MiPadel!\n\nOpen in app:\n${app}\n\nOr use this link:\n${web}`;
 }
 
 export function InvitePlayersScreen() {
