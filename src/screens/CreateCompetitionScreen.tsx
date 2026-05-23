@@ -7,7 +7,7 @@ import { useSnackbar } from "../components/Snackbar";
 import { CompetitionDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { LocationSearchModal } from "../components/LocationSearchModal";
-import { VenuePicker } from "../components/VenuePicker";
+import { VenuePickerModal } from "../components/VenuePicker";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
@@ -731,14 +731,10 @@ export function CreateCompetitionScreen({
           }));
         }}
       />
-      <VenuePicker
+      <VenuePickerModal
         visible={venuePickerOpen}
         onClose={() => setVenuePickerOpen(false)}
         onPick={(v) => {
-          if (v.lat == null || v.lng == null) {
-            showSnackbar("Pick a court with map coordinates, or use address search.", { type: "error" });
-            return;
-          }
           setForm((p) => ({
             ...p,
             locationName: v.name,

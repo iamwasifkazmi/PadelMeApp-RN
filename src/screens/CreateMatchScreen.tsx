@@ -17,12 +17,12 @@ import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchDto, UserDto } from "../lib/types";
 import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
-import { LocationSearchModal } from "../components/LocationSearchModal";
-import { VenuePicker } from "../components/VenuePicker";
+import { VenuePicker, VenuePick } from "../components/VenuePicker";
+import { geocodePlaceQuery } from "../lib/venueGeocode";
+import { userLocationLabel } from "../lib/userLocation";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { androidChipText } from "../theme/chipAndroid";
-import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
 
 type Mode = "instant" | "scheduled" | "recurring";
 type MatchTypeValue = "singles" | "doubles" | "mixed_doubles";
@@ -138,8 +138,8 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const recurring = Boolean(route?.params?.recurring);
   const [stepIndex, setStepIndex] = React.useState(0);
   const [pickerField, setPickerField] = React.useState<"date" | "time" | null>(null);
-  const [locationPickerOpen, setLocationPickerOpen] = React.useState(false);
-  const [venuePickerOpen, setVenuePickerOpen] = React.useState(false);
+  const [venue, setVenue] = React.useState<VenuePick | null>(null);
+  const [profileGeo, setProfileGeo] = React.useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [titleEditedByUser, setTitleEditedByUser] = React.useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(true);
@@ -181,6 +181,14 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         if (cancelled) return;
         const c = (u.country || "").trim();
         if (c) setForm((p) => ({ ...p, country: p.country || c }));
+        if (
+          u.locationLat != null &&
+          u.locationLng != null &&
+          Number.isFinite(u.locationLat) &&
+          Number.isFinite(u.locationLng)
+        ) {
+          setProfileGeo({ lat: u.locationLat, lng: u.locationLng });
+        }
       })
       .catch(() => {});
     return () => {
@@ -207,6 +215,27 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     [],
   );
 
+  const applyVenue = React.useCallback((v: VenuePick | null) => {
+    setVenue(v);
+    if (!v) {
+      setForm((p) => ({
+        ...p,
+        locationName: "",
+        locationAddress: "",
+        locationLat: null,
+        locationLng: null,
+      }));
+      return;
+    }
+    setForm((p) => ({
+      ...p,
+      locationName: v.name,
+      locationAddress: v.address,
+      locationLat: v.lat,
+      locationLng: v.lng,
+    }));
+  }, []);
+
   const toggleTag = (tag: string) => {
     setForm((prev) => ({
       ...prev,
@@ -221,11 +250,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     currentStep === "mode"
       ? Boolean(form.mode)
       : currentStep === "setup"
-        ? Boolean(
-            form.matchType &&
-              form.title.trim().length >= 1 &&
-              hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }),
-          )
+        ? Boolean(form.matchType && form.title.trim().length >= 1)
         : currentStep === "when"
           ? Boolean(form.date && form.timeLabel)
           : true;
@@ -255,10 +280,28 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       showSnackbar("Match title is required.", { type: "error" });
       return;
     }
-    if (!hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng })) {
-      showSnackbar("Pick a venue with Search so we save exact coordinates.", { type: "error" });
-      return;
+    let locationName = form.locationName.trim();
+    let locationAddress = form.locationAddress.trim();
+    let locationLat = form.locationLat;
+    let locationLng = form.locationLng;
+
+    if (!locationName) {
+      locationName = form.mode === "instant" ? "TBD" : "TBD — to be confirmed";
     }
+
+    if (locationLat == null || locationLng == null) {
+      const geoQuery = locationAddress || locationName || form.country.trim() || "United Kingdom";
+      const geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
+      if (!geo) {
+        showSnackbar("Could not resolve a map location. Add a town/city in the venue search.", {
+          type: "error",
+        });
+        return;
+      }
+      locationLat = geo.lat;
+      locationLng = geo.lng;
+    }
+
     if (form.mode !== "instant") {
       const t = parseLocalDateTime(form.date, form.timeLabel);
       if (t.getTime() < Date.now()) {
@@ -275,10 +318,10 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         title: form.title.trim(),
         date: form.date,
         timeLabel: form.timeLabel,
-        locationName: form.locationName.trim(),
-        locationAddress: form.locationAddress.trim(),
-        locationLat: form.locationLat!,
-        locationLng: form.locationLng!,
+        locationName,
+        locationAddress,
+        locationLat,
+        locationLng,
         ...(form.country.trim() ? { country: form.country.trim() } : {}),
         durationMinutes: form.durationMinutes,
         skillLevel: form.skillLevel,
@@ -453,29 +496,13 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               ))}
             </View>
 
-            <SectionLabel text="Venue (exact map pin) *" />
-            <Text style={styles.venueHint}>
-              {userLocationLabel(form) || "Search for a club or court — coordinates are required."}
-            </Text>
-            {hasUserGeo({ locationLat: form.locationLat, locationLng: form.locationLng }) ? (
-              <Text style={styles.coordsHint}>
-                {form.locationLat?.toFixed(5)}, {form.locationLng?.toFixed(5)}
-              </Text>
-            ) : null}
-            <Pressable style={styles.pickLocationBtn} onPress={() => setLocationPickerOpen(true)}>
-              <Ionicons name="location-outline" size={14} color={COLORS.primaryDark} />
-              <Text style={styles.pickLocationBtnText}>Search address (map pin)</Text>
-            </Pressable>
-            <Pressable style={styles.pickVenueBtn} onPress={() => setVenuePickerOpen(true)}>
-              <Ionicons name="tennisball-outline" size={14} color={COLORS.primaryDark} />
-              <Text style={styles.pickLocationBtnText}>Search padel courts</Text>
-            </Pressable>
           </>
         ) : null}
 
         {currentStep === "when" ? (
           <>
-            <Text style={styles.stepTitle}>When & Where? 📍</Text>
+            <Text style={styles.stepTitle}>When & where? 📍</Text>
+            <Text style={styles.stepSubtitle}>Venue is optional — you can confirm later</Text>
             <View style={styles.row}>
               <View style={styles.flexOne}>
                 <SectionLabel text="Date" />
@@ -492,6 +519,24 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               </View>
             </View>
+
+            <View style={styles.venueSectionHead}>
+              <SectionLabel text="Venue" />
+              <View style={styles.optionalPill}>
+                <Text style={styles.optionalPillText}>Optional</Text>
+              </View>
+            </View>
+            <VenuePicker sport="padel" value={venue} onChange={applyVenue} />
+            {!venue ? (
+              <Pressable
+                onPress={() =>
+                  applyVenue({ name: "TBD — to be confirmed", address: "", lat: null, lng: null })
+                }
+              >
+                <Text style={styles.noVenueYet}>📍 No venue yet — confirm after players join</Text>
+              </Pressable>
+            ) : null}
+
             <SectionLabel text="Country (optional)" />
             <Text style={styles.countryWhenHint}>
               Same labels as your profile country — helps others find this game in Discover.
@@ -692,7 +737,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                   : `📅 ${form.date} · ${form.timeLabel}`}
               </Text>
               <Text style={styles.previewMeta}>
-                📍 {userLocationLabel(form) || "Venue"}
+                📍 {venue?.name || form.locationName.trim() || userLocationLabel(form) || "Venue TBD"}
                 {form.country.trim() ? ` · ${form.country.trim()}` : ""} ·{" "}
                 {form.matchType === "singles" ? "Singles" : form.matchType === "mixed_doubles" ? "Mixed Doubles" : "Doubles"} ·{" "}
                 {form.durationMinutes}min · 🎾 {SKILL_PREVIEW[form.skillLevel]}
@@ -765,52 +810,6 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
           </View>
         )
       ) : null}
-      <LocationSearchModal
-        visible={locationPickerOpen}
-        title="Pick match location"
-        initialQuery={form.locationName || form.locationAddress}
-        searchBias={
-          hasUserGeo(form)
-            ? {
-                lat: form.locationLat as number,
-                lng: form.locationLng as number,
-                labelHint: form.locationName.trim() || form.locationAddress.trim() || undefined,
-              }
-            : null
-        }
-        onClose={() => setLocationPickerOpen(false)}
-        onPick={(loc) => {
-          const lat = loc.lat;
-          const lon = loc.lon;
-          if (typeof lat !== "number" || typeof lon !== "number" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-            return;
-          }
-          setForm((p) => ({
-            ...p,
-            locationName: (loc.label || loc.city || loc.address || "").trim(),
-            locationAddress: loc.address,
-            locationLat: lat,
-            locationLng: lon,
-          }));
-        }}
-      />
-      <VenuePicker
-        visible={venuePickerOpen}
-        onClose={() => setVenuePickerOpen(false)}
-        onPick={(v) => {
-          if (v.lat == null || v.lng == null) {
-            showSnackbar("Pick a court with map coordinates, or use address search.", { type: "error" });
-            return;
-          }
-          setForm((p) => ({
-            ...p,
-            locationName: v.name,
-            locationAddress: v.address,
-            locationLat: v.lat,
-            locationLng: v.lng,
-          }));
-        }}
-      />
     </View>
   );
 }
@@ -893,6 +892,26 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: 20 },
   stepTitle: { fontSize: 22, fontWeight: "800", color: COLORS.text, marginTop: 8, marginBottom: 8 },
   stepSubtitle: { fontSize: 14, fontWeight: "600", color: COLORS.textMuted, marginBottom: 12 },
+  venueSectionHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  optionalPill: {
+    backgroundColor: COLORS.borderMuted,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  optionalPillText: { fontSize: 11, color: COLORS.textMuted, fontWeight: "600" },
+  noVenueYet: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
   modeCard: {
     borderWidth: 1,
     borderColor: COLORS.border,
