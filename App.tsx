@@ -5,15 +5,20 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Provider } from "react-redux";
 import { RootNavigator } from "./src/navigation";
 import { SnackbarProvider } from "./src/components/Snackbar";
+import { configureGoogleSignIn } from "./src/lib/googleAuth";
 import { bootstrapSession } from "./src/store";
 import { store } from "./src/store/store";
 import { getThemeColors } from "./src/theme/colors";
 import { navigationRef } from "./src/navigation/navigationRef";
-import { parseInviteDeepLink } from "./src/navigation/inviteDeepLink";
+import { isGoogleSignInCallbackUrl, parseInviteDeepLink } from "./src/navigation/inviteDeepLink";
 import { pendingPostAuthInviteToken } from "./src/navigation/pendingPostAuthInvite";
-import { configureGoogleSignIn } from "./src/lib/googleAuth";
-
 const pendingInviteUrlRef: { current: string | null } = { current: null };
+
+function handleIncomingUrl(url: string | null | undefined) {
+  if (!url || isGoogleSignInCallbackUrl(url)) return;
+  pendingInviteUrlRef.current = url;
+  flushPendingInviteNavigation();
+}
 
 function flushPendingInviteNavigation() {
   const url = pendingInviteUrlRef.current;
@@ -59,16 +64,18 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    Linking.getInitialURL().then((u) => {
-      if (u) pendingInviteUrlRef.current = u;
-      flushPendingInviteNavigation();
-    });
+    Linking.getInitialURL()
+      .then((u) => {
+        handleIncomingUrl(u);
+      })
+      .catch(() => {
+        /* ignore — deep link optional on cold start */
+      });
   }, []);
 
   React.useEffect(() => {
     const sub = Linking.addEventListener("url", ({ url }) => {
-      pendingInviteUrlRef.current = url;
-      flushPendingInviteNavigation();
+      handleIncomingUrl(url);
     });
     return () => sub.remove();
   }, []);

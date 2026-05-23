@@ -306,11 +306,17 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
 
     if (locationLat == null || locationLng == null) {
       const geoQuery = locationAddress || locationName || form.country.trim() || "United Kingdom";
-      const geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
+      let geo: { lat: number; lng: number } | null = null;
+      try {
+        geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
+      } catch {
+        geo = profileGeo;
+      }
       if (!geo) {
-        showSnackbar("Could not resolve a map location. Add a town/city in the venue search.", {
-          type: "error",
-        });
+        showSnackbar(
+          "Could not resolve a map location. Pick a venue from search or try again in a minute.",
+          { type: "error" },
+        );
         return;
       }
       locationLat = geo.lat;
@@ -630,51 +636,53 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                     </Pressable>
                   ))}
                 </View>
-                <SectionLabel text="Ends" />
-                <View style={styles.row}>
-                  {(
-                    [
-                      { key: "after_count" as const, label: "After N" },
-                      { key: "on_date" as const, label: "On date" },
-                      { key: "never" as const, label: "52 max" },
-                    ] as const
-                  ).map((opt) => (
-                    <Pressable
-                      key={opt.key}
-                      style={[styles.chip, form.recurrenceEndRule === opt.key && styles.chipActive]}
-                      onPress={() => update("recurrenceEndRule", opt.key)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          form.recurrenceEndRule === opt.key && styles.chipTextActive,
-                        ]}
-                      >
-                        {opt.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {form.recurrenceEndRule === "after_count" ? (
+                <View style={styles.recurrenceEndsSection}>
+                  <SectionLabel text="Ends" />
                   <View style={styles.row}>
-                    {[4, 8, 12, 16].map((n) => (
+                    {(
+                      [
+                        { key: "after_count" as const, label: "After N" },
+                        { key: "on_date" as const, label: "On date" },
+                        { key: "never" as const, label: "52 max" },
+                      ] as const
+                    ).map((opt) => (
                       <Pressable
-                        key={n}
-                        style={[styles.chip, form.recurrenceEndCount === n && styles.chipActive]}
-                        onPress={() => update("recurrenceEndCount", n)}
+                        key={opt.key}
+                        style={[styles.chip, form.recurrenceEndRule === opt.key && styles.chipActive]}
+                        onPress={() => update("recurrenceEndRule", opt.key)}
                       >
                         <Text
                           style={[
                             styles.chipText,
-                            form.recurrenceEndCount === n && styles.chipTextActive,
+                            form.recurrenceEndRule === opt.key && styles.chipTextActive,
                           ]}
                         >
-                          {n}×
+                          {opt.label}
                         </Text>
                       </Pressable>
                     ))}
                   </View>
-                ) : null}
+                  {form.recurrenceEndRule === "after_count" ? (
+                    <View style={[styles.row, styles.recurrenceEndsCountRow]}>
+                      {[4, 8, 12, 16].map((n) => (
+                        <Pressable
+                          key={n}
+                          style={[styles.chip, form.recurrenceEndCount === n && styles.chipActive]}
+                          onPress={() => update("recurrenceEndCount", n)}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              form.recurrenceEndCount === n && styles.chipTextActive,
+                            ]}
+                          >
+                            {n}×
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
               </>
             ) : null}
 
@@ -1074,6 +1082,8 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   row: { flexDirection: "row", gap: 8 },
+  recurrenceEndsSection: { marginBottom: 20 },
+  recurrenceEndsCountRow: { marginTop: 8 },
   rowWrap: { flexWrap: "wrap" },
   flexOne: { flex: 1 },
   chip: {

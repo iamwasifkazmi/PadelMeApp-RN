@@ -18,8 +18,14 @@ export async function geocodePlaceQuery(query: string): Promise<{ lat: number; l
         "User-Agent": NOMINATIM_UA,
       },
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
+    const text = await res.text();
+    if (!res.ok || /rate exceeded/i.test(text)) return null;
+    let data: Array<{ lat: string; lon: string }>;
+    try {
+      data = JSON.parse(text) as Array<{ lat: string; lon: string }>;
+    } catch {
+      return null;
+    }
     const hit = data[0];
     if (!hit) return null;
     const lat = Number(hit.lat);
