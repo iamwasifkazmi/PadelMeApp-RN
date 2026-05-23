@@ -1,4 +1,6 @@
-const NOMINATIM_UA = "PadelMe/1.0 (venue search; contact@mipadel.co.uk)";
+import { APP_ORIGIN } from "../config/domain";
+
+const NOMINATIM_UA = `MiPadel/1.0 (+${APP_ORIGIN}; venue-search; contact@mipadel.co.uk)`;
 
 /** Best-effort geocode for manual / TBD venues so match create can supply lat/lng. */
 export async function geocodePlaceQuery(query: string): Promise<{ lat: number; lng: number } | null> {

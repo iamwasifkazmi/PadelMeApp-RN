@@ -1,7 +1,11 @@
+import { API_BASE_URL as CONFIGURED_API_BASE_URL } from "../config/domain";
 import { store } from "../store/store";
 
-export const API_BASE_URL = "https://padelme-backend-781275999853.europe-west2.run.app/api";
-// "http://localhost:4000/api";
+/** Override for local dev: EXPO_PUBLIC_API_URL=http://localhost:4000/api */
+export const API_BASE_URL =
+  (typeof process !== "undefined" &&
+    process.env?.EXPO_PUBLIC_API_URL?.replace(/\/$/, "")) ||
+  CONFIGURED_API_BASE_URL;
 function parseErrorBody(text: string, status: number): string {
   const trimmed = text.trim();
   if (!trimmed) return `API error ${status}`;

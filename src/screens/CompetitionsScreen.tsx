@@ -7,6 +7,7 @@ import { CompetitionDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
+import { PREMIUM_ENABLED } from "../config/features";
 import { COLORS } from "../theme/colors";
 import { androidChipText, chipPillShellSm, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 
@@ -63,12 +64,16 @@ export function CompetitionsScreen() {
   const listed = tab === "tournament" ? tournaments : leagues;
 
   const handleCreate = React.useCallback(() => {
+    if (!PREMIUM_ENABLED) {
+      showSnackbar("Hosting tournaments & leagues — coming soon in v2", { type: "info" });
+      return;
+    }
     if (!isSubscribed) {
       setShowGate(true);
     } else {
       navigation.navigate("CreateCompetition");
     }
-  }, [isSubscribed, navigation]);
+  }, [isSubscribed, navigation, showSnackbar]);
 
   const switchTab = React.useCallback(
     (next: "tournament" | "league") => {
@@ -139,7 +144,20 @@ export function CompetitionsScreen() {
               </View>
             </View>
 
-            {isSubscribed ? (
+            {!PREMIUM_ENABLED ? (
+              <View style={[styles.premiumCard, styles.premiumCardDisabled]} accessibilityState={{ disabled: true }}>
+                <View style={styles.premiumIcon}>
+                  <Ionicons name="diamond-outline" size={16} color={COLORS.card} />
+                </View>
+                <View style={styles.premiumMain}>
+                  <Text style={styles.premiumTitle}>👑 Premium</Text>
+                  <Text style={styles.premiumSub}>Coming soon in v2</Text>
+                </View>
+                <View style={[styles.premiumTag, styles.premiumTagMuted]}>
+                  <Text style={styles.premiumTagText}>SOON</Text>
+                </View>
+              </View>
+            ) : isSubscribed ? (
               <View style={styles.premiumCard}>
                 <View style={styles.premiumIcon}>
                   <Ionicons name="diamond-outline" size={16} color={COLORS.card} />
@@ -419,6 +437,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   premiumCardPressed: { opacity: 0.92 },
+  premiumCardDisabled: { opacity: 0.72 },
+  premiumTagMuted: { backgroundColor: "rgba(0,0,0,0.12)" },
   premiumIcon: {
     width: 30,
     height: 30,

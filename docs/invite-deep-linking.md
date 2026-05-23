@@ -11,13 +11,10 @@ Share messages from **Invite players** include both the **HTTPS** URL and the **
 
 ## 1. Configure your domain (one place in code)
 
-Edit **`PadelMeApp/src/config/deepLinks.ts`**:
+Production domain is **`PadelMeApp/src/config/domain.ts`** (`APP_ORIGIN` → `https://mipadel.co.uk`).  
+`deepLinks.ts` re-exports that origin for invite URLs.
 
-```ts
-export const INVITE_WEB_ORIGIN = "https://your-domain.com";
-```
-
-Use a **stable origin** (no trailing slash). Examples: `https://mipadel.app`, `https://app.yourbrand.com`.
+Use a **stable origin** (no trailing slash).
 
 Keep the **same host** in:
 
@@ -33,7 +30,7 @@ Keep the **same host** in:
 `MainActivity` declares `VIEW` intent-filters for:
 
 - `mipadel` + host `invite`
-- `https` and `http` with host **`mipadel.app`** and `pathPrefix` **`/invite`**
+- `https` and `http` with host **`mipadel.co.uk`** and `pathPrefix` **`/invite`**
 
 When you change production host, update **`android:host`** for both `https` and `http` filters to match `INVITE_WEB_ORIGIN`.
 
@@ -57,7 +54,7 @@ To avoid the system always asking “Open with Chrome or MiPadel?”:
 
 `ios/PadelMeApp/PadelMeApp.entitlements` lists:
 
-`applinks:mipadel.app`
+`applinks:mipadel.co.uk`
 
 Change this to **`applinks:<your-host>`** when you switch domains (no `https://` prefix in the entitlement string).
 
@@ -125,7 +122,7 @@ xcrun simctl openurl booted "mipadel://invite/YOUR_TOKEN_HERE"
 Optional (after HTTPS + AASA are set up for a real host):
 
 ```bash
-xcrun simctl openurl booted "https://mipadel.app/invite/YOUR_TOKEN_HERE"
+xcrun simctl openurl booted "https://mipadel.co.uk/invite/YOUR_TOKEN_HERE"
 ```
 
 ### Android Emulator / device
@@ -139,7 +136,7 @@ Replace **`com.mipadel`** with your **`applicationId`** from `android/app/build.
 HTTPS test (host must match manifest):
 
 ```bash
-adb shell am start -W -a android.intent.action.VIEW -d "https://mipadel.app/invite/YOUR_TOKEN_HERE" com.mipadel
+adb shell am start -W -a android.intent.action.VIEW -d "https://mipadel.co.uk/invite/YOUR_TOKEN_HERE" com.mipadel
 ```
 
 ---

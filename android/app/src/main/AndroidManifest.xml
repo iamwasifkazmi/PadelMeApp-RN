@@ -46,13 +46,13 @@
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" android:host="mipadel.app" android:pathPrefix="/invite" />
+            <data android:scheme="https" android:host="mipadel.co.uk" android:pathPrefix="/invite" />
         </intent-filter>
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="http" android:host="mipadel.app" android:pathPrefix="/invite" />
+            <data android:scheme="http" android:host="mipadel.co.uk" android:pathPrefix="/invite" />
         </intent-filter>
       </activity>
     </application>
