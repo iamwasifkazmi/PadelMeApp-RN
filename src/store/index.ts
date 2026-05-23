@@ -58,9 +58,13 @@ export async function bootstrapSession() {
 export async function persistSession(payload: SessionPayload) {
   store.dispatch(setSession(payload));
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+  const { registerPushAfterLogin } = await import("../lib/pushNotifications");
+  void registerPushAfterLogin();
 }
 
 export async function clearPersistedSession() {
+  const { unregisterPushToken } = await import("../lib/pushNotifications");
+  await unregisterPushToken().catch(() => undefined);
   store.dispatch(clearSession());
   await AsyncStorage.removeItem(SESSION_KEY);
 }

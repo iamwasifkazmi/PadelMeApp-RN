@@ -73,6 +73,10 @@ dist/
 # testing
 /coverage
 
+# Firebase config (API keys) — copy from Firebase Console; see docs/push-notifications.md
+ios/PadelMeApp/GoogleService-Info.plist
+android/app/google-services.json
+
 # Yarn
 .yarn/*
 !.yarn/patches

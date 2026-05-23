@@ -27,6 +27,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       UIDatePicker.appearance().preferredDatePickerStyle = .wheels
     }
 
+    PadelMeAppConfigureFirebase()
+
     factory.startReactNative(
       withModuleName: "MiPadel",
       in: window,
@@ -41,10 +43,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    if GIDSignIn.sharedInstance.handle(url) {
-      return true
-    }
-    return RCTLinkingManager.application(app, open: url, options: options)
+    return PadelMeAppHandleOpenURL(app, url, options)
   }
 
   func application(
@@ -52,11 +51,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
-    return RCTLinkingManager.application(
-      application,
-      continue: userActivity,
-      restorationHandler: restorationHandler
-    )
+    return PadelMeAppHandleContinueUserActivity(application, userActivity, restorationHandler)
   }
 }
 

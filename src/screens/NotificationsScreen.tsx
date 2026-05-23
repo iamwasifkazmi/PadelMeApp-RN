@@ -10,54 +10,7 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { androidChipText, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 import type { RootStackParamList } from "../navigation/types";
-
-type NotificationNavTarget =
-  | { kind: "accept_invite"; inviteId: string }
-  | { kind: "default" };
-
-function resolveNotificationNav(n: NotificationDto): NotificationNavTarget {
-  const type = (n.type || "").toLowerCase();
-  if (
-    (type === "match_invite" || type === "competition_invite") &&
-    (n.relatedEntityType || "").toLowerCase() === "invite" &&
-    n.relatedEntityId?.trim()
-  ) {
-    return { kind: "accept_invite", inviteId: n.relatedEntityId.trim() };
-  }
-  return { kind: "default" };
-}
-
-function navigateForNotification(
-  navigation: NativeStackNavigationProp<RootStackParamList>,
-  n: NotificationDto,
-) {
-  const type = (n.type || "").toLowerCase();
-  const matchId = n.matchId?.trim();
-  const isConversation =
-    (n.relatedEntityType || "").toLowerCase() === "conversation" && n.relatedEntityId?.trim();
-  const conversationId = isConversation ? n.relatedEntityId!.trim() : "";
-
-  if (type === "match_chat_message" && matchId) {
-    navigation.navigate("MatchChat", { matchId });
-    return;
-  }
-  if (conversationId) {
-    navigation.navigate("ConversationView", { id: conversationId });
-    return;
-  }
-  const isCompetitionNotif =
-    type === "competition_invite" ||
-    (n.relatedEntityType || "").toLowerCase() === "competition";
-  const compId =
-    isCompetitionNotif && n.relatedEntityId?.trim() ? n.relatedEntityId.trim() : "";
-  if (compId) {
-    navigation.navigate("CompetitionDetail", { id: compId });
-    return;
-  }
-  if (matchId) {
-    navigation.navigate("MatchDetail", { id: matchId });
-  }
-}
+import { openNotification } from "../navigation/notificationNavigation";
 
 function NotificationsSkeleton() {
   return (
@@ -109,25 +62,10 @@ export function NotificationsScreen() {
   }, [load]);
 
   const onNotificationPress = async (item: NotificationDto) => {
-    try {
-      if (!item.isRead) {
-        await api.patch(`/notifications/${item.id}/read`);
-        setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, isRead: true } : x)));
-      }
-    } catch {
-      /* still try to navigate */
+    if (!item.isRead) {
+      setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, isRead: true } : x)));
     }
-    const nav = resolveNotificationNav(item);
-    if (nav.kind === "accept_invite") {
-      try {
-        const rec = await api.get<{ token: string }>(`/invites/record/${nav.inviteId}`);
-        navigation.navigate("AcceptInvite", { token: rec.token });
-        return;
-      } catch {
-        /* fall through to match/competition */
-      }
-    }
-    navigateForNotification(navigation, { ...item, isRead: true });
+    await openNotification(navigation, item);
   };
   const markAllRead = async () => {
     await api.patch("/notifications/read-all", { email: USER_EMAIL });

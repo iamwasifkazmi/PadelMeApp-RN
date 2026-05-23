@@ -12,6 +12,7 @@ import { getThemeColors } from "./src/theme/colors";
 import { navigationRef } from "./src/navigation/navigationRef";
 import { isGoogleSignInCallbackUrl, parseInviteDeepLink } from "./src/navigation/inviteDeepLink";
 import { pendingPostAuthInviteToken } from "./src/navigation/pendingPostAuthInvite";
+import { flushPendingPushNavigation } from "./src/lib/pushNotifications";
 const pendingInviteUrlRef: { current: string | null } = { current: null };
 
 function handleIncomingUrl(url: string | null | undefined) {
@@ -60,7 +61,13 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    bootstrapSession();
+    void bootstrapSession().then(async () => {
+      const token = store.getState().auth.token;
+      if (token) {
+        const { registerPushAfterLogin } = await import("./src/lib/pushNotifications");
+        void registerPushAfterLogin();
+      }
+    });
   }, []);
 
   React.useEffect(() => {
@@ -93,10 +100,12 @@ function App() {
               onReady={() => {
                 flushPendingInviteNavigation();
                 flushPostAuthInviteNavigation();
+                flushPendingPushNavigation();
               }}
               onStateChange={() => {
                 flushPendingInviteNavigation();
                 flushPostAuthInviteNavigation();
+                flushPendingPushNavigation();
               }}
             >
               <RootNavigator />
