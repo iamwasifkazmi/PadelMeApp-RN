@@ -31,6 +31,9 @@ type VisibilityValue = "public" | "invite_only";
 type ScoringFormatValue = "simple" | "sets";
 type NumSetsPick = 1 | 3 | 5;
 
+type RecurrenceFrequency = "weekly" | "biweekly" | "monthly";
+type RecurrenceEndRule = "never" | "on_date" | "after_count";
+
 type FormState = {
   mode: Mode;
   matchType: MatchTypeValue;
@@ -49,6 +52,12 @@ type FormState = {
   scoringMode: ScoringFormatValue;
   numSetsPick: NumSetsPick;
   autoBalanceTeams: boolean;
+  recurrenceFrequency: RecurrenceFrequency;
+  recurrenceDays: string[];
+  recurrenceEndRule: RecurrenceEndRule;
+  recurrenceEndCount: number;
+  recurrenceEndDate: string;
+  playerGroupMode: "open" | "fixed";
 };
 
 const MATCH_TYPES: Array<{
@@ -161,6 +170,12 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     scoringMode: "simple",
     numSetsPick: 1,
     autoBalanceTeams: false,
+    recurrenceFrequency: "weekly",
+    recurrenceDays: ["Tuesday"],
+    recurrenceEndRule: "after_count",
+    recurrenceEndCount: 8,
+    recurrenceEndDate: formatLocalDate(new Date(Date.now() + 90 * 86400000)),
+    playerGroupMode: "open",
   });
 
   React.useEffect(() => {
@@ -314,6 +329,13 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       setSaving(true);
       const scoringMode = form.scoringMode;
       const numSets = scoringMode === "sets" ? form.numSetsPick : 1;
+      const isRecurring = form.mode === "recurring";
+      const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
+        parseLocalDateTime(form.date, form.timeLabel).getDay()
+      ];
+      const recurrenceDays =
+        form.recurrenceDays.length > 0 ? form.recurrenceDays : [dayName];
+
       const created = await api.post<MatchDto>("/matches", {
         title: form.title.trim(),
         date: form.date,
@@ -338,8 +360,33 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         tiebreakRule: "tiebreak_at_6",
         autoBalanceTeams:
           form.matchType !== "singles" && Boolean(form.autoBalanceTeams),
+        ...(isRecurring
+          ? {
+              isRecurring: true,
+              recurrencePattern: {
+                frequency: form.recurrenceFrequency,
+                days: recurrenceDays,
+                end_rule: form.recurrenceEndRule,
+                ...(form.recurrenceEndRule === "on_date"
+                  ? { end_date: form.recurrenceEndDate }
+                  : {}),
+                ...(form.recurrenceEndRule === "after_count"
+                  ? { end_count: form.recurrenceEndCount }
+                  : {}),
+              },
+              playerGroupMode: form.playerGroupMode,
+              fixedPlayers:
+                form.playerGroupMode === "fixed" && USER_EMAIL ? [USER_EMAIL] : [],
+            }
+          : {}),
       });
-      showSnackbar(form.mode === "instant" ? "Looking for players ⚡" : "Match created! 🎾", {
+      showSnackbar(
+        form.mode === "instant"
+          ? "Looking for players ⚡"
+          : isRecurring
+            ? "Recurring series created! 🔄"
+            : "Match created! 🎾",
+        {
         type: "success",
       });
       navigation.replace("MatchDetail", { id: created.id });
@@ -562,6 +609,75 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
                 </Pressable>
               ))}
             </ScrollView>
+            {form.mode === "recurring" ? (
+              <>
+                <SectionLabel text="Repeat" />
+                <View style={styles.row}>
+                  {(["weekly", "biweekly", "monthly"] as RecurrenceFrequency[]).map((f) => (
+                    <Pressable
+                      key={f}
+                      style={[styles.chip, form.recurrenceFrequency === f && styles.chipActive]}
+                      onPress={() => update("recurrenceFrequency", f)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          form.recurrenceFrequency === f && styles.chipTextActive,
+                        ]}
+                      >
+                        {f}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <SectionLabel text="Ends" />
+                <View style={styles.row}>
+                  {(
+                    [
+                      { key: "after_count" as const, label: "After N" },
+                      { key: "on_date" as const, label: "On date" },
+                      { key: "never" as const, label: "52 max" },
+                    ] as const
+                  ).map((opt) => (
+                    <Pressable
+                      key={opt.key}
+                      style={[styles.chip, form.recurrenceEndRule === opt.key && styles.chipActive]}
+                      onPress={() => update("recurrenceEndRule", opt.key)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          form.recurrenceEndRule === opt.key && styles.chipTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {form.recurrenceEndRule === "after_count" ? (
+                  <View style={styles.row}>
+                    {[4, 8, 12, 16].map((n) => (
+                      <Pressable
+                        key={n}
+                        style={[styles.chip, form.recurrenceEndCount === n && styles.chipActive]}
+                        onPress={() => update("recurrenceEndCount", n)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            form.recurrenceEndCount === n && styles.chipTextActive,
+                          ]}
+                        >
+                          {n}×
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
             {form.mode !== "instant" ? (
               <View style={styles.scheduledPolicyBox}>
                 <Ionicons name="information-circle-outline" size={18} color={COLORS.infoText} style={styles.scheduledPolicyIcon} />

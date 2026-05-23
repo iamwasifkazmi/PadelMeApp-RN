@@ -31,7 +31,9 @@ type VenueResult = {
   city?: string;
   lat: number | null;
   lng: number | null;
-  source: "internal" | "map";
+  source: "internal" | "map" | "lta";
+  bookingUrl?: string;
+  ltaRegistered?: boolean;
 };
 
 type Props = {
@@ -72,7 +74,7 @@ export function VenuePicker({ sport = "padel", value, onChange }: Props) {
   };
 
   const handleSelectVenue = async (v: VenueResult) => {
-    if (v.source === "map" && v.lat != null && v.lng != null) {
+    if ((v.source === "map" || v.source === "lta") && v.lat != null && v.lng != null) {
       try {
         await api.post("/venues", {
           fromMap: true,
@@ -84,11 +86,23 @@ export function VenuePicker({ sport = "padel", value, onChange }: Props) {
             city: v.city,
             lat: v.lat,
             lng: v.lng,
-            source: "map",
+            source: v.source,
           },
         });
       } catch {
         // non-blocking — same as Base44
+      }
+    } else if (v.source === "lta") {
+      try {
+        await api.post("/venues", {
+          name: v.name,
+          sport,
+          address: v.address,
+          city: v.city,
+          addedBy: getCurrentUserEmail(),
+        });
+      } catch {
+        // non-blocking
       }
     }
     onChange({ name: v.name, address: v.address, lat: v.lat, lng: v.lng });
@@ -198,7 +212,13 @@ export function VenuePicker({ sport = "padel", value, onChange }: Props) {
                     {venues.map((v, i) => (
                       <Pressable key={`${v.source}-${v.name}-${i}`} style={styles.resultItem} onPress={() => handleSelectVenue(v)}>
                         <Ionicons
-                          name={v.source === "map" ? "map-outline" : "business-outline"}
+                          name={
+                            v.source === "map"
+                              ? "map-outline"
+                              : v.source === "lta"
+                                ? "shield-checkmark-outline"
+                                : "business-outline"
+                          }
                           size={16}
                           color={COLORS.primaryDark}
                         />
@@ -207,7 +227,7 @@ export function VenuePicker({ sport = "padel", value, onChange }: Props) {
                           {v.address ? (
                             <Text style={styles.resultSub} numberOfLines={2}>
                               {v.address}
-                              {v.source === "map" ? " · Map" : ""}
+                              {v.source === "map" ? " · Map" : v.source === "lta" ? " · LTA" : ""}
                             </Text>
                           ) : null}
                         </View>
@@ -445,7 +465,7 @@ export function VenuePickerModal({
               </Pressable>
             </View>
             <Text style={modalStyles.hint}>
-              Search a town, postcode, or padel club. Results use OpenStreetMap — add manually if none show.
+              Search a town or postcode. Results include LTA registered clubs, your venue list, and OpenStreetMap.
             </Text>
             <VenuePicker
               sport={sport}

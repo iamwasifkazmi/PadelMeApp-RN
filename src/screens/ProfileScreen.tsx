@@ -335,6 +335,24 @@ export function ProfileScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
             </Pressable>
+            {user?.role === "admin" ? (
+              <>
+                <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("AdminIDReview")}>
+                  <View>
+                    <Text style={styles.rowTitle}>Admin ID review</Text>
+                    <Text style={styles.rowMeta}>Approve or reject verification requests</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+                </Pressable>
+                <Pressable style={styles.rowBtn} onPress={() => navigation.navigate("AdminTestMode")}>
+                  <View>
+                    <Text style={styles.rowTitle}>Admin test mode</Text>
+                    <Text style={styles.rowMeta}>Subscription and flow diagnostics</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+                </Pressable>
+              </>
+            ) : null}
           </View>
 
           <View style={styles.sectionCard}>

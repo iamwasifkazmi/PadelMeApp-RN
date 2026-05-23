@@ -125,6 +125,7 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
   const [selfieUrl, setSelfieUrl] = React.useState("");
   const [showIdForm, setShowIdForm] = React.useState(false);
   const [pickingSlot, setPickingSlot] = React.useState<null | "id" | "selfie">(null);
+  const [isAdmin, setIsAdmin] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -138,11 +139,13 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
           idVerified?: boolean;
           photoVerified?: boolean;
           photoUrl?: string | null;
+          role?: string;
         }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`),
       ]);
       setStatus(verifyRes.status || "not_submitted");
       setIdPhotoUrl(verifyRes.idPhotoUrl || "");
       setSelfieUrl(verifyRes.selfieUrl || "");
+      setIsAdmin(me.role === "admin");
       setFullName(me.fullName || USER_EMAIL.split("@")[0] || "Player");
       setProfilePhotoUri(me.photoUrl?.trim() ? me.photoUrl : null);
       setIdVerified(Boolean(me.idVerified));
@@ -314,14 +317,16 @@ export function VerificationScreen({ navigation }: { navigation: any }) {
         </Text>
       </View>
 
-      <View style={styles.adminLinks}>
-        <Pressable style={styles.adminLinkBtn} onPress={() => navigation.navigate("AdminIDReview")}>
-          <Text style={styles.adminLinkText}>Open Admin ID Review</Text>
-        </Pressable>
-        <Pressable style={styles.adminLinkBtn} onPress={() => navigation.navigate("AdminTestMode")}>
-          <Text style={styles.adminLinkText}>Open Admin Test Mode</Text>
-        </Pressable>
-      </View>
+      {isAdmin ? (
+        <View style={styles.adminLinks}>
+          <Pressable style={styles.adminLinkBtn} onPress={() => navigation.navigate("AdminIDReview")}>
+            <Text style={styles.adminLinkText}>Admin ID Review</Text>
+          </Pressable>
+          <Pressable style={styles.adminLinkBtn} onPress={() => navigation.navigate("AdminTestMode")}>
+            <Text style={styles.adminLinkText}>Admin Test Mode</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

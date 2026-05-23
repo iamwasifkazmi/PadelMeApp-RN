@@ -1,13 +1,12 @@
 import React from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
-import { CompetitionDto } from "../lib/types";
+import { CompetitionDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
-import { SUBSCRIPTION_PLAN_KEY } from "./SubscriptionGateScreen";
+import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { androidChipText, chipPillShellSm, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 
@@ -19,32 +18,41 @@ export function CompetitionsScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [items, setItems] = React.useState<CompetitionDto[]>([]);
   const [tab, setTab] = React.useState<"tournament" | "league">("tournament");
-  const [plan, setPlan] = React.useState<"free" | "premium">("free");
-  const [showPremiumBanner] = React.useState(true);
+  const [isSubscribed, setIsSubscribed] = React.useState(false);
+  const [showGate, setShowGate] = React.useState(false);
+  const USER_EMAIL = getCurrentUserEmail();
 
   const load = React.useCallback(async (opts?: { refresh?: boolean }) => {
     const isRefresh = opts?.refresh === true;
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const [res, storedPlan] = await Promise.all([
-        api.get<CompetitionDto[]>("/competitions"),
-        AsyncStorage.getItem(SUBSCRIPTION_PLAN_KEY),
-      ]);
+      const res = await api.get<CompetitionDto[]>("/competitions");
       setItems(res);
-      setPlan(storedPlan === "premium" ? "premium" : "free");
+      if (USER_EMAIL) {
+        const me = await api.get<UserDto>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`);
+        setIsSubscribed(Boolean(me.isSubscribed));
+      } else {
+        setIsSubscribed(false);
+      }
     } catch {
       setItems([]);
-      setPlan("free");
+      setIsSubscribed(false);
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
     }
-  }, []);
+  }, [USER_EMAIL]);
 
   React.useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      load({ refresh: true });
+    }, [load]),
+  );
 
   const onRefresh = React.useCallback(() => {
     load({ refresh: true });
@@ -53,7 +61,14 @@ export function CompetitionsScreen() {
   const tournaments = React.useMemo(() => items.filter((i) => i.type === "tournament"), [items]);
   const leagues = React.useMemo(() => items.filter((i) => i.type === "league"), [items]);
   const listed = tab === "tournament" ? tournaments : leagues;
-  const isSubscribed = plan === "premium";
+
+  const handleCreate = React.useCallback(() => {
+    if (!isSubscribed) {
+      setShowGate(true);
+    } else {
+      navigation.navigate("CreateCompetition");
+    }
+  }, [isSubscribed, navigation]);
 
   const switchTab = React.useCallback(
     (next: "tournament" | "league") => {
@@ -68,22 +83,28 @@ export function CompetitionsScreen() {
   );
 
   if (loading) return <CompetitionsSkeleton />;
-  if (!isSubscribed) {
+
+  if (showGate) {
     return (
       <View style={styles.container}>
-        <View style={styles.gateCard}>
+        <Pressable style={styles.gateBack} onPress={() => setShowGate(false)}>
+          <Text style={styles.gateBackText}>← Back</Text>
+        </Pressable>
+        <Pressable
+          style={styles.gateCard}
+          onPress={() =>
+            navigation.navigate("SubscriptionGate", { onSuccess: "create-competition" })
+          }
+        >
           <Text style={styles.gateEmoji}>👑</Text>
           <Text style={styles.gateTitle}>Premium Package Required</Text>
           <Text style={styles.gateText}>
-            Start premium to host or fully manage tournaments and leagues like Base44.
+            Start premium to host tournaments and leagues — same as Base44.
           </Text>
-          <Pressable style={styles.gateStartBtn} onPress={() => navigation.navigate("SubscriptionGate")}>
+          <View style={styles.gateStartBtn}>
             <Text style={styles.gateStartText}>Start Premium</Text>
-          </Pressable>
-          <Pressable style={styles.gateSkipBtn} onPress={() => navigation.navigate("MainTabs", { screen: "DiscoverTab" })}>
-            <Text style={styles.gateSkipText}>Back to Discover</Text>
-          </Pressable>
-        </View>
+          </View>
+        </Pressable>
       </View>
     );
   }
@@ -104,7 +125,7 @@ export function CompetitionsScreen() {
               <Text style={styles.heroTitle}>Compete & Win 🏆</Text>
               <Text style={styles.heroSub}>Join tournaments or create your own</Text>
               <View style={styles.heroActions}>
-                <Pressable style={styles.heroPrimaryBtn} onPress={() => navigation.navigate("CreateCompetition")}>
+                <Pressable style={styles.heroPrimaryBtn} onPress={handleCreate}>
                   <Ionicons name="add" size={14} color={COLORS.card} />
                   <Text style={styles.heroPrimaryBtnText}>Host Tournament</Text>
                 </Pressable>
@@ -118,26 +139,39 @@ export function CompetitionsScreen() {
               </View>
             </View>
 
-            {showPremiumBanner ? (
+            {isSubscribed ? (
+              <View style={styles.premiumCard}>
+                <View style={styles.premiumIcon}>
+                  <Ionicons name="diamond-outline" size={16} color={COLORS.card} />
+                </View>
+                <View style={styles.premiumMain}>
+                  <Text style={styles.premiumTitle}>👑 Premium Active</Text>
+                  <Text style={styles.premiumSub}>Unlimited tournaments · Host leagues</Text>
+                </View>
+                <View style={styles.premiumTag}>
+                  <Text style={styles.premiumTagText}>PRO</Text>
+                </View>
+              </View>
+            ) : (
               <Pressable
                 style={({ pressed }) => [styles.premiumCard, pressed && styles.premiumCardPressed]}
-                onPress={() => showSnackbar("Coming soon", { type: "info" })}
+                onPress={() => navigation.navigate("SubscriptionGate")}
               >
                 <View style={styles.premiumIcon}>
                   <Ionicons name="diamond-outline" size={16} color={COLORS.card} />
                 </View>
                 <View style={styles.premiumMain}>
-                  <Text style={styles.premiumTitle}>Premium Package</Text>
-                  <Text style={styles.premiumSub}>Unlimited tournaments · Better prize controls</Text>
+                  <Text style={styles.premiumTitle}>Unlock Premium</Text>
+                  <Text style={styles.premiumSub}>Host tournaments and leagues</Text>
                 </View>
                 <View style={styles.premiumTag}>
-                  <Text style={styles.premiumTagText}>PRO</Text>
+                  <Text style={styles.premiumTagText}>GO</Text>
                 </View>
               </Pressable>
-            ) : null}
+            )}
 
             <View style={styles.quickTiles}>
-              <QuickTile icon="➕" label="Host" sub="Tournament" accent onPress={() => navigation.navigate("CreateCompetition")} />
+              <QuickTile icon="➕" label="Host" sub="Tournament" accent onPress={handleCreate} />
               <QuickTile
                 icon="🏆"
                 label="Find"
@@ -542,8 +576,11 @@ const styles = StyleSheet.create({
   skeletonRow: { flexDirection: "row", justifyContent: "space-between" },
   skeletonGapSm: { height: 7 },
   skeletonGapMd: { height: 11 },
+  gateBack: { paddingHorizontal: 14, paddingTop: 12 },
+  gateBackText: { color: COLORS.textMuted, fontSize: 13, fontWeight: "600" },
   gateCard: {
     marginTop: 14,
+    marginHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: COLORS.warningText,

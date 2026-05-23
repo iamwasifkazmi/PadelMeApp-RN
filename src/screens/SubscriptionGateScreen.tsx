@@ -1,16 +1,68 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSnackbar } from "../components/Snackbar";
+import { api } from "../lib/api";
+import { AuthUserDto } from "../lib/types";
+import { mergeAuthUser } from "../store";
 import { COLORS } from "../theme/colors";
 
+/** @deprecated Use user.isSubscribed from API */
 export const SUBSCRIPTION_PLAN_KEY = "padelme.subscription.plan.v1";
 
-export function SubscriptionGateScreen({ navigation }: { navigation: any }) {
+export function SubscriptionGateScreen({
+  navigation,
+  route,
+}: {
+  navigation: any;
+  route?: { params?: { onSuccess?: "create-competition" } };
+}) {
   const { showSnackbar } = useSnackbar();
+  const [loading, setLoading] = React.useState(false);
 
-  const onStartPremium = () => {
-    showSnackbar("Coming soon", { type: "info" });
+  const finishSuccess = async (user: AuthUserDto) => {
+    await mergeAuthUser({
+      isSubscribed: user.isSubscribed,
+      role: user.role,
+    });
+    showSnackbar("Welcome to Premium! You can host tournaments and leagues.", { type: "success" });
+    if (route?.params?.onSuccess === "create-competition") {
+      navigation.replace("CreateCompetition");
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const onStartPremium = async () => {
+    try {
+      setLoading(true);
+
+      const configured = await api.get<{ stripe: boolean }>("/billing/configured");
+      if (configured.stripe) {
+        const checkout = await api.post<{ url: string | null; sessionId: string }>(
+          "/billing/checkout-session",
+        );
+        if (!checkout.url) {
+          showSnackbar("Could not start checkout.", { type: "error" });
+          return;
+        }
+        await Linking.openURL(checkout.url);
+        showSnackbar("Complete payment in the browser, then return here.", { type: "info" });
+        return;
+      }
+
+      const res = await api.post<{ user: AuthUserDto }>("/auth/subscribe");
+      await finishSuccess(res.user);
+    } catch (e) {
+      const msg = String((e as Error)?.message || "");
+      if (msg.includes("use_stripe_checkout") || msg.includes("checkout-session")) {
+        showSnackbar("Add STRIPE_PRICE_ID on the server, then try again.", { type: "error" });
+      } else {
+        showSnackbar("Could not activate premium. Sign in and try again.", { type: "error" });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -21,20 +73,25 @@ export function SubscriptionGateScreen({ navigation }: { navigation: any }) {
         </View>
         <Text style={styles.title}>Premium Package</Text>
         <Text style={styles.sub}>
-          Host and manage tournaments/leagues with full Base44-style compete tools.
+          Host tournaments and leagues. When Stripe is configured, checkout opens in your browser
+          (card payment). Otherwise dev mode activates instantly.
         </Text>
 
         <View style={styles.features}>
           <Text style={styles.feature}>• Unlimited tournaments and leagues</Text>
           <Text style={styles.feature}>• Entry fee and prize controls</Text>
-          <Text style={styles.feature}>• Advanced competition actions</Text>
+          <Text style={styles.feature}>• LTA venue search in court picker</Text>
         </View>
 
-        <Pressable style={styles.startBtn} onPress={onStartPremium}>
-          <Text style={styles.startBtnText}>Start Premium</Text>
+        <Pressable style={styles.startBtn} onPress={onStartPremium} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.card} />
+          ) : (
+            <Text style={styles.startBtnText}>Start Premium</Text>
+          )}
         </Pressable>
 
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} disabled={loading}>
           <Text style={styles.backBtnText}>Not now</Text>
         </Pressable>
       </View>
@@ -84,6 +141,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
+    minHeight: 40,
   },
   startBtnText: { color: COLORS.card, fontSize: 12, fontWeight: "700" },
   backBtn: {

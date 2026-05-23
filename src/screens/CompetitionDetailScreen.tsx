@@ -13,6 +13,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { CompetitionDetailDto, CompetitionMatchDto } from "../lib/types";
 import { CompetitionMatchScoreModal } from "../components/CompetitionMatchScoreModal";
+import { BracketView } from "../components/BracketView";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail } from "../store";
 import { useSnackbar } from "../components/Snackbar";
@@ -335,56 +336,15 @@ export function CompetitionDetailScreen({
 
         {tab === "bracket" && (
           <View style={styles.section}>
-            {groupByRound(item.matches).length === 0 ? (
-              <Text style={styles.emptyText}>No bracket matches yet.</Text>
-            ) : (
-              groupByRound(item.matches).map((round) => (
-                <View key={round.round} style={styles.roundGroup}>
-                  <Text style={styles.roundTitle}>Round {round.round}</Text>
-                  {round.matches.map((m) => (
-                    <View key={m.id} style={styles.matchCard}>
-                      <Text style={styles.matchTitle}>
-                        {m.player1Name || "TBD"} vs {m.player2Name || "TBD"}
-                      </Text>
-                      <Text style={styles.matchMeta}>{m.status.replaceAll("_", " ")}</Text>
-                      {(m.status === "confirmed" ? m.scorePlayer1 : m.submittedScoreP1 || m.scorePlayer1) && (
-                        <Text style={styles.matchScore}>
-                          {m.status === "confirmed"
-                            ? `${m.scorePlayer1 || "0"} - ${m.scorePlayer2 || "0"}`
-                            : `${m.submittedScoreP1 || "0"} - ${m.submittedScoreP2 || "0"} (pending)`}
-                        </Text>
-                      )}
-                      <View style={styles.matchActions}>
-                        {canSubmitScore(m) && (
-                          <Pressable
-                            style={styles.matchActionBtn}
-                            onPress={() => setScoreModal({ mode: "submit", match: m })}
-                          >
-                            <Text style={styles.matchActionText}>Submit</Text>
-                          </Pressable>
-                        )}
-                        {canValidateScore(m) && (
-                          <Pressable
-                            style={[styles.matchActionBtn, styles.matchActionValidate]}
-                            onPress={() => setScoreModal({ mode: "validate", match: m })}
-                          >
-                            <Text style={styles.matchActionTextValidate}>Validate</Text>
-                          </Pressable>
-                        )}
-                        {canHostScore(m) && (
-                          <Pressable
-                            style={styles.matchActionBtn}
-                            onPress={() => setScoreModal({ mode: "host", match: m })}
-                          >
-                            <Text style={styles.matchActionText}>Organiser score</Text>
-                          </Pressable>
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ))
-            )}
+            <BracketView
+              matches={item.matches}
+              currentUserEmail={USER_EMAIL}
+              isHost={item.hostEmail?.toLowerCase() === USER_EMAIL.toLowerCase()}
+              isDoubles={item.teamStructure === "doubles"}
+              onSubmitScore={(m) => setScoreModal({ mode: "submit", match: m })}
+              onValidateScore={(m) => setScoreModal({ mode: "validate", match: m })}
+              onHostScore={(m) => setScoreModal({ mode: "host", match: m })}
+            />
           </View>
         )}
 

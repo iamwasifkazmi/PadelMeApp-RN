@@ -4,6 +4,10 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName?: string | null;
+  role?: string;
+  isSubscribed?: boolean;
+  photoVerified?: boolean;
+  idVerified?: boolean;
   /** Set at sign-in: true → onboarding; false → main app; omit → use profile check via API. */
   isNewUser?: boolean;
 };

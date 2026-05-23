@@ -39,7 +39,7 @@ export type RootStackParamList = {
   ConversationView: { id: string };
   MatchChat: { matchId: string };
   MatchRatePlayers: { matchId: string };
-  SubscriptionGate: undefined;
+  SubscriptionGate: { onSuccess?: "create-competition" } | undefined;
   AdminIDReview: undefined;
   AdminTestMode: undefined;
   Community: undefined;

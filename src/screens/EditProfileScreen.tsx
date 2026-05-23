@@ -315,6 +315,13 @@ export function EditProfileScreen() {
         notifyTournaments: form.notifyTournaments,
         profileComplete: true,
       });
+      if (form.photoUrl.trim()) {
+        try {
+          await api.post("/verification/confirm-photo", { email: USER_EMAIL });
+        } catch {
+          // non-blocking — photo still saved on profile
+        }
+      }
       showSnackbar("Profile saved", { type: "success" });
       navigation.goBack();
     } catch {

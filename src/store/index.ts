@@ -64,3 +64,11 @@ export async function clearPersistedSession() {
   store.dispatch(clearSession());
   await AsyncStorage.removeItem(SESSION_KEY);
 }
+
+export async function mergeAuthUser(patch: Partial<AuthUser>) {
+  const { token, user } = store.getState().auth;
+  if (!token || !user?.email) return;
+  const next = { ...user, ...patch };
+  store.dispatch(setSession({ token, user: next }));
+  await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: next }));
+}

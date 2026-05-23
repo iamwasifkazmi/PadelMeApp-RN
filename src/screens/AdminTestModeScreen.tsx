@@ -1,7 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../lib/api";
-import { getCurrentUserEmail } from "../store";
+import { getCurrentUserEmail, mergeAuthUser } from "../store";
+import { useSnackbar } from "../components/Snackbar";
 import { COLORS } from "../theme/colors";
 
 type Summary = {
@@ -13,6 +14,7 @@ type Summary = {
 };
 
 export function AdminTestModeScreen({ navigation }: { navigation: any }) {
+  const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const [summary, setSummary] = React.useState<Summary | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -74,6 +76,38 @@ export function AdminTestModeScreen({ navigation }: { navigation: any }) {
           onPress={createDummyMatches}
         >
           <Text style={styles.primaryBtnText}>{busy ? "Creating..." : "Create dummy matches"}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Subscription (Base44 simulate)</Text>
+        <Pressable
+          style={styles.secondaryBtn}
+          onPress={async () => {
+            try {
+              const res = await api.post<{ user: { isSubscribed?: boolean } }>("/auth/subscribe");
+              await mergeAuthUser({ isSubscribed: res.user.isSubscribed });
+              showSnackbar("Premium activated", { type: "success" });
+            } catch {
+              showSnackbar("Subscribe failed", { type: "error" });
+            }
+          }}
+        >
+          <Text style={styles.secondaryBtnText}>Activate premium</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.secondaryBtn, { marginTop: 8 }]}
+          onPress={async () => {
+            try {
+              const res = await api.post<{ user: { isSubscribed?: boolean } }>("/auth/unsubscribe");
+              await mergeAuthUser({ isSubscribed: res.user.isSubscribed });
+              showSnackbar("Premium deactivated", { type: "info" });
+            } catch {
+              showSnackbar("Unsubscribe failed", { type: "error" });
+            }
+          }}
+        >
+          <Text style={styles.secondaryBtnText}>Deactivate premium</Text>
         </Pressable>
       </View>
 

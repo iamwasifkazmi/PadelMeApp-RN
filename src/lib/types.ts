@@ -101,6 +101,9 @@ export type UserRecentMatchResultDto = {
 export type UserDto = {
   id: string;
   email: string;
+  role?: string;
+  isSubscribed?: boolean;
+  subscriptionSince?: string | null;
   fullName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
@@ -375,6 +378,21 @@ export type AuthUserDto = {
   id: string;
   email: string;
   fullName?: string | null;
+  role?: string;
+  isSubscribed?: boolean;
+  subscriptionSince?: string | null;
+  photoVerified?: boolean;
+  idVerified?: boolean;
+};
+
+export type PlayerRatingSummaryDto = {
+  userEmail: string;
+  averageRating?: number | null;
+  totalRatings?: number;
+  tagReliableCount?: number;
+  tagGoodAttitudeCount?: number;
+  tagSkillAccurateCount?: number;
+  tagWouldPlayAgainCount?: number;
 };
 
 export type AuthResponseDto = {
