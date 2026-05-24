@@ -31,3 +31,23 @@ export const PLAYERS_COUNTRY_FILTER_CHIPS: { value: string; label: string }[] = 
   { value: "", label: "Any country" },
   ...USER_COUNTRY_CHOICES,
 ];
+
+export function countryChoiceByValue(value: string) {
+  const v = value.trim();
+  if (!v) return undefined;
+  return USER_COUNTRY_CHOICES.find((c) => c.value === v);
+}
+
+export function countryDisplayLabel(value: string): string {
+  const choice = countryChoiceByValue(value);
+  return choice ? choice.label : value.trim();
+}
+
+/** Match canonical name or short chip label (e.g. "UK" → United Kingdom). */
+export function filterCountryChoices(query: string) {
+  const t = query.trim().toLowerCase();
+  if (!t) return USER_COUNTRY_CHOICES;
+  return USER_COUNTRY_CHOICES.filter(
+    (c) => c.value.toLowerCase().includes(t) || c.label.toLowerCase().includes(t),
+  );
+}

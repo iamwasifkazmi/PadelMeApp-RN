@@ -24,7 +24,7 @@ import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { androidChipText, CHIP_PAD_V_SM } from "../theme/chipAndroid";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
-import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
+import { CountrySearchPicker } from "../components/CountrySearchPicker";
 import { PadelSkillLevelGrid } from "../components/PadelSkillLevelGrid";
 import { PadelSkillLevelSummary } from "../components/PadelSkillLevelSummary";
 import { padelSkillApiLabel } from "../lib/padelSkill";
@@ -493,23 +493,12 @@ export function EditProfileScreen() {
             <Text style={styles.pickLocationBtnText}>Search & select location</Text>
           </Pressable>
           <FieldLabel text="Country" required />
-          <Text style={styles.countryHint}>
-            Used for Discover → Players. Choose where you mainly play.
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.countryChipsRow}
-          >
-            {USER_COUNTRY_CHOICES.map((c) => (
-              <Chip
-                key={c.value}
-                label={c.label}
-                selected={form.country === c.value}
-                onPress={() => setForm((p) => ({ ...p, country: c.value }))}
-              />
-            ))}
-          </ScrollView>
+          <CountrySearchPicker
+            value={form.country}
+            onChange={(country) => setForm((p) => ({ ...p, country }))}
+            placeholder="Search country (e.g. UK, Spain)"
+            hint="Used for Discover → Players. Choose where you mainly play."
+          />
           <FieldLabel text="Gender" required />
           <View style={styles.chipsRow}>
             {["male", "female", "other"].map((g) => (
@@ -938,8 +927,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   coordsHint: { marginBottom: 8, color: COLORS.textMuted, fontSize: 11 },
-  countryHint: { marginBottom: 8, color: COLORS.textMuted, fontSize: 11, lineHeight: 15 },
-  countryChipsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 10, paddingRight: 8 },
   pickLocationBtn: {
     marginTop: -1,
     marginBottom: 10,

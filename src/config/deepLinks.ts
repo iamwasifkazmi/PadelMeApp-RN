@@ -29,7 +29,7 @@ export function inviteWebHostname(): string {
   try {
     return new URL(INVITE_WEB_ORIGIN).hostname;
   } catch {
-    return "padelme-backend-781275999853.europe-west2.run.app";
+    return "api.mipadel.co.uk";
   }
 }
 

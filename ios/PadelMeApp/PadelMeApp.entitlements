@@ -10,8 +10,9 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:padelme-backend-781275999853.europe-west2.run.app</string>
+		<string>applinks:api.mipadel.co.uk</string>
 		<string>applinks:mipadel.co.uk</string>
+		<string>applinks:padelme-backend-781275999853.europe-west2.run.app</string>
 	</array>
 </dict>
 </plist>

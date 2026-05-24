@@ -3,8 +3,8 @@ import { inviteWebHostnames } from "../config/deepLinks";
 function isInviteWebHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
   if (inviteWebHostnames().some((known) => known.toLowerCase() === h)) return true;
-  /** Cloud Run custom domains end with .run.app */
-  return h.endsWith(".run.app");
+  /** Legacy Cloud Run host + custom API subdomain */
+  return h.endsWith(".run.app") || h === "api.mipadel.co.uk";
 }
 
 /** Google OAuth returns via com.googleusercontent.apps.* — not an invite link. */
