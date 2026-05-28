@@ -11,6 +11,8 @@ import { getSocket } from "../lib/socket";
 import { ConversationDto } from "../lib/types";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
+import { PREMIUM_ENABLED } from "../config/features";
+import { usePremiumGate } from "../hooks/usePremiumGate";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -30,6 +32,7 @@ export function MainTabs() {
   const navigation = useNavigation<any>();
   const [createOpen, setCreateOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
+  const { openGate, gateModal } = usePremiumGate();
   const navigateRoot = React.useCallback(
     (route: string, params?: Record<string, unknown>) => {
       const parent = navigation.getParent?.();
@@ -38,6 +41,29 @@ export function MainTabs() {
     },
     [navigation],
   );
+  const handleCompetitionPress = React.useCallback(
+    (kind: "tournament" | "league") => {
+      if (!PREMIUM_ENABLED) {
+        openGate({
+          feature: kind === "league" ? "Leagues" : "Tournaments",
+          description:
+            kind === "league"
+              ? "Hosting season-long leagues is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you."
+              : "Hosting tournaments is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you.",
+        });
+        return;
+      }
+      navigateRoot("CreateCompetition", { defaultType: kind });
+    },
+    [navigateRoot, openGate],
+  );
+  const handleRankingPress = React.useCallback(() => {
+    openGate({
+      feature: "Rankings",
+      description:
+        "Global rankings and leaderboards are coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you.",
+    });
+  }, [openGate]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -180,19 +206,40 @@ export function MainTabs() {
               <ActionRow
                 icon="trophy-outline"
                 title="Create Tournament"
-                subtitle="Knockout or round robin"
-                onPress={() => navigateRoot("CreateCompetition", { defaultType: "tournament" })}
+                subtitle={
+                  PREMIUM_ENABLED ? "Knockout or round robin" : "Premium · Coming soon in v2"
+                }
+                badge={!PREMIUM_ENABLED ? "SOON" : undefined}
+                premiumLocked={!PREMIUM_ENABLED}
+                onPress={() => handleCompetitionPress("tournament")}
               />
               <ActionRow
                 icon="stats-chart-outline"
                 title="Create League"
-                subtitle="Season-long standings"
-                onPress={() => navigateRoot("CreateCompetition", { defaultType: "league" })}
+                subtitle={
+                  PREMIUM_ENABLED ? "Season-long standings" : "Premium · Coming soon in v2"
+                }
+                badge={!PREMIUM_ENABLED ? "SOON" : undefined}
+                premiumLocked={!PREMIUM_ENABLED}
+                onPress={() => handleCompetitionPress("league")}
+              />
+              <ActionRow
+                icon="podium-outline"
+                title="Ranking"
+                subtitle={
+                  PREMIUM_ENABLED
+                    ? "Global leaderboards & ELO"
+                    : "Premium · Coming soon in v2"
+                }
+                badge={!PREMIUM_ENABLED ? "SOON" : undefined}
+                premiumLocked={!PREMIUM_ENABLED}
+                onPress={handleRankingPress}
               />
             </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
+      {gateModal}
     </>
   );
 
@@ -202,29 +249,55 @@ export function MainTabs() {
     subtitle,
     onPress,
     highlight,
+    badge,
+    premiumLocked,
   }: {
     icon: string;
     title: string;
     subtitle: string;
     onPress: () => void;
     highlight?: boolean;
+    badge?: string;
+    premiumLocked?: boolean;
   }) {
     return (
       <Pressable
-        style={[styles.actionRow, highlight && styles.actionRowHighlight]}
+        style={[
+          styles.actionRow,
+          highlight && styles.actionRowHighlight,
+          premiumLocked && styles.actionRowLocked,
+        ]}
         onPress={() => {
           setCreateOpen(false);
           onPress();
         }}
       >
-        <View style={styles.actionIcon}>
-          <Ionicons name={icon as any} size={18} color={COLORS.primary} />
+        <View style={[styles.actionIcon, premiumLocked && styles.actionIconLocked]}>
+          <Ionicons
+            name={icon as any}
+            size={18}
+            color={premiumLocked ? COLORS.textMuted : COLORS.primary}
+          />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.actionTitle}>{title}</Text>
+          <View style={styles.actionTitleRow}>
+            <Text style={[styles.actionTitle, premiumLocked && styles.actionTitleLocked]}>
+              {title}
+            </Text>
+            {badge ? (
+              <View style={styles.actionBadge}>
+                <Ionicons name="diamond" size={9} color={COLORS.card} />
+                <Text style={styles.actionBadgeText}>{badge}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.actionSubtitle}>{subtitle}</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color={COLORS.iconMuted} />
+        <Ionicons
+          name={premiumLocked ? "lock-closed" : "chevron-forward"}
+          size={16}
+          color={COLORS.iconMuted}
+        />
       </Pressable>
     );
   }
@@ -318,6 +391,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.highlightSoft,
     borderColor: COLORS.highlightBorder,
   },
+  actionRowLocked: {
+    backgroundColor: COLORS.bg,
+    borderColor: COLORS.border,
+    opacity: 0.92,
+  },
   actionIcon: {
     width: 36,
     height: 36,
@@ -326,7 +404,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.primarySoftAlt,
   },
+  actionIconLocked: {
+    backgroundColor: COLORS.border,
+  },
   actionTitle: { fontWeight: "700", fontSize: 14, color: COLORS.text },
+  actionTitleLocked: { color: COLORS.textSubtle },
+  actionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  actionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  actionBadgeText: {
+    color: COLORS.card,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
   actionSubtitle: { marginTop: 2, color: COLORS.textMuted, fontSize: 12 },
   badge: {
     backgroundColor: COLORS.badge,

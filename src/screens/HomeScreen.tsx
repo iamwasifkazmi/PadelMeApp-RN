@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import {
@@ -30,6 +30,8 @@ import { displayMatchTitle } from "../lib/matchDisplay";
 import { emailsMatch, shouldShowConfirmScoreCta } from "../lib/matchPendingScore";
 import { matchAppearsOnDiscoveryListBySchedule } from "../lib/matchSchedule";
 import { homeGreetingName, userNeedsOnboarding } from "../lib/profileOnboarding";
+import { PREMIUM_ENABLED } from "../config/features";
+import { usePremiumGate } from "../hooks/usePremiumGate";
 
 type FriendRequestDto = {
   id: string;
@@ -159,6 +161,18 @@ export function HomeScreen() {
   const USER_EMAIL = getCurrentUserEmail();
   const navigation = useNavigation<any>();
   const { showSnackbar } = useSnackbar();
+  const { openGate, gateModal } = usePremiumGate();
+  const handleCompetePress = React.useCallback(() => {
+    if (!PREMIUM_ENABLED) {
+      openGate({
+        feature: "Tournaments & Leagues",
+        description:
+          "Compete in tournaments and leagues is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you.",
+      });
+      return;
+    }
+    navigation.navigate("Competitions");
+  }, [navigation, openGate]);
   const [playersTab, setPlayersTab] = React.useState<"nearby" | "friends">("nearby");
   const [instantTime, setInstantTime] = React.useState<"Now" | "1 hour" | "2 hours">("Now");
   const [loading, setLoading] = React.useState(true);
@@ -241,6 +255,13 @@ export function HomeScreen() {
   React.useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Keep header notification badge in sync after returning from Notifications screen.
+      load({ silent: true }).catch(() => undefined);
+    }, [load]),
+  );
 
   React.useEffect(() => {
     if (loading || !me) return;
@@ -387,6 +408,7 @@ export function HomeScreen() {
   const eloSum = recentResults.reduce((sum, r) => sum + r.elo, 0);
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -476,7 +498,12 @@ export function HomeScreen() {
       <View style={styles.quickActionsRow}>
         <QuickAction icon="🔍" label="Find Game" onPress={goDiscover} />
         <QuickAction icon="➕" label="Create" accent onPress={() => navigation.navigate("CreateMatch")} />
-        <QuickAction icon="🏆" label="Compete" onPress={() => navigation.navigate("Competitions")} />
+        <QuickAction
+          icon="🏆"
+          label={PREMIUM_ENABLED ? "Compete" : "Coming Soon"}
+          locked={!PREMIUM_ENABLED}
+          onPress={handleCompetePress}
+        />
         <QuickAction icon="👥" label="Players" onPress={() => navigation.navigate("Players")} />
       </View>
 
@@ -656,8 +683,13 @@ export function HomeScreen() {
         <EmptyState icon="🔍" message="No open matches nearby" action="Create the first one" onAction={() => navigation.navigate("CreateMatch")} />
       )}
 
-      <SectionHeader title="🏆 Competitions" subtitle="Tournaments & leagues" action="See all →" onAction={() => navigation.navigate("Competitions")} />
-      {registrationCompetitions.length > 0 ? (
+      <SectionHeader
+        title="🏆 Competitions"
+        subtitle={PREMIUM_ENABLED ? "Tournaments & leagues" : "Coming soon in v2 · Premium"}
+        action={PREMIUM_ENABLED ? "See all →" : "Learn more →"}
+        onAction={handleCompetePress}
+      />
+      {registrationCompetitions.length > 0 && PREMIUM_ENABLED ? (
         registrationCompetitions.map((c) => (
           <CompetitionMiniCardLike
             key={c.id}
@@ -666,7 +698,16 @@ export function HomeScreen() {
           />
         ))
       ) : (
-        <EmptyState icon="🏆" message="No competitions open right now" action="Browse competitions" onAction={() => navigation.navigate("Competitions")} />
+        <EmptyState
+          icon="🏆"
+          message={
+            PREMIUM_ENABLED
+              ? "No competitions open right now"
+              : "Tournaments & leagues — coming soon in v2"
+          }
+          action={PREMIUM_ENABLED ? "Browse competitions" : "Learn more"}
+          onAction={handleCompetePress}
+        />
       )}
 
       {recentResults.length > 0 ? (
@@ -713,6 +754,8 @@ export function HomeScreen() {
         </View>
       ) : null}
     </ScrollView>
+    {gateModal}
+    </>
   );
 }
 
@@ -720,17 +763,35 @@ function QuickAction({
   icon,
   label,
   accent,
+  locked,
   onPress,
 }: {
   icon: string;
   label: string;
   accent?: boolean;
+  locked?: boolean;
   onPress: () => void;
 }) {
   return (
-    <Pressable style={[styles.quickAction, accent && styles.quickActionAccent]} onPress={onPress}>
-      <Text style={styles.quickActionIcon}>{icon}</Text>
-      <Text style={[styles.quickActionText, accent && styles.quickActionTextAccent]}>{label}</Text>
+    <Pressable
+      style={[
+        styles.quickAction,
+        accent && styles.quickActionAccent,
+        locked && styles.quickActionLocked,
+      ]}
+      onPress={onPress}
+    >
+      <Text style={[styles.quickActionIcon, locked && styles.quickActionIconLocked]}>{icon}</Text>
+      <Text
+        style={[
+          styles.quickActionText,
+          accent && styles.quickActionTextAccent,
+          locked && styles.quickActionTextLocked,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -1090,9 +1151,16 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   quickActionAccent: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  quickActionLocked: {
+    backgroundColor: COLORS.bg,
+    borderColor: COLORS.borderMuted,
+    borderStyle: "dashed",
+  },
   quickActionIcon: { fontSize: 19, marginBottom: 1 },
+  quickActionIconLocked: { opacity: 0.55 },
   quickActionText: { fontSize: 11, fontWeight: "700", color: COLORS.text },
   quickActionTextAccent: { color: COLORS.card },
+  quickActionTextLocked: { color: COLORS.textMuted, fontSize: 10 },
   matchCard: { backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 12, marginBottom: 8 },
   cardTopRow: {
     flexDirection: "row",

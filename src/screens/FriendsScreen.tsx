@@ -60,6 +60,14 @@ export function FriendsScreen() {
   const [tab, setTab] = React.useState<Tab>("friends");
   const [friendSearch, setFriendSearch] = React.useState("");
   const [discoverSearch, setDiscoverSearch] = React.useState("");
+  const userByEmail = React.useMemo(() => {
+    const m = new Map<string, UserDto>();
+    for (const u of [...friends, ...users]) {
+      const k = normEmail(u.email);
+      if (!m.has(k)) m.set(k, u);
+    }
+    return m;
+  }, [friends, users]);
 
   const incomingPending = React.useMemo(
     () =>
@@ -249,10 +257,11 @@ export function FriendsScreen() {
                 <Text style={styles.empty}>No pending sent requests.</Text>
               ) : (
                 outgoingPending.map((r) => (
-                  <View key={r.id} style={styles.card}>
-                    <Text style={styles.cardTitle}>To {r.recipientEmail}</Text>
-                    <Text style={styles.cardMeta}>Pending</Text>
-                  </View>
+                  <SentRequestCard
+                    key={r.id}
+                    recipientEmail={r.recipientEmail}
+                    user={userByEmail.get(normEmail(r.recipientEmail)) ?? null}
+                  />
                 ))
               )}
             </View>
@@ -310,6 +319,41 @@ export function FriendsScreen() {
           ) : null
         }
       />
+    </View>
+  );
+}
+
+function SentRequestCard({ recipientEmail, user }: { recipientEmail: string; user: UserDto | null }) {
+  const dist = formatDistanceAway(user?.distanceKm);
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTop}>
+        <UserAvatar
+          photoUrl={user?.photoUrl ?? null}
+          label={user?.fullName || recipientEmail}
+          size={40}
+          shape="circle"
+          variant="soft"
+          fallbackBackgroundColor={COLORS.primarySoft}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{user?.fullName || recipientEmail}</Text>
+          {user ? (
+            <>
+              <View style={styles.friendSkillWrap}>
+                <PadelLevelRow skillLevel={user.skillLevel} fallbackLabel={user.skillLabel} compact />
+              </View>
+              <Text style={styles.cardMeta}>
+                ELO {user.eloRating ?? 1000}
+                {dist ? ` · ${dist}` : ""}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.cardMeta}>Profile unavailable</Text>
+          )}
+        </View>
+      </View>
+      <Text style={styles.cardMeta}>Pending</Text>
     </View>
   );
 }

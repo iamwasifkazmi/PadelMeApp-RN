@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { LocationSearchModal } from "../components/LocationSearchModal";
+import { CountrySearchPicker } from "../components/CountrySearchPicker";
 import { useSnackbar } from "../components/Snackbar";
 import { SkeletonBlock } from "../components/Skeleton";
 import { getCurrentUserEmail, getCurrentUserName } from "../store";
@@ -48,6 +49,7 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
   const [locationName, setLocationName] = React.useState("");
   const [locationLat, setLocationLat] = React.useState<number | null>(null);
   const [locationLng, setLocationLng] = React.useState<number | null>(null);
+  const [country, setCountry] = React.useState("");
   const [locOpen, setLocOpen] = React.useState(false);
 
   const [requestId, setRequestId] = React.useState<string | null>(null);
@@ -68,11 +70,13 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
           locationLng?: number | null;
           skillLabel?: string | null;
           matchTypePreference?: string | null;
+          country?: string | null;
         }>(`/users/me?email=${encodeURIComponent(USER_EMAIL)}`);
         if (cancelled) return;
         setLocationName(userLocationLabel(me));
         setLocationLat(me.locationLat ?? null);
         setLocationLng(me.locationLng ?? null);
+        if (me.country) setCountry(me.country);
         if (me.skillLabel) setSkillLevel(me.skillLabel);
         if (me.matchTypePreference === "singles") setMatchType("singles");
       } catch {
@@ -125,6 +129,7 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
         locationName: locationName.trim() || "Nearby court",
         locationLat: locationLat!,
         locationLng: locationLng!,
+        country: country || undefined,
       });
       setStatus(res.status);
       setNearby(Array.isArray(res.nearbyMatches) ? res.nearbyMatches : []);
@@ -208,6 +213,13 @@ export function InstantPlayScreen({ navigation }: { navigation: { navigate: (n: 
             {locationName.trim() || "Tap to set location"}
           </Text>
         </Pressable>
+
+        <Text style={styles.fieldLabel}>Country (optional)</Text>
+        <CountrySearchPicker
+          value={country}
+          onChange={setCountry}
+          hint="Helps players find you in the right region."
+        />
       </View>
 
       <View style={styles.card}>

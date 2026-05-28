@@ -16,11 +16,11 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchDto, UserDto } from "../lib/types";
-import { USER_COUNTRY_CHOICES } from "../lib/profileCountries";
 import { VenuePicker, VenuePick } from "../components/VenuePicker";
 import { geocodePlaceQuery } from "../lib/venueGeocode";
 import { userLocationLabel } from "../lib/userLocation";
 import { getCurrentUserEmail } from "../store";
+import { CountrySearchPicker } from "../components/CountrySearchPicker";
 import { COLORS } from "../theme/colors";
 import { androidChipText } from "../theme/chipAndroid";
 
@@ -52,6 +52,7 @@ type FormState = {
   scoringMode: ScoringFormatValue;
   numSetsPick: NumSetsPick;
   autoBalanceTeams: boolean;
+  repeatEnabled: boolean;
   recurrenceFrequency: RecurrenceFrequency;
   recurrenceDays: string[];
   recurrenceEndRule: RecurrenceEndRule;
@@ -109,7 +110,6 @@ const SKILL_OPTIONS: Array<{ value: SkillValue; label: string }> = [
 const TAG_OPTIONS = ["🔥 Competitive", "🤝 Social", "🎯 Training", "😎 Chill", "🌱 Beginner-friendly"];
 
 function getSteps(mode: Mode) {
-  if (mode === "instant") return ["mode", "setup", "players"] as const;
   return ["mode", "setup", "when", "players"] as const;
 }
 
@@ -152,6 +152,9 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const [saving, setSaving] = React.useState(false);
   const [titleEditedByUser, setTitleEditedByUser] = React.useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(true);
+  const [recurrencePickerOpen, setRecurrencePickerOpen] = React.useState<
+    null | "frequency" | "ends" | "playerGroup"
+  >(null);
   const [form, setForm] = React.useState<FormState>({
     mode: recurring ? "recurring" : "scheduled",
     matchType: "doubles",
@@ -170,13 +173,27 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     scoringMode: "simple",
     numSetsPick: 1,
     autoBalanceTeams: false,
+    repeatEnabled: recurring,
     recurrenceFrequency: "weekly",
-    recurrenceDays: ["Tuesday"],
-    recurrenceEndRule: "after_count",
+    recurrenceDays: [],
+    recurrenceEndRule: "never",
     recurrenceEndCount: 8,
     recurrenceEndDate: formatLocalDate(new Date(Date.now() + 90 * 86400000)),
     playerGroupMode: "open",
   });
+
+  React.useEffect(() => {
+    // Keep recurring defaults aligned with Base44.
+    if (form.mode === "recurring" && !form.repeatEnabled) return;
+    if (form.mode === "recurring" && form.repeatEnabled) {
+      setForm((p) => ({
+        ...p,
+        recurrenceFrequency: p.recurrenceFrequency || "weekly",
+        recurrenceEndRule: p.recurrenceEndRule || "never",
+        playerGroupMode: p.playerGroupMode || "open",
+      }));
+    }
+  }, [form.mode, form.repeatEnabled]);
 
   React.useEffect(() => {
     if (titleEditedByUser) return;
@@ -260,6 +277,15 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     }));
   };
 
+  const toggleRecurrenceDay = (day: string) => {
+    update(
+      "recurrenceDays",
+      form.recurrenceDays.includes(day)
+        ? form.recurrenceDays.filter((d) => d !== day)
+        : [...form.recurrenceDays, day],
+    );
+  };
+
   const maxPlayers = form.matchType === "singles" ? 2 : 4;
   const canNext =
     currentStep === "mode"
@@ -335,7 +361,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       setSaving(true);
       const scoringMode = form.scoringMode;
       const numSets = scoringMode === "sets" ? form.numSetsPick : 1;
-      const isRecurring = form.mode === "recurring";
+      const isRecurring = form.mode === "recurring" && form.repeatEnabled;
       const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
         parseLocalDateTime(form.date, form.timeLabel).getDay()
       ];
@@ -594,93 +620,105 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
             <Text style={styles.countryWhenHint}>
               Same labels as your profile country — helps others find this game in Discover.
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.countryChipsRow}>
-              <Pressable
-                onPress={() => update("country", "")}
-                style={[styles.countryChip, !form.country && styles.countryChipActive]}
-              >
-                <Text style={[styles.countryChipText, !form.country && styles.countryChipTextActive]}>None</Text>
-              </Pressable>
-              {USER_COUNTRY_CHOICES.map((c) => (
-                <Pressable
-                  key={c.value}
-                  onPress={() => update("country", c.value)}
-                  style={[styles.countryChip, form.country === c.value && styles.countryChipActive]}
-                >
-                  <Text
-                    style={[styles.countryChipText, form.country === c.value && styles.countryChipTextActive]}
-                  >
-                    {c.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <CountrySearchPicker
+              value={form.country}
+              onChange={(v) => update("country", v)}
+              hint="Leave blank if you don't want a country filter."
+            />
             {form.mode === "recurring" ? (
               <>
-                <SectionLabel text="Repeat" />
-                <View style={styles.row}>
-                  {(["weekly", "biweekly", "monthly"] as RecurrenceFrequency[]).map((f) => (
-                    <Pressable
-                      key={f}
-                      style={[styles.chip, form.recurrenceFrequency === f && styles.chipActive]}
-                      onPress={() => update("recurrenceFrequency", f)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          form.recurrenceFrequency === f && styles.chipTextActive,
-                        ]}
-                      >
-                        {f}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <View style={styles.recurrenceEndsSection}>
-                  <SectionLabel text="Ends" />
-                  <View style={styles.row}>
-                    {(
-                      [
-                        { key: "after_count" as const, label: "After N" },
-                        { key: "on_date" as const, label: "On date" },
-                        { key: "never" as const, label: "52 max" },
-                      ] as const
-                    ).map((opt) => (
-                      <Pressable
-                        key={opt.key}
-                        style={[styles.chip, form.recurrenceEndRule === opt.key && styles.chipActive]}
-                        onPress={() => update("recurrenceEndRule", opt.key)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            form.recurrenceEndRule === opt.key && styles.chipTextActive,
-                          ]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  {form.recurrenceEndRule === "after_count" ? (
-                    <View style={[styles.row, styles.recurrenceEndsCountRow]}>
-                      {[4, 8, 12, 16].map((n) => (
-                        <Pressable
-                          key={n}
-                          style={[styles.chip, form.recurrenceEndCount === n && styles.chipActive]}
-                          onPress={() => update("recurrenceEndCount", n)}
-                        >
-                          <Text
-                            style={[
-                              styles.chipText,
-                              form.recurrenceEndCount === n && styles.chipTextActive,
-                            ]}
-                          >
-                            {n}×
-                          </Text>
-                        </Pressable>
-                      ))}
+                <View style={styles.recurrenceCard}>
+                  <View style={styles.recurrenceHeadRow}>
+                    <View style={styles.recurrenceHeadLeft}>
+                      <Ionicons name="refresh" size={18} color={COLORS.primary} />
+                      <Text style={styles.recurrenceHeadTitle}>Recurring Match</Text>
                     </View>
+                    <Switch
+                      value={form.repeatEnabled}
+                      onValueChange={(v) => update("repeatEnabled", v)}
+                    />
+                  </View>
+
+                  {form.repeatEnabled ? (
+                    <>
+                      <Text style={styles.recurrenceLabel}>Frequency</Text>
+                      <Pressable
+                        style={styles.selectField}
+                        onPress={() => setRecurrencePickerOpen("frequency")}
+                      >
+                        <Text style={styles.selectValue}>
+                          {form.recurrenceFrequency === "weekly"
+                            ? "Weekly"
+                            : form.recurrenceFrequency === "biweekly"
+                              ? "Every 2 Weeks"
+                              : "Monthly"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={18} color={COLORS.iconMuted} />
+                      </Pressable>
+
+                      {form.recurrenceFrequency === "biweekly" ? (
+                        <>
+                          <Text style={styles.recurrenceLabel}>Days</Text>
+                          <View style={[styles.row, styles.rowWrap]}>
+                            {(
+                              [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                              ] as const
+                            ).map((d) => {
+                              const active = form.recurrenceDays.includes(d);
+                              return (
+                                <Pressable
+                                  key={d}
+                                  style={[styles.dayChip, active && styles.dayChipActive]}
+                                  onPress={() => toggleRecurrenceDay(d)}
+                                >
+                                  <Text style={[styles.dayChipText, active && styles.dayChipTextActive]}>
+                                    {d.slice(0, 3)}
+                                  </Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                          {form.recurrenceDays.length === 0 ? (
+                            <Text style={styles.dayHint}>Tip: pick at least one day (defaults to the chosen date).</Text>
+                          ) : null}
+                        </>
+                      ) : null}
+
+                      <Text style={styles.recurrenceLabel}>When Should This Series End?</Text>
+                      <Pressable
+                        style={styles.selectField}
+                        onPress={() => setRecurrencePickerOpen("ends")}
+                      >
+                        <Text style={styles.selectValue}>
+                          {form.recurrenceEndRule === "never"
+                            ? "Never (Keep Running)"
+                            : form.recurrenceEndRule === "after_count"
+                              ? `After ${form.recurrenceEndCount} Matches`
+                              : "On a Specific Date"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={18} color={COLORS.iconMuted} />
+                      </Pressable>
+
+                      <Text style={styles.recurrenceLabel}>Player Group</Text>
+                      <Pressable
+                        style={styles.selectField}
+                        onPress={() => setRecurrencePickerOpen("playerGroup")}
+                      >
+                        <Text style={styles.selectValue}>
+                          {form.playerGroupMode === "open"
+                            ? "Open Slots Each Time"
+                            : "Same Players Each Time"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={18} color={COLORS.iconMuted} />
+                      </Pressable>
+                    </>
                   ) : null}
                 </View>
               </>
@@ -889,6 +927,91 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         )}
       </View>
 
+      {recurrencePickerOpen ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setRecurrencePickerOpen(null)}
+        >
+          <Pressable
+            style={styles.recurrenceModalBackdrop}
+            onPress={() => setRecurrencePickerOpen(null)}
+          >
+            <Pressable style={styles.recurrenceModalSheet} onPress={() => undefined}>
+              <Text style={styles.recurrenceModalTitle}>
+                {recurrencePickerOpen === "frequency"
+                  ? "Frequency"
+                  : recurrencePickerOpen === "ends"
+                    ? "Series end"
+                    : "Player group"}
+              </Text>
+              {(recurrencePickerOpen === "frequency"
+                ? ([
+                    { value: "weekly" as const, label: "Weekly" },
+                    { value: "biweekly" as const, label: "Every 2 Weeks" },
+                    { value: "monthly" as const, label: "Monthly" },
+                  ] as const)
+                : recurrencePickerOpen === "ends"
+                  ? ([
+                      { key: "never", rule: "never" as const, label: "Never (Keep Running)" },
+                      { key: "after_4", rule: "after_count" as const, endCount: 4, label: "After 4 Matches" },
+                      { key: "after_8", rule: "after_count" as const, endCount: 8, label: "After 8 Matches" },
+                      { key: "after_12", rule: "after_count" as const, endCount: 12, label: "After 12 Matches" },
+                      { key: "after_16", rule: "after_count" as const, endCount: 16, label: "After 16 Matches" },
+                      { key: "on_date", rule: "on_date" as const, label: "On a Specific Date" },
+                    ] as const)
+                  : ([
+                      { value: "open" as const, label: "Open Slots Each Time" },
+                      { value: "fixed" as const, label: "Same Players Each Time" },
+                    ] as const)
+              ).map((opt) => {
+                const active =
+                  recurrencePickerOpen === "frequency"
+                    ? form.recurrenceFrequency === (opt as any).value
+                    : recurrencePickerOpen === "ends"
+                      ? form.recurrenceEndRule === (opt as any).rule &&
+                        ((opt as any).rule !== "after_count" ||
+                          form.recurrenceEndCount === (opt as any).endCount)
+                      : form.playerGroupMode === (opt as any).value;
+                return (
+                  <Pressable
+                    key={(opt as any).value ?? (opt as any).key}
+                    style={[styles.recurrenceOptionRow, active && styles.recurrenceOptionRowActive]}
+                    onPress={() => {
+                      if (recurrencePickerOpen === "frequency") {
+                        update("recurrenceFrequency", (opt as any).value);
+                      } else if (recurrencePickerOpen === "ends") {
+                        update("recurrenceEndRule", (opt as any).rule);
+                        if ((opt as any).rule === "after_count" && typeof (opt as any).endCount === "number") {
+                          update("recurrenceEndCount", (opt as any).endCount);
+                        }
+                      } else {
+                        update("playerGroupMode", (opt as any).value);
+                      }
+                      setRecurrencePickerOpen(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.recurrenceOptionText,
+                        active && styles.recurrenceOptionTextActive,
+                      ]}
+                    >
+                      {(opt as any).label}
+                    </Text>
+                    {active ? (
+                      <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+
       {pickerField ? (
         Platform.OS === "ios" ? (
           <Modal
@@ -1036,6 +1159,76 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
   },
+  recurrenceCard: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.primarySoft,
+  },
+  recurrenceHeadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  recurrenceHeadLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  recurrenceHeadTitle: { fontSize: 16, fontWeight: "800", color: COLORS.text },
+  recurrenceLabel: { marginTop: 10, marginBottom: 6, color: COLORS.textSubtle, fontSize: 12, fontWeight: "700" },
+  selectField: {
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  selectValue: { color: COLORS.text, fontSize: 14, fontWeight: "700" },
+  dayChip: {
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.card,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  dayChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
+  dayChipText: { fontSize: 12, fontWeight: "800", color: COLORS.textMuted },
+  dayChipTextActive: { color: COLORS.primaryDark },
+  dayHint: { marginTop: 6, color: COLORS.textMuted, fontSize: 11, lineHeight: 15 },
+  recurrenceModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(2,6,23,0.5)",
+    justifyContent: "flex-end",
+    padding: 16,
+  },
+  recurrenceModalSheet: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  recurrenceModalTitle: { fontSize: 14, fontWeight: "800", color: COLORS.text, marginBottom: 8 },
+  recurrenceOptionRow: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.bg,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  recurrenceOptionRowActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
+  recurrenceOptionText: { color: COLORS.text, fontSize: 13, fontWeight: "700" },
+  recurrenceOptionTextActive: { color: COLORS.primaryDark },
   modeCard: {
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1082,8 +1275,6 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 80, textAlignVertical: "top" },
   row: { flexDirection: "row", gap: 8 },
-  recurrenceEndsSection: { marginBottom: 20 },
-  recurrenceEndsCountRow: { marginTop: 8 },
   rowWrap: { flexWrap: "wrap" },
   flexOne: { flex: 1 },
   chip: {
@@ -1135,18 +1326,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  countryChipsRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 4, paddingRight: 8 },
-  countryChip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  countryChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primarySoft },
-  countryChipText: { fontSize: 12, color: COLORS.text, fontWeight: "600", ...androidChipText(12) },
-  countryChipTextActive: { color: COLORS.primaryDark },
   venueHint: {
     color: COLORS.text,
     fontSize: 13,

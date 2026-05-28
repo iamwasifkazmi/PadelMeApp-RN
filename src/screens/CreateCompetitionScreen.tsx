@@ -11,6 +11,8 @@ import { VenuePickerModal } from "../components/VenuePicker";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { hasUserGeo, userLocationLabel } from "../lib/userLocation";
+import { PREMIUM_ENABLED } from "../config/features";
+import { usePremiumGate } from "../hooks/usePremiumGate";
 
 type CompetitionTypeValue = "tournament" | "league";
 type CompetitionFormatValue = "knockout" | "round_robin" | "group_knockout";
@@ -89,6 +91,26 @@ export function CreateCompetitionScreen({
   const [saving, setSaving] = React.useState(false);
   const defaultType: CompetitionTypeValue =
     route?.params?.defaultType === "tournament" ? "tournament" : "league";
+
+  const { openGate, gateModal } = usePremiumGate();
+  const handleGateClose = React.useCallback(() => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    } else {
+      navigation?.navigate?.("MainTabs");
+    }
+  }, [navigation]);
+  React.useEffect(() => {
+    if (!PREMIUM_ENABLED) {
+      openGate({
+        feature: defaultType === "league" ? "Leagues" : "Tournaments",
+        description:
+          defaultType === "league"
+            ? "Hosting season-long leagues is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you."
+            : "Hosting tournaments is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you.",
+      });
+    }
+  }, [defaultType, openGate]);
   const [form, setForm] = React.useState<FormState>({
     name:
       defaultType === "league"
@@ -200,6 +222,27 @@ export function CreateCompetitionScreen({
   };
 
   if (loading) return <CreateCompetitionSkeleton />;
+
+  if (!PREMIUM_ENABLED) {
+    return (
+      <View style={styles.lockedContainer}>
+        <View style={styles.lockedCard}>
+          <Text style={styles.lockedEmoji}>👑</Text>
+          <Text style={styles.lockedTitle}>
+            {defaultType === "league" ? "Leagues" : "Tournaments"} are a Premium feature
+          </Text>
+          <Text style={styles.lockedBody}>
+            Hosting {defaultType === "league" ? "leagues" : "tournaments"} is coming soon in v2.
+            We'll let you know the moment it's ready.
+          </Text>
+          <Pressable style={styles.lockedBtn} onPress={handleGateClose} accessibilityRole="button">
+            <Text style={styles.lockedBtnText}>Go back</Text>
+          </Pressable>
+        </View>
+        {gateModal}
+      </View>
+    );
+  }
 
   const activeDateValue =
     activeDateField && form[activeDateField]
@@ -899,6 +942,45 @@ function formatDate(date: Date) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: 14, paddingBottom: 112, paddingTop: 16 },
+  lockedContainer: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  lockedCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    maxWidth: 380,
+    width: "100%",
+  },
+  lockedEmoji: { fontSize: 40, marginBottom: 8 },
+  lockedTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: COLORS.text,
+    textAlign: "center",
+  },
+  lockedBody: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    color: COLORS.textSubtle,
+    textAlign: "center",
+  },
+  lockedBtn: {
+    marginTop: 16,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    borderRadius: 12,
+  },
+  lockedBtnText: { color: COLORS.card, fontWeight: "800", fontSize: 13 },
   typeToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
   choiceBtn: {
     flex: 1,

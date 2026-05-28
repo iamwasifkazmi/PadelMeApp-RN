@@ -14,12 +14,16 @@ import { useRoute } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { SkeletonBlock } from "../components/Skeleton";
 import { useSnackbar } from "../components/Snackbar";
-import { UserDto } from "../lib/types";
+import { CompetitionDto, MatchDto, UserDto } from "../lib/types";
 import { buildWebInviteUrl } from "../config/deepLinks";
 import { getCurrentUserEmail } from "../store";
 import { COLORS } from "../theme/colors";
 import { PadelLevelRow } from "../components/PadelLevelRow";
 import { formatDistanceAway } from "../lib/padelSkill";
+
+function normEmail(s: string | null | undefined): string {
+  return (s || "").trim().toLowerCase();
+}
 
 type InviteItem = {
   id: string;
@@ -64,12 +68,14 @@ export function InvitePlayersScreen() {
   const route = useRoute();
   const params = (route.params || {}) as {
     eventId?: string;
+    eventKind?: "match" | "competition";
     eventTitle?: string;
     eventSubtitle?: string;
   };
   const { showSnackbar } = useSnackbar();
   const USER_EMAIL = getCurrentUserEmail();
   const eventId = params.eventId || "";
+  const eventKind = params.eventKind;
   const eventTitle = params.eventTitle || "This event";
   const eventSubtitle = params.eventSubtitle;
 
@@ -79,25 +85,48 @@ export function InvitePlayersScreen() {
   const [search, setSearch] = React.useState("");
   const [users, setUsers] = React.useState<UserDto[]>([]);
   const [invites, setInvites] = React.useState<InviteItem[]>([]);
+  const [participantEmails, setParticipantEmails] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const shareTokenRef = React.useRef<string | null>(null);
 
   const load = React.useCallback(async () => {
     try {
       setLoading(true);
-      const [usersResp, invitesResp] = await Promise.all([
+      const eventReq: Promise<MatchDto | CompetitionDto | null> = (() => {
+        if (!eventId) return Promise.resolve(null);
+        if (eventKind === "competition") {
+          return api.get<CompetitionDto>(`/competitions/${eventId}`).catch(() => null);
+        }
+        return api.get<MatchDto>(`/matches/${eventId}`).catch(() => null);
+      })();
+
+      const [usersResp, invitesResp, eventResp] = await Promise.all([
         api.get<UserDto[]>(`/users?viewerEmail=${encodeURIComponent(USER_EMAIL)}`),
         eventId ? api.get<InviteItem[]>(`/invites/event/${eventId}`) : Promise.resolve([]),
+        eventReq,
       ]);
+
+      const participants = (() => {
+        if (!eventResp) return [] as string[];
+        const list =
+          (eventResp as MatchDto).players ||
+          (eventResp as CompetitionDto).participants ||
+          [];
+        const host = eventResp.hostEmail;
+        return [...list, host || ""].map(normEmail).filter(Boolean);
+      })();
+
       setUsers(usersResp);
       setInvites(invitesResp);
+      setParticipantEmails(participants);
     } catch {
       setUsers([]);
       setInvites([]);
+      setParticipantEmails([]);
     } finally {
       setLoading(false);
     }
-  }, [eventId]);
+  }, [USER_EMAIL, eventId, eventKind]);
 
   React.useEffect(() => {
     shareTokenRef.current = null;
@@ -107,27 +136,55 @@ export function InvitePlayersScreen() {
     load();
   }, [load]);
 
+  const excludedEmails = React.useMemo(() => {
+    const set = new Set<string>();
+    const self = normEmail(USER_EMAIL);
+    if (self) set.add(self);
+    for (const email of participantEmails) set.add(email);
+    for (const inv of invites) {
+      const email = normEmail(inv.receiverEmail);
+      if (!email || email.startsWith("share.")) continue;
+      set.add(email);
+    }
+    return set;
+  }, [USER_EMAIL, participantEmails, invites]);
+
   const filteredUsers = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    const invitedSet = new Set(
-      invites
-        .filter((i) => !i.receiverEmail.toLowerCase().startsWith("share."))
-        .map((i) => i.receiverEmail.toLowerCase()),
-    );
     return users.filter((u) => {
+      const email = normEmail(u.email);
+      if (excludedEmails.has(email)) return false;
       const label = `${u.fullName || ""} ${u.email}`.toLowerCase();
-      if (invitedSet.has(u.email.toLowerCase())) return false;
       return q ? label.includes(q) : true;
     });
-  }, [users, invites, search]);
+  }, [users, excludedEmails, search]);
+
+  // Drop any selections that have since become participants / invitees.
+  React.useEffect(() => {
+    setSelected((prev) => {
+      let changed = false;
+      const next: Record<string, boolean> = {};
+      for (const [email, v] of Object.entries(prev)) {
+        if (!v) continue;
+        if (excludedEmails.has(normEmail(email))) {
+          changed = true;
+          continue;
+        }
+        next[email] = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [excludedEmails]);
 
   const selectedEmails = React.useMemo(
     () => Object.keys(selected).filter((k) => selected[k]),
     [selected],
   );
 
-  const toggle = (email: string) =>
+  const toggle = (email: string) => {
+    if (excludedEmails.has(normEmail(email))) return;
     setSelected((prev) => ({ ...prev, [email]: !prev[email] }));
+  };
 
   const ensureShareToken = async (): Promise<string | null> => {
     if (!eventId) {

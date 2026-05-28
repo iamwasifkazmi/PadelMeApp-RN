@@ -5,15 +5,15 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { api } from "../lib/api";
 import { CompetitionDto, UserDto } from "../lib/types";
 import { SkeletonBlock } from "../components/Skeleton";
-import { useSnackbar } from "../components/Snackbar";
 import { getCurrentUserEmail } from "../store";
 import { PREMIUM_ENABLED } from "../config/features";
+import { usePremiumGate } from "../hooks/usePremiumGate";
 import { COLORS } from "../theme/colors";
 import { androidChipText, chipPillShellSm, CHIP_PAD_V_XS } from "../theme/chipAndroid";
 
 export function CompetitionsScreen() {
   const navigation = useNavigation<any>();
-  const { showSnackbar } = useSnackbar();
+  const { openGate, gateModal } = usePremiumGate();
   const listRef = React.useRef<FlatList<CompetitionDto>>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -65,7 +65,13 @@ export function CompetitionsScreen() {
 
   const handleCreate = React.useCallback(() => {
     if (!PREMIUM_ENABLED) {
-      showSnackbar("Hosting tournaments & leagues — coming soon in v2", { type: "info" });
+      openGate({
+        feature: tab === "league" ? "Leagues" : "Tournaments",
+        description:
+          tab === "league"
+            ? "Hosting season-long leagues is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you."
+            : "Hosting tournaments is coming soon in v2 as part of MiPadel Premium. Stay tuned — we're polishing the experience for you.",
+      });
       return;
     }
     if (!isSubscribed) {
@@ -73,7 +79,7 @@ export function CompetitionsScreen() {
     } else {
       navigation.navigate("CreateCompetition");
     }
-  }, [isSubscribed, navigation, showSnackbar]);
+  }, [isSubscribed, navigation, openGate, tab]);
 
   const switchTab = React.useCallback(
     (next: "tournament" | "league") => {
@@ -110,6 +116,7 @@ export function CompetitionsScreen() {
             <Text style={styles.gateStartText}>Start Premium</Text>
           </View>
         </Pressable>
+        {gateModal}
       </View>
     );
   }
@@ -262,12 +269,13 @@ export function CompetitionsScreen() {
             <Text style={styles.emptyText}>
               Be the first to create a {tab === "tournament" ? "tournament" : "league"} in your area.
             </Text>
-            <Pressable style={styles.emptyBtn} onPress={() => navigation.navigate("CreateCompetition")}>
+            <Pressable style={styles.emptyBtn} onPress={handleCreate}>
               <Text style={styles.emptyBtnText}>{tab === "tournament" ? "Host Tournament" : "Create League"}</Text>
             </Pressable>
           </View>
         }
       />
+      {gateModal}
     </View>
   );
 }
