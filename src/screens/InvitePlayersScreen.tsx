@@ -100,8 +100,8 @@ export function InvitePlayersScreen() {
         return api.get<MatchDto>(`/matches/${eventId}`).catch(() => null);
       })();
 
-      const [usersResp, invitesResp, eventResp] = await Promise.all([
-        api.get<UserDto[]>(`/users?viewerEmail=${encodeURIComponent(USER_EMAIL)}`),
+      const [friendsResp, invitesResp, eventResp] = await Promise.all([
+        api.get<{ friends: UserDto[] }>(`/friends?email=${encodeURIComponent(USER_EMAIL)}`),
         eventId ? api.get<InviteItem[]>(`/invites/event/${eventId}`) : Promise.resolve([]),
         eventReq,
       ]);
@@ -116,7 +116,7 @@ export function InvitePlayersScreen() {
         return [...list, host || ""].map(normEmail).filter(Boolean);
       })();
 
-      setUsers(usersResp);
+      setUsers(friendsResp.friends || []);
       setInvites(invitesResp);
       setParticipantEmails(participants);
     } catch {
@@ -285,7 +285,7 @@ export function InvitePlayersScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Invite players</Text>
-      <Text style={styles.subtitle}>Share a link or pick players from the community.</Text>
+      <Text style={styles.subtitle}>Share a link or invite friends from your list.</Text>
 
       {eventId ? (
         <View style={styles.hero}>
@@ -351,11 +351,11 @@ export function InvitePlayersScreen() {
         </>
       ) : null}
 
-      <Text style={styles.section}>Invite from directory</Text>
+      <Text style={styles.section}>Invite friends</Text>
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search players by name or email"
+        placeholder="Search friends by name or email"
         placeholderTextColor={COLORS.iconMuted}
         style={styles.searchInput}
       />
@@ -392,7 +392,13 @@ export function InvitePlayersScreen() {
             </Pressable>
           );
         }}
-        ListEmptyComponent={<Text style={styles.emptyText}>No players available to invite.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            {search.trim()
+              ? "No friends match your search."
+              : "No friends to invite yet. Add friends from Players, then come back."}
+          </Text>
+        }
       />
     </View>
   );
