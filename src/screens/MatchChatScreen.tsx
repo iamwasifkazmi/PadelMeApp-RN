@@ -1,6 +1,7 @@
 import React from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -138,6 +139,14 @@ export function MatchChatScreen({
   const typingUsersTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map(),
   );
+
+  React.useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    return () => sub.remove();
+  }, []);
 
   const load = React.useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
@@ -330,13 +339,14 @@ export function MatchChatScreen({
 
   const iosKeyboardOffset =
     headerHeight + Math.min(insets.top, 24) + (insets.bottom > 0 ? 8 : 16) + 22;
+  const composerBottomPad = Platform.OS === "android" ? Math.max(insets.bottom, 8) : 10;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : headerHeight}
-      enabled
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
+      enabled={Platform.OS === "ios"}
     >
       <FlatList
         ref={listRef}
@@ -440,7 +450,7 @@ export function MatchChatScreen({
         }
       />
 
-      <View style={styles.composerWrap}>
+      <View style={[styles.composerWrap, { paddingBottom: composerBottomPad }]}>
         {typingLabel ? (
           <View style={styles.liveMetaRow}>
             <Text style={styles.typingText}>{typingLabel}</Text>

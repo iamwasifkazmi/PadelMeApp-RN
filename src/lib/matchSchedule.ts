@@ -36,6 +36,49 @@ export function matchScheduledStartUtcMs(match: { date: string | Date | number; 
 const MS_MIN = 60 * 1000;
 const MS_HOUR = 60 * MS_MIN;
 const MS_24H = 24 * MS_HOUR;
+const STALE_CANCEL_GRACE_MS = 120_000;
+const JOIN_GRACE_MS = 120_000;
+const DEFAULT_INSTANT_DURATION_MIN = 90;
+
+function normalizeStatus(raw: string | undefined): string {
+  return (raw == null || String(raw).trim() === "" ? "open" : String(raw).trim()).toLowerCase();
+}
+
+/** UTC epoch when the playable window ends (start + duration). */
+export function matchPlayWindowEndUtcMs(match: {
+  date: string | Date | number;
+  timeLabel: string;
+  durationMinutes?: number | null;
+}): number {
+  const start = matchScheduledStartUtcMs(match);
+  if (Number.isNaN(start)) return NaN;
+  const mins =
+    typeof match.durationMinutes === "number" && Number.isFinite(match.durationMinutes)
+      ? Math.max(30, Math.trunc(match.durationMinutes))
+      : DEFAULT_INSTANT_DURATION_MIN;
+  return start + mins * MS_MIN;
+}
+
+export function matchPlayWindowHasEnded(
+  match: { date: string | Date | number; timeLabel: string; durationMinutes?: number | null },
+  nowMs = Date.now(),
+  graceMs = STALE_CANCEL_GRACE_MS,
+): boolean {
+  const end = matchPlayWindowEndUtcMs(match);
+  if (Number.isNaN(end)) return true;
+  return end + graceMs < nowMs;
+}
+
+/** Full roster may start until 24h after scheduled start (same as auto-cancel policy). */
+export function fullRosterStartWindowExpired(
+  match: { date: string | Date | number; timeLabel: string; isInstant?: boolean },
+  nowMs = Date.now(),
+): boolean {
+  if (match.isInstant) return matchPlayWindowHasEnded(match, nowMs);
+  const start = matchScheduledStartUtcMs(match);
+  if (Number.isNaN(start)) return true;
+  return start + MS_24H + STALE_CANCEL_GRACE_MS < nowMs;
+}
 
 /** Auto-cancel deadline when roster is full but the match was never started (server policy). */
 export function fullRosterAutoCancelDeadlineUtcMs(match: {
@@ -58,9 +101,6 @@ export function formatDurationUntil(deadlineMs: number, nowMs = Date.now()): str
   if (h >= 1) return `${h} hour${h === 1 ? "" : "s"}`;
   return `${Math.max(1, m)} minute${m === 1 ? "" : "s"}`;
 }
-
-const STALE_CANCEL_GRACE_MS = 120_000;
-const JOIN_GRACE_MS = 120_000;
 
 /** Join still allowed shortly before start (matches backend join window). */
 export function scheduledNonInstantJoinAllowed(
@@ -85,15 +125,28 @@ export function scheduledNonInstantSlotIsExpired(
   return start + graceMs < nowMs;
 }
 
-/** Open games only: hide once the slot has passed (matches backend). Full / in-play rows stay. */
+/**
+ * Lists (discovery, home upcoming): hide open/full rows once their slot or start window has passed.
+ */
 export function matchAppearsOnDiscoveryListBySchedule(match: MatchDto): boolean {
-  if (match.isInstant) return true;
-  const raw = match.status;
-  const st = (raw == null || String(raw).trim() === "" ? "open" : String(raw).trim()).toLowerCase();
-  if (st !== "open") return true;
-  return !scheduledNonInstantSlotIsExpired({
+  const st = normalizeStatus(match.status);
+  const slot = {
     date: match.date,
     timeLabel: String(match.timeLabel || "").trim(),
-    isInstant: false,
-  });
+    isInstant: !!match.isInstant,
+    durationMinutes: match.durationMinutes,
+  };
+
+  if (st === "open" || st === "full") {
+    if (match.isInstant) return !matchPlayWindowHasEnded(slot);
+    if (st === "open") {
+      return !scheduledNonInstantSlotIsExpired({
+        date: match.date,
+        timeLabel: slot.timeLabel,
+        isInstant: false,
+      });
+    }
+    return !fullRosterStartWindowExpired(slot);
+  }
+  return true;
 }

@@ -331,22 +331,32 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
     }
 
     if (locationLat == null || locationLng == null) {
-      const geoQuery = locationAddress || locationName || form.country.trim() || "United Kingdom";
-      let geo: { lat: number; lng: number } | null = null;
-      try {
-        geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
-      } catch {
-        geo = profileGeo;
+      // Instant matches must be local — don't guess a country centroid (it can match worldwide).
+      if (form.mode === "instant") {
+        if (!profileGeo) {
+          showSnackbar("Choose a playing area (venue search) so we have exact coordinates.", { type: "error" });
+          return;
+        }
+        locationLat = profileGeo.lat;
+        locationLng = profileGeo.lng;
+      } else {
+        const geoQuery = locationAddress || locationName || form.country.trim() || "United Kingdom";
+        let geo: { lat: number; lng: number } | null = null;
+        try {
+          geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
+        } catch {
+          geo = profileGeo;
+        }
+        if (!geo) {
+          showSnackbar(
+            "Could not resolve a map location. Pick a venue from search or try again in a minute.",
+            { type: "error" },
+          );
+          return;
+        }
+        locationLat = geo.lat;
+        locationLng = geo.lng;
       }
-      if (!geo) {
-        showSnackbar(
-          "Could not resolve a map location. Pick a venue from search or try again in a minute.",
-          { type: "error" },
-        );
-        return;
-      }
-      locationLat = geo.lat;
-      locationLng = geo.lng;
     }
 
     if (form.mode !== "instant") {

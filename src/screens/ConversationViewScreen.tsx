@@ -1,6 +1,7 @@
 import React from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -104,6 +105,14 @@ export function ConversationViewScreen({
   const typingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const peerTypingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+    return () => sub.remove();
+  }, []);
 
   const load = React.useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
@@ -352,13 +361,14 @@ export function ConversationViewScreen({
   /** Larger offset = more lift (RN subtracts this from keyboard screenY). Header + safe-area nudge + extra for native stack. */
   const iosKeyboardOffset =
     headerHeight + Math.min(insets.top, 24) + (insets.bottom > 0 ? 8 : 16) + 22;
+  const composerBottomPad = Platform.OS === "android" ? Math.max(insets.bottom, 8) : 10;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : headerHeight}
-      enabled
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? iosKeyboardOffset : 0}
+      enabled={Platform.OS === "ios"}
     >
       <FlatList
         ref={listRef}
@@ -404,7 +414,7 @@ export function ConversationViewScreen({
         ListEmptyComponent={<Text style={styles.empty}>No messages yet.</Text>}
       />
 
-      <View style={styles.composerWrap}>
+      <View style={[styles.composerWrap, { paddingBottom: composerBottomPad }]}>
         {isPeerTyping ? (
           <View style={styles.liveMetaRow}>
             <Text style={styles.typingText}>Typing...</Text>
