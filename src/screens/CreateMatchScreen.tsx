@@ -17,7 +17,6 @@ import { api } from "../lib/api";
 import { useSnackbar } from "../components/Snackbar";
 import { MatchDto, UserDto } from "../lib/types";
 import { VenuePicker, VenuePick } from "../components/VenuePicker";
-import { geocodePlaceQuery } from "../lib/venueGeocode";
 import { userLocationLabel } from "../lib/userLocation";
 import { getCurrentUserEmail } from "../store";
 import { CountrySearchPicker } from "../components/CountrySearchPicker";
@@ -140,6 +139,17 @@ function isSameLocalCalendarDay(dateStr: string, ref: Date): boolean {
   return dateStr === formatLocalDate(ref);
 }
 
+function hasValidVenueSelection(
+  venue: VenuePick | null,
+  form: Pick<FormState, "locationName" | "locationLat" | "locationLng">,
+): boolean {
+  const name = (venue?.name ?? form.locationName).trim();
+  if (!name || /^tbd/i.test(name)) return false;
+  const lat = venue?.lat ?? form.locationLat;
+  const lng = venue?.lng ?? form.locationLng;
+  return lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
+}
+
 export function CreateMatchScreen({ navigation, route }: { navigation: any; route?: any }) {
   const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
@@ -148,7 +158,6 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   const [stepIndex, setStepIndex] = React.useState(0);
   const [pickerField, setPickerField] = React.useState<"date" | "time" | null>(null);
   const [venue, setVenue] = React.useState<VenuePick | null>(null);
-  const [profileGeo, setProfileGeo] = React.useState<{ lat: number; lng: number } | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [titleEditedByUser, setTitleEditedByUser] = React.useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = React.useState(true);
@@ -213,14 +222,6 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         if (cancelled) return;
         const c = (u.country || "").trim();
         if (c) setForm((p) => ({ ...p, country: p.country || c }));
-        if (
-          u.locationLat != null &&
-          u.locationLng != null &&
-          Number.isFinite(u.locationLat) &&
-          Number.isFinite(u.locationLng)
-        ) {
-          setProfileGeo({ lat: u.locationLat, lng: u.locationLng });
-        }
       })
       .catch(() => {});
     return () => {
@@ -287,26 +288,37 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
   };
 
   const maxPlayers = form.matchType === "singles" ? 2 : 4;
+  const venueSelected = hasValidVenueSelection(venue, form);
+
   const canNext =
     currentStep === "mode"
       ? Boolean(form.mode)
       : currentStep === "setup"
         ? Boolean(form.matchType && form.title.trim().length >= 1)
         : currentStep === "when"
-          ? Boolean(form.date && form.timeLabel)
+          ? Boolean(form.date && form.timeLabel && venueSelected)
           : true;
 
   const onNext = () => {
-    if (!canNext) {
-      showSnackbar("Please complete this step first.", { type: "error" });
-      return;
-    }
-    if (currentStep === "when" && form.mode !== "instant") {
-      const t = parseLocalDateTime(form.date, form.timeLabel);
-      if (t.getTime() < Date.now()) {
-        showSnackbar("Pick a date and time in the future.", { type: "error" });
+    if (currentStep === "when") {
+      if (!form.date || !form.timeLabel) {
+        showSnackbar("Pick a date and time to continue.", { type: "error" });
         return;
       }
+      if (!venueSelected) {
+        showSnackbar("Select a venue before moving to the final step.", { type: "error" });
+        return;
+      }
+      if (form.mode !== "instant") {
+        const t = parseLocalDateTime(form.date, form.timeLabel);
+        if (t.getTime() < Date.now()) {
+          showSnackbar("Pick a date and time in the future.", { type: "error" });
+          return;
+        }
+      }
+    } else if (!canNext) {
+      showSnackbar("Please complete this step first.", { type: "error" });
+      return;
     }
     if (stepIndex < steps.length - 1) setStepIndex((s) => s + 1);
   };
@@ -321,43 +333,15 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
       showSnackbar("Match title is required.", { type: "error" });
       return;
     }
-    let locationName = form.locationName.trim();
-    let locationAddress = form.locationAddress.trim();
-    let locationLat = form.locationLat;
-    let locationLng = form.locationLng;
-
-    if (!locationName) {
-      locationName = form.mode === "instant" ? "TBD" : "TBD — to be confirmed";
+    if (!hasValidVenueSelection(venue, form)) {
+      showSnackbar("Select a venue before creating the match.", { type: "error" });
+      return;
     }
 
-    if (locationLat == null || locationLng == null) {
-      // Instant matches must be local — don't guess a country centroid (it can match worldwide).
-      if (form.mode === "instant") {
-        if (!profileGeo) {
-          showSnackbar("Choose a playing area (venue search) so we have exact coordinates.", { type: "error" });
-          return;
-        }
-        locationLat = profileGeo.lat;
-        locationLng = profileGeo.lng;
-      } else {
-        const geoQuery = locationAddress || locationName || form.country.trim() || "United Kingdom";
-        let geo: { lat: number; lng: number } | null = null;
-        try {
-          geo = (await geocodePlaceQuery(geoQuery)) ?? profileGeo;
-        } catch {
-          geo = profileGeo;
-        }
-        if (!geo) {
-          showSnackbar(
-            "Could not resolve a map location. Pick a venue from search or try again in a minute.",
-            { type: "error" },
-          );
-          return;
-        }
-        locationLat = geo.lat;
-        locationLng = geo.lng;
-      }
-    }
+    const locationName = form.locationName.trim();
+    const locationAddress = form.locationAddress.trim();
+    const locationLat = form.locationLat!;
+    const locationLng = form.locationLng!;
 
     if (form.mode !== "instant") {
       const t = parseLocalDateTime(form.date, form.timeLabel);
@@ -591,7 +575,7 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
         {currentStep === "when" ? (
           <>
             <Text style={styles.stepTitle}>When & where? 📍</Text>
-            <Text style={styles.stepSubtitle}>Venue is optional — you can confirm later</Text>
+            <Text style={styles.stepSubtitle}>Search and select a venue with a map location</Text>
             <View style={styles.row}>
               <View style={styles.flexOne}>
                 <SectionLabel text="Date" />
@@ -609,21 +593,10 @@ export function CreateMatchScreen({ navigation, route }: { navigation: any; rout
               </View>
             </View>
 
-            <View style={styles.venueSectionHead}>
-              <SectionLabel text="Venue" />
-              <View style={styles.optionalPill}>
-                <Text style={styles.optionalPillText}>Optional</Text>
-              </View>
-            </View>
+            <SectionLabel text="Venue" required />
             <VenuePicker sport="padel" value={venue} onChange={applyVenue} />
-            {!venue ? (
-              <Pressable
-                onPress={() =>
-                  applyVenue({ name: "TBD — to be confirmed", address: "", lat: null, lng: null })
-                }
-              >
-                <Text style={styles.noVenueYet}>📍 No venue yet — confirm after players join</Text>
-              </Pressable>
+            {!venueSelected ? (
+              <Text style={styles.venueRequiredHint}>Select a venue from search to continue</Text>
             ) : null}
 
             <SectionLabel text="Country (optional)" />
@@ -1093,8 +1066,13 @@ function ModeCard({
   );
 }
 
-function SectionLabel({ text }: { text: string }) {
-  return <Text style={styles.sectionLabel}>{text}</Text>;
+function SectionLabel({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <Text style={styles.sectionLabel}>
+      {text}
+      {required ? <Text style={styles.sectionLabelRequired}> *</Text> : null}
+    </Text>
+  );
 }
 
 function Field({
@@ -1163,11 +1141,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   optionalPillText: { fontSize: 11, color: COLORS.textMuted, fontWeight: "600" },
-  noVenueYet: {
+  sectionLabelRequired: { color: COLORS.dangerText },
+  venueRequiredHint: {
     marginTop: 8,
     fontSize: 12,
     fontWeight: "600",
-    color: COLORS.primary,
+    color: COLORS.dangerText,
   },
   recurrenceCard: {
     marginTop: 12,

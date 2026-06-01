@@ -89,8 +89,8 @@ android {
         applicationId "com.mipadel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "1.10.1"
+        versionCode 21
+        versionName "1.10.2"
     }
     signingConfigs {
         debug {
