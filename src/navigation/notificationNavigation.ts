@@ -30,6 +30,18 @@ export function navigateForNotification(
     (n.relatedEntityType || "").toLowerCase() === "conversation" && n.relatedEntityId?.trim();
   const conversationId = isConversation ? n.relatedEntityId!.trim() : "";
 
+  if (
+    type === "instant_play_nearby" ||
+    type === "instant_play_matched" ||
+    type === "instant_play_player_joined"
+  ) {
+    if (matchId) {
+      navigation.navigate("MatchDetail", { id: matchId });
+      return;
+    }
+    navigation.navigate("InstantPlay");
+    return;
+  }
   if (type === "match_chat_message" && matchId) {
     navigation.navigate("MatchChat", { matchId });
     return;
@@ -100,6 +112,18 @@ export async function openNotificationFromRef(item: NotificationDto): Promise<vo
   const isConversation =
     (item.relatedEntityType || "").toLowerCase() === "conversation" && item.relatedEntityId?.trim();
   const conversationId = isConversation ? item.relatedEntityId!.trim() : "";
+  if (
+    type === "instant_play_nearby" ||
+    type === "instant_play_matched" ||
+    type === "instant_play_player_joined"
+  ) {
+    if (matchId) {
+      navigationRef.navigate("MatchDetail", { id: matchId });
+      return;
+    }
+    navigationRef.navigate("InstantPlay");
+    return;
+  }
   if (type === "match_chat_message" && matchId) {
     navigationRef.navigate("MatchChat", { matchId });
     return;

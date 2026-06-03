@@ -28,6 +28,7 @@ import { CountrySearchPicker } from "../components/CountrySearchPicker";
 import { PadelSkillLevelGrid } from "../components/PadelSkillLevelGrid";
 import { PadelSkillLevelSummary } from "../components/PadelSkillLevelSummary";
 import { padelSkillApiLabel } from "../lib/padelSkill";
+import { TRAVEL_RADIUS_OPTIONS_KM } from "../lib/travelRadius";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 const DAY_LABELS: Record<(typeof DAYS)[number], string> = {
@@ -72,7 +73,6 @@ const TAG_OPTIONS = [
   { label: "Social 🤝", value: "Social" },
   { label: "Training partner 🎯", value: "Training partner" },
 ];
-const TRAVEL_OPTIONS = [5, 10, 20, 50];
 const NOTIF_ITEMS = [
   { key: "notifyInstantPlay", label: "⚡ Instant Play matches" },
   { key: "notifyNearbyMatches", label: "📍 Nearby matches" },
@@ -588,7 +588,7 @@ export function EditProfileScreen() {
 
           <Text style={styles.fieldLabel}>Travel radius</Text>
           <View style={styles.travelRow}>
-            {TRAVEL_OPTIONS.map((km) => (
+            {TRAVEL_RADIUS_OPTIONS_KM.map((km) => (
               <Pressable
                 key={km}
                 style={[styles.travelBtn, form.travelRadiusKm === km && styles.travelBtnActive]}
